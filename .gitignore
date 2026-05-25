@@ -1,0 +1,53 @@
+# ===== MAVEN =====
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# ===== INTELLIJ =====
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+.idea/modules.xml
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/dictionaries
+.idea/vcs.xml
+
+# ===== SPRING BOOT =====
+*.jar
+*.war
+*.ear
+spring.log
+
+# ===== VARIABLES D'ENVIRONNEMENT =====
+.env
+.env.local
+.env.*.local
+*.env
+
+# ===== LOGS =====
+logs/
+*.log
+*.log.*
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+
+# ===== DOCKER =====
+# Les fichiers docker-compose sont commités, pas les volumes
+docker/volumes/
+
+# ===== JACOCO =====
+jacoco.exec
+
+# ===== SONAR =====
+.sonar/
+.scannerwork/
+
+# ===== ALLURE =====
+allure-results/
+allure-report/
