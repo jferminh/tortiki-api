@@ -51,3 +51,4 @@ jacoco.exec
 # ===== ALLURE =====
 allure-results/
 allure-report/
+/HELP.md

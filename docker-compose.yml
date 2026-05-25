@@ -1,0 +1,57 @@
+# docker-compose.yml
+# Services locaux pour le profil dev de Tortiki API
+# Démarrage : docker compose up -d
+
+services:
+
+  # ===== PostgreSQL 16 =====
+  postgres:
+    image: postgres:16-alpine
+    container_name: tortiki-postgres
+    environment:
+      POSTGRES_DB: tortiki
+      POSTGRES_USER: tortiki
+      POSTGRES_PASSWORD: tortiki
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tortiki -d tortiki"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ===== MinIO — Stockage photos (compatible S3) =====
+  minio:
+    image: minio/minio:latest
+    container_name: tortiki-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"   # API S3
+      - "9001:9001"   # Console web MinIO
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ===== MailHog — Serveur mail fictif =====
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: tortiki-mailhog
+    ports:
+      - "1025:1025"   # SMTP (reçoit les emails de Spring Mail)
+      - "8025:8025"   # Interface web pour lire les emails
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  minio_data:
