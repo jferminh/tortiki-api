@@ -25,6 +25,7 @@
         <testcontainers.version>1.19.8</testcontainers.version>
         <allure.version>2.27.0</allure.version>
         <jacoco.version>0.8.12</jacoco.version>
+        <lombok.version>1.18.38</lombok.version>
     </properties>
 
     <dependencies>
@@ -89,7 +90,8 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <optional>true</optional>   <!-- Non transitive : Lombok ne se propage pas aux dépendants -->
+            <version>${lombok.version}</version>
+            <optional>true</optional>
         </dependency>
 
         <!-- ===== STOCKAGE MINIO ===== -->
@@ -145,6 +147,21 @@
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
+                </configuration>
+            </plugin>
+
+            <!-- ===== MAVEN COMPILER — Lombok annotation processing ===== -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
 

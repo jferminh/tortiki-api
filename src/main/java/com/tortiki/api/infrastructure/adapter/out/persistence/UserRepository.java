@@ -1,4 +1,4 @@
-package com.tortiki.api.infrastructure.persistence;
+package com.tortiki.api.infrastructure.adapter.out.persistence;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
