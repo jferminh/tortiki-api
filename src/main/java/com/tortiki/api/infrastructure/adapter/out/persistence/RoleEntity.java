@@ -1,6 +1,11 @@
 package com.tortiki.api.infrastructure.adapter.out.persistence;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -18,12 +23,16 @@ import lombok.Setter;
 @Table(name = "roles")
 public class RoleEntity {
 
-    /** Identifiant technique auto-incrémenté. */
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  /**
+   * Identifiant technique auto-incrémenté.
+   */
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    /** Nom du rôle Spring Security (ex : ROLE_ADMIN). */
-    @Column(nullable = false, unique = true, length = 50)
-    private String name;
+  /**
+   * Nom du rôle Spring Security (ex : ROLE_ADMIN).
+   */
+  @Column(nullable = false, unique = true, length = 50)
+  private String name;
 }
