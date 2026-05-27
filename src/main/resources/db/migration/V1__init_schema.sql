@@ -39,6 +39,11 @@ CREATE TABLE users
     password_hash VARCHAR(255) NOT NULL, -- BCrypt
     first_name    VARCHAR(100) NOT NULL,
     last_name     VARCHAR(100) NOT NULL,
+    phone         VARCHAR(20),
+    avatar_url    VARCHAR(500),
+    city          VARCHAR(100),
+    latitude      NUMERIC(10, 7),
+    longitude     NUMERIC(10, 7),
     enabled       BOOLEAN      NOT NULL DEFAULT TRUE,
     created_at    TIMESTAMP    NOT NULL DEFAULT NOW(),
     updated_at    TIMESTAMP    NOT NULL DEFAULT NOW()
@@ -108,6 +113,7 @@ CREATE TABLE contact_requests
     id         BIGSERIAL PRIMARY KEY,
     listing_id BIGINT                 NOT NULL REFERENCES listings (id) ON DELETE CASCADE,
     buyer_id   BIGINT                 NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    portions   INTEGER                NOT NULL DEFAULT 1 CHECK (portions > 0),
     status     contact_request_status NOT NULL DEFAULT 'PENDING',
     message    TEXT,              -- Message optionnel du client
     created_at TIMESTAMP              NOT NULL DEFAULT NOW(),
