@@ -1,4 +1,4 @@
-package com.tortiki.api.infrastructure.persistence;
+package com.tortiki.api.infrastructure.adapter.out.persistence;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
