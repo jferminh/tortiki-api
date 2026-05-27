@@ -1,0 +1,292 @@
+# ============================================================
+# Pipeline CI/CD — Tortiki API
+# ============================================================
+# Jobs :
+#   1. checkstyle     → Vérification Google Style (fail-fast)
+#   2. build-and-test → Compilation, Tests JUnit 5, JaCoCo,
+#                       Allure Reports, SonarCloud
+#   3. docker         → Build & Push image (main uniquement)
+#   4. notify         → Notification Teams (optionnelle)
+# ============================================================
+name: CI/CD — Tortiki API
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+# Annule les runs obsolètes sur la même branche
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Permissions minimales — principe du moindre privilège
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+env:
+  JAVA_VERSION: '21'
+  DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/tortiki-api
+  POSTGRES_DB: tortiki_test
+  POSTGRES_USER: tortiki
+  POSTGRES_PASSWORD: tortiki_secret
+
+# ══════════════════════════════════════════════════════════════
+# JOB 1 — CHECKSTYLE (fail-fast léger, sans PostgreSQL)
+# ══════════════════════════════════════════════════════════════
+jobs:
+  checkstyle:
+    name: Checkstyle Google Style
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+
+      - name: Checkout du code source
+        uses: actions/checkout@v4
+
+      - name: Installation Java 21 LTS
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Cache Maven
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-maven-
+
+      - name: Vérification Checkstyle — 0 violation obligatoire
+        run: ./mvnw checkstyle:check --no-transfer-progress
+
+  # ══════════════════════════════════════════════════════════════
+  # JOB 2 — BUILD, TESTS, JACOCO, ALLURE, SONARCLOUD
+  # ══════════════════════════════════════════════════════════════
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    needs: checkstyle
+    timeout-minutes: 15
+
+    # Service PostgreSQL 16 — identique à la production
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+
+      # Historique complet requis par SonarCloud
+      - name: Checkout du code source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Installation Java 21 LTS
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Cache Maven
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-maven-
+
+      # Build complet : compile + tests + JaCoCo + Allure
+      - name: Build, Tests JUnit 5, JaCoCo et Allure
+        run: ./mvnw -B --no-transfer-progress clean verify
+        env:
+          SPRING_PROFILES_ACTIVE: test
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/${{ env.POSTGRES_DB }}
+          SPRING_DATASOURCE_USERNAME: ${{ env.POSTGRES_USER }}
+          SPRING_DATASOURCE_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+
+      # Génération rapport Allure HTML (même si tests échouent)
+      - name: Génération rapport Allure HTML
+        if: always()
+        uses: simple-elf/allure-report-action@v1.13
+        with:
+          allure_results: target/allure-results
+          allure_report: target/allure-report
+          allure_history: allure-history
+
+      # Upload rapport Allure comme artifact téléchargeable
+      - name: Upload rapport Allure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report
+          path: target/allure-report/
+          retention-days: 30
+
+      # Publication Allure sur GitHub Pages (main uniquement)
+      - name: Publication Allure sur GitHub Pages
+        if: always() && github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: target/allure-report
+
+      # Upload rapport JaCoCo HTML
+      - name: Upload rapport JaCoCo
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: target/site/jacoco/
+          retention-days: 30
+
+      # Analyse SonarCloud — conditionnelle si secret présent
+      - name: Analyse SonarCloud
+        if: ${{ secrets.SONAR_TOKEN != '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          ./mvnw -B --no-transfer-progress sonar:sonar \
+            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }} \
+            -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }} \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.java.source=21 \
+            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+
+      # Upload JAR pour réutilisation par Job Docker (main uniquement)
+      - name: Upload artefact JAR
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tortiki-api-jar
+          path: target/tortiki-api-*.jar
+          retention-days: 1
+
+      # Résumé visible directement dans l'onglet Actions GitHub
+      - name: Résumé du pipeline
+        if: always()
+        run: |
+          echo "## Résultat CI — Tortiki API" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Élément | Valeur |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Branche | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Déclenché par | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Rapport Allure | Voir onglet Artifacts |" >> $GITHUB_STEP_SUMMARY
+          echo "| Rapport JaCoCo | Voir onglet Artifacts |" >> $GITHUB_STEP_SUMMARY
+
+  # ══════════════════════════════════════════════════════════════
+  # JOB 3 — DOCKER BUILD & PUSH (main + push uniquement)
+  # ══════════════════════════════════════════════════════════════
+  docker:
+    name: Docker Build & Push
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    timeout-minutes: 10
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+
+      - name: Checkout du code source
+        uses: actions/checkout@v4
+
+      # Réutilise le JAR du Job 2 — pas de rebuild
+      - name: Téléchargement JAR depuis Job 2
+        uses: actions/download-artifact@v4
+        with:
+          name: tortiki-api-jar
+          path: target/
+
+      - name: Login Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Tag latest + sha court pour traçabilité immuable
+      - name: Build et Push image Docker
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.DOCKER_IMAGE }}:latest
+            ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
+
+  # ══════════════════════════════════════════════════════════════
+  # JOB 4 — NOTIFICATION TEAMS (toujours exécuté)
+  # ══════════════════════════════════════════════════════════════
+  notify:
+    name: Notification Teams
+    runs-on: ubuntu-latest
+    needs: [build-and-test, docker]
+    timeout-minutes: 3
+    if: always()
+
+    env:
+      TEAMS_HOOK_URL: ${{ secrets.TEAMS_WEBHOOK }}
+
+    steps:
+
+      - name: Préparation du statut pipeline
+        id: status
+        run: |
+          BUILD="${{ needs.build-and-test.result }}"
+          DOCKER="${{ needs.docker.result }}"
+
+          # Docker skipped sur develop → considéré succès
+          if [[ "$DOCKER" == "skipped" ]]; then
+            DOCKER="success"
+          fi
+
+          if [[ "$BUILD" == "success" && "$DOCKER" == "success" ]]; then
+            echo "color=3066993"  >> $GITHUB_OUTPUT
+            echo "emoji=✅"       >> $GITHUB_OUTPUT
+            echo "status=SUCCÈS"  >> $GITHUB_OUTPUT
+          elif [[ "$BUILD" == "failure" || "$DOCKER" == "failure" ]]; then
+            echo "color=15158332" >> $GITHUB_OUTPUT
+            echo "emoji=❌"       >> $GITHUB_OUTPUT
+            echo "status=ÉCHEC"   >> $GITHUB_OUTPUT
+          else
+            echo "color=16776960" >> $GITHUB_OUTPUT
+            echo "emoji=⚠️"       >> $GITHUB_OUTPUT
+            echo "status=ANNULÉ"  >> $GITHUB_OUTPUT
+          fi
+
+      - name: Notification Teams
+        if: env.TEAMS_HOOK_URL != ''
+        uses: jdcargile/ms-teams-notification@v1.4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          ms-teams-webhook-uri: ${{ env.TEAMS_HOOK_URL }}
+          notification-summary: >-
+            ${{ steps.status.outputs.emoji }} Pipeline ${{ steps.status.outputs.status }}
+            — tortiki-api
+            | Branche : ${{ github.ref_name }}
+            | Par : ${{ github.actor }}
+            | ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          notification-color: ${{ steps.status.outputs.color }}
+          timezone: Europe/Paris
