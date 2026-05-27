@@ -32,9 +32,12 @@ spring.mail:
 server:
   port: ${PORT:8080}            # Railway injecte $PORT automatiquement
 
+# ===== SPRINGDOC — désactivé en production =====
 springdoc:
+  api-docs:
+    enabled: false
   swagger-ui:
-    enabled: false              # Swagger désactivé en production
+    enabled: false
 
 logging:
   level:
