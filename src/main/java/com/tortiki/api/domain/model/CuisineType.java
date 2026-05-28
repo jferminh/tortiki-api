@@ -12,16 +12,24 @@ package com.tortiki.api.domain.model;
  */
 public class CuisineType {
 
-  /** Identifiant technique de l'origine culinaire. */
+  /**
+   * Identifiant technique de l'origine culinaire.
+   */
   private Long id;
 
-  /** Nom de l'origine culinaire, unique en base. */
+  /**
+   * Nom de l'origine culinaire, unique en base.
+   */
   private String name;
 
-  /** Description optionnelle de l'origine culinaire. */
+  /**
+   * Description optionnelle de l'origine culinaire.
+   */
   private String description;
 
-  /** Constructeur par défaut requis pour les mappers domain ↔ entité JPA. */
+  /**
+   * Constructeur par défaut requis pour les mappers domain ↔ entité JPA.
+   */
   public CuisineType() {
     // Requis par les mappers manuels de la couche infrastructure/adapter/out/persistence
   }

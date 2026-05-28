@@ -21,19 +21,29 @@ import java.time.LocalDateTime;
  */
 public class Listing {
 
-  /** Identifiant technique de l'annonce. */
+  /**
+   * Identifiant technique de l'annonce.
+   */
   private Long id;
 
-  /** Titre de l'annonce, affiché dans les résultats de recherche. */
+  /**
+   * Titre de l'annonce, affiché dans les résultats de recherche.
+   */
   private String title;
 
-  /** Description détaillée du plat. */
+  /**
+   * Description détaillée du plat.
+   */
   private String description;
 
-  /** Prix unitaire en euros. */
+  /**
+   * Prix unitaire en euros.
+   */
   private BigDecimal price;
 
-  /** Nombre de portions disponibles. */
+  /**
+   * Nombre de portions disponibles.
+   */
   private Integer portions;
 
   /**
@@ -42,28 +52,44 @@ public class Listing {
    */
   private String pickupSlot;
 
-  /** URL de la photo stockée dans MinIO. */
+  /**
+   * URL de la photo stockée dans MinIO.
+   */
   private String photoUrl;
 
-  /** Ville de retrait, utilisée pour la recherche géographique. */
+  /**
+   * Ville de retrait, utilisée pour la recherche géographique.
+   */
   private String city;
 
-  /** Code postal de retrait, utilisé pour la recherche géographique. */
+  /**
+   * Code postal de retrait, utilisé pour la recherche géographique.
+   */
   private String postalCode;
 
-  /** Statut de l'annonce (ACTIVE, INACTIVE, MODERATED). */
+  /**
+   * Statut de l'annonce (ACTIVE, INACTIVE, MODERATED).
+   */
   private ListingStatus status;
 
-  /** Date et heure de création de l'annonce. */
+  /**
+   * Date et heure de création de l'annonce.
+   */
   private LocalDateTime createdAt;
 
-  /** Vendeur propriétaire de l'annonce. */
+  /**
+   * Vendeur propriétaire de l'annonce.
+   */
   private User seller;
 
-  /** Origine culinaire associée à l'annonce. */
+  /**
+   * Origine culinaire associée à l'annonce.
+   */
   private CuisineType cuisineType;
 
-  /** Constructeur par défaut requis pour les mappers domain ↔ entité JPA. */
+  /**
+   * Constructeur par défaut requis pour les mappers domain ↔ entité JPA.
+   */
   public Listing() {
     // Requis par les mappers manuels de la couche infrastructure/adapter/out/persistence
   }

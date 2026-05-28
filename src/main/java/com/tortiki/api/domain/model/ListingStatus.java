@@ -11,12 +11,18 @@ package com.tortiki.api.domain.model;
  */
 public enum ListingStatus {
 
-  /** Annonce visible et disponible à la recherche. */
+  /**
+   * Annonce visible et disponible à la recherche.
+   */
   ACTIVE,
 
-  /** Annonce désactivée par le vendeur. */
+  /**
+   * Annonce désactivée par le vendeur.
+   */
   INACTIVE,
 
-  /** Annonce suspendue suite à un signalement par un administrateur. */
+  /**
+   * Annonce suspendue suite à un signalement par un administrateur.
+   */
   MODERATED
 }
