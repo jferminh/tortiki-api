@@ -1,5 +1,6 @@
 package com.tortiki.api.infrastructure.adapter.in.web;
 
+import com.tortiki.api.domain.exception.CuisineTypeNotFoundException;
 import com.tortiki.api.domain.exception.ListingNotFoundException;
 import com.tortiki.api.domain.exception.UnauthorizedActionException;
 import com.tortiki.api.domain.exception.UserAlreadyExistsException;
@@ -27,6 +28,21 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+  /** Libellé HTTP pour les ressources introuvables (404). */
+  private static final String NOT_FOUND = "Not Found";
+
+  /** Libellé HTTP pour les accès refusés (403). */
+  private static final String FORBIDDEN = "Forbidden";
+
+  /** Libellé HTTP pour les conflits de données (409). */
+  private static final String CONFLICT = "Conflict";
+
+  /** Libellé HTTP pour les erreurs de validation (400). */
+  private static final String BAD_REQUEST = "Bad Request";
+
+  /** Libellé HTTP pour les erreurs serveur inattendues (500). */
+  private static final String INTERNAL_SERVER_ERROR = "Internal Server Error";
+
   /**
    * Gère les tentatives d'inscription avec un email déjà utilisé.
    *
@@ -39,7 +55,7 @@ public class GlobalExceptionHandler {
     log.warn("Tentative d'inscription avec un email existant : {}", ex.getMessage());
     return ResponseEntity
         .status(HttpStatus.CONFLICT)
-        .body(ErrorResponse.of(409, "Conflict", ex.getMessage()));
+        .body(ErrorResponse.of(409, CONFLICT, ex.getMessage()));
   }
 
   /**
@@ -54,7 +70,7 @@ public class GlobalExceptionHandler {
     log.warn("Utilisateur introuvable : {}", ex.getMessage());
     return ResponseEntity
         .status(HttpStatus.NOT_FOUND)
-        .body(ErrorResponse.of(404, "Not Found", ex.getMessage()));
+        .body(ErrorResponse.of(404, NOT_FOUND, ex.getMessage()));
   }
 
   /**
@@ -69,7 +85,22 @@ public class GlobalExceptionHandler {
     log.warn("Annonce introuvable : {}", ex.getMessage());
     return ResponseEntity
         .status(HttpStatus.NOT_FOUND)
-        .body(ErrorResponse.of(404, "Not Found", ex.getMessage()));
+        .body(ErrorResponse.of(404, NOT_FOUND, ex.getMessage()));
+  }
+
+  /**
+   * Gère les recherches d'origine culinaire infructueuses.
+   *
+   * @param ex exception levée par {@code ManageCuisineTypeUseCase}
+   * @return réponse HTTP 404 Not Found
+   */
+  @ExceptionHandler(CuisineTypeNotFoundException.class)
+  public ResponseEntity<ErrorResponse> handleCuisineTypeNotFound(
+      CuisineTypeNotFoundException ex) {
+    log.warn("Origine culinaire introuvable : {}", ex.getMessage());
+    return ResponseEntity
+        .status(HttpStatus.NOT_FOUND)
+        .body(ErrorResponse.of(404, NOT_FOUND, ex.getMessage()));
   }
 
   /**
@@ -84,7 +115,7 @@ public class GlobalExceptionHandler {
     log.warn("Action non autorisée : {}", ex.getMessage());
     return ResponseEntity
         .status(HttpStatus.FORBIDDEN)
-        .body(ErrorResponse.of(403, "Forbidden", ex.getMessage()));
+        .body(ErrorResponse.of(403, FORBIDDEN, ex.getMessage()));
   }
 
   /**
@@ -104,7 +135,7 @@ public class GlobalExceptionHandler {
     log.warn("Erreur de validation : {}", message);
     return ResponseEntity
         .status(HttpStatus.BAD_REQUEST)
-        .body(ErrorResponse.of(400, "Bad Request", message));
+        .body(ErrorResponse.of(400, BAD_REQUEST, message));
   }
 
   /**
@@ -118,7 +149,7 @@ public class GlobalExceptionHandler {
     log.error("Erreur inattendue : {}", ex.getMessage(), ex);
     return ResponseEntity
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .body(ErrorResponse.of(500, "Internal Server Error",
+        .body(ErrorResponse.of(500, INTERNAL_SERVER_ERROR,
             "Une erreur inattendue s'est produite"));
   }
 }
