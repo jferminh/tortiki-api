@@ -18,20 +18,17 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 /**
  * Configuration principale de Spring Security pour Tortiki API.
  *
- * <p>
- * Stratégie retenue pour le MVP v1 : sessions HTTP stateful.
+ * <p>Stratégie retenue pour le MVP v1 : sessions HTTP stateful.
  * Le JWT est volontairement reporté en v2 afin de maîtriser
  * la complexité initiale et de privilégier la lisibilité pédagogique.</p>
  *
- * <p>
- * Spring Boot auto-configure {@code DaoAuthenticationProvider} automatiquement
+ * <p>Spring Boot auto-configure {@code DaoAuthenticationProvider} automatiquement
  * dès qu'un bean {@link org.springframework.security.core.userdetails.UserDetailsService}
  * et un bean {@link PasswordEncoder} sont présents dans le contexte.
  * La déclaration manuelle du provider est donc inutile et dépréciée
  * depuis Spring Security 6.4.</p>
  *
- * <p>
- * Contrôle d'accès par rôle (RBAC) :
+ * <p>Contrôle d'accès par rôle (RBAC) :
  * </p>
  * <ul>
  *   <li>{@code ROLE_ADMIN}  — administration de la plateforme</li>
