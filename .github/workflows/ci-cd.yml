@@ -116,9 +116,17 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-maven-
 
+      - name: Attente PostgreSQL — service prêt
+        run: |
+          until pg_isready -h localhost -p 5432 -U ${{ env.POSTGRES_USER }}; do
+            echo "PostgreSQL non disponible, attente..."
+            sleep 2
+          done
+          echo "PostgreSQL prêt ✅"
+
       # Build complet : compile + tests + JaCoCo + Allure
       - name: Build, Tests JUnit 5, JaCoCo et Allure
-        run: ./mvnw -B --no-transfer-progress clean verify
+        run: ./mvnw -B --no-transfer-progress clean verify -P integration
         env:
           SPRING_PROFILES_ACTIVE: test
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/${{ env.POSTGRES_DB }}
@@ -195,6 +203,7 @@ jobs:
           echo "| Branche | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Commit | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Déclenché par | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Profil Maven | \`integration\` (tous les tests) |" >> $GITHUB_STEP_SUMMARY
           echo "| Rapport Allure | Voir onglet Artifacts |" >> $GITHUB_STEP_SUMMARY
           echo "| Rapport JaCoCo | Voir onglet Artifacts |" >> $GITHUB_STEP_SUMMARY
 
@@ -242,7 +251,7 @@ jobs:
   notify:
     name: Notification Teams
     runs-on: ubuntu-latest
-    needs: [build-and-test, docker]
+    needs: [ build-and-test, docker ]
     timeout-minutes: 3
     if: always()
 

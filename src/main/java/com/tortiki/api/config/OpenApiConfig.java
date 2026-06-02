@@ -50,7 +50,7 @@ public class OpenApiConfig {
         .externalDocs(
             new ExternalDocumentation()
                 .description("Dépôt GitHub Tortiki API")
-                .url("https://github.com/ton-compte/tortiki-api")
+                .url("https://github.com/jferminh/tortiki-api")
         );
   }
 
@@ -76,7 +76,7 @@ public class OpenApiConfig {
         .license(
             new License()
                 .name("Licence privée — Projet CDA")
-                .url("https://github.com/ton-compte/tortiki-api")
+                .url("https://github.com/jferminh/tortiki-api")
         );
   }
 
