@@ -24,8 +24,10 @@
         <minio.version>8.5.11</minio.version>
         <testcontainers.version>1.19.8</testcontainers.version>
         <allure.version>2.27.0</allure.version>
+        <allure.maven.version>2.17.0</allure.maven.version>
         <jacoco.version>0.8.12</jacoco.version>
         <lombok.version>1.18.38</lombok.version>
+        <argLine>-Xmx512m</argLine>
     </properties>
 
     <dependencies>
@@ -170,6 +172,20 @@
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>${jacoco.version}</version>
+                <configuration>
+                    <excludes>
+                        <!-- Point d'entrée Spring Boot — main() non appelable en test unitaire -->
+                        <exclude>com/tortiki/api/TortikiApiApplication.class</exclude>
+                        <!-- Configurations Spring — nécessitent contexte complet (Sprint 2) -->
+                        <exclude>com/tortiki/api/config/**</exclude>
+                        <!-- Adaptateurs infrastructure — non implémentés (Sprint 2+) -->
+                        <exclude>com/tortiki/api/infrastructure/**</exclude>
+                        <!-- POJOs domain — Lombok génère getters/setters/equals/hashCode -->
+                        <exclude>com/tortiki/api/domain/model/**</exclude>
+                        <!-- Exceptions métier — pas de logique conditionnelle à tester -->
+                        <exclude>com/tortiki/api/domain/exception/**</exclude>
+                    </excludes>
+                </configuration>
                 <executions>
                     <execution>
                         <goals><goal>prepare-agent</goal></goals>
@@ -191,7 +207,7 @@
                                         <limit>
                                             <counter>LINE</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>0.00</minimum>
+                                            <minimum>0.70</minimum>
                                         </limit>
                                     </limits>
                                 </rule>
@@ -219,7 +235,48 @@
                 </executions>
             </plugin>
 
+            <!-- ===== SUREFIRE ===== -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- Exclut les tests d'intégration du build local par défaut -->
+                    <excludedGroups>integration</excludedGroups>
+                    <argLine>@{argLine}</argLine>
+                </configuration>
+            </plugin>
+
+            <!-- ===== ALLURE — Génération rapport HTML Maven ===== -->
+            <plugin>
+                <groupId>io.qameta.allure</groupId>
+                <artifactId>allure-maven</artifactId>
+                <version>${allure.maven.version}</version>
+                <configuration>
+                    <reportVersion>${allure.version}</reportVersion>
+                    <resultsDirectory>${project.build.directory}/allure-results</resultsDirectory>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
+
+    <!-- pom.xml — profil Maven qui réactive les tests d'intégration en CI -->
+    <profiles>
+        <profile>
+            <id>integration</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <!-- En CI : exécuter TOUS les tests y compris @Tag("integration") -->
+                            <excludedGroups/>
+                            <argLine>@{argLine}</argLine>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 </project>

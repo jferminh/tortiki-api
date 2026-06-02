@@ -15,6 +15,12 @@ import com.tortiki.api.domain.exception.UserNotFoundException;
 import com.tortiki.api.domain.model.Role;
 import com.tortiki.api.domain.model.RoleName;
 import com.tortiki.api.domain.model.User;
+import io.qameta.allure.Description;
+import io.qameta.allure.Epic;
+import io.qameta.allure.Feature;
+import io.qameta.allure.Severity;
+import io.qameta.allure.SeverityLevel;
+import io.qameta.allure.Story;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -31,7 +37,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
  * <p>Aucune base de données — les ports secondaires sont mockés
  * par Mockito. Chaque test couvre un cas nominal ou un cas d'erreur.</p>
  */
+@Epic("Utilisateurs")
+@Feature("Gestion des comptes")
 @ExtendWith(MockitoExtension.class)
+@DisplayName("UserService — Tests unitaires")
 class UserServiceTest {
 
   @Mock
@@ -59,12 +68,13 @@ class UserServiceTest {
     roleSeller = new Role(1L, RoleName.SELLER);
   }
 
-  // -------------------------------------------------------------------------
-  // register()
-  // -------------------------------------------------------------------------
+  // ── REGISTER ──────────────────────────────────────────────────────────────
 
   @Test
-  @DisplayName("register : cas nominal — crée et retourne l'utilisateur")
+  @Story("Inscription d'un vendeur")
+  @Severity(SeverityLevel.CRITICAL)
+  @Description("Sofia s'inscrit avec un email disponible — compte créé, mot de passe encodé.")
+  @DisplayName("register — crée et retourne l'utilisateur si l'email est disponible")
   void register_shouldCreateUser_whenEmailIsAvailable() {
     when(userRepository.existsByEmail("sofia@example.com")).thenReturn(false);
     when(roleRepository.findByName(RoleName.SELLER))
@@ -87,7 +97,10 @@ class UserServiceTest {
   }
 
   @Test
-  @DisplayName("register : email déjà utilisé — lève UserAlreadyExistsException")
+  @Story("Inscription d'un vendeur")
+  @Severity(SeverityLevel.CRITICAL)
+  @Description("Email déjà enregistré — UserAlreadyExistsException levée, aucune persistance.")
+  @DisplayName("register — lève UserAlreadyExistsException si l'email est déjà utilisé")
   void register_shouldThrowException_whenEmailAlreadyExists() {
     when(userRepository.existsByEmail("sofia@example.com")).thenReturn(true);
 
@@ -101,7 +114,10 @@ class UserServiceTest {
   }
 
   @Test
-  @DisplayName("register : rôle introuvable en base — lève IllegalStateException")
+  @Story("Inscription d'un vendeur")
+  @Severity(SeverityLevel.NORMAL)
+  @Description("Rôle absent en base (migration Flyway manquante) — IllegalStateException levée.")
+  @DisplayName("register — lève IllegalStateException si le rôle est absent en base")
   void register_shouldThrowIllegalState_whenRoleNotFound() {
     when(userRepository.existsByEmail("sofia@example.com")).thenReturn(false);
     when(roleRepository.findByName(RoleName.SELLER)).thenReturn(Optional.empty());
@@ -115,12 +131,13 @@ class UserServiceTest {
     verify(userRepository, never()).save(any(User.class));
   }
 
-  // -------------------------------------------------------------------------
-  // findByEmail()
-  // -------------------------------------------------------------------------
+  // ── FIND BY EMAIL ─────────────────────────────────────────────────────────
 
   @Test
-  @DisplayName("findByEmail : cas nominal — retourne l'utilisateur")
+  @Story("Consultation d'un compte")
+  @Severity(SeverityLevel.NORMAL)
+  @Description("Recherche par email existant — utilisateur retourné.")
+  @DisplayName("findByEmail — retourne l'utilisateur si l'email existe")
   void findByEmail_shouldReturnUser_whenExists() {
     User user = new User();
     user.setEmail("sofia@example.com");
@@ -133,7 +150,10 @@ class UserServiceTest {
   }
 
   @Test
-  @DisplayName("findByEmail : utilisateur absent — lève UserNotFoundException")
+  @Story("Consultation d'un compte")
+  @Severity(SeverityLevel.NORMAL)
+  @Description("Email inconnu en base — UserNotFoundException levée avec l'email dans le message.")
+  @DisplayName("findByEmail — lève UserNotFoundException si l'email est inconnu")
   void findByEmail_shouldThrowException_whenNotFound() {
     when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
 
@@ -142,12 +162,13 @@ class UserServiceTest {
         .hasMessageContaining("inconnu@example.com");
   }
 
-  // -------------------------------------------------------------------------
-  // findById()
-  // -------------------------------------------------------------------------
+  // ── FIND BY ID ────────────────────────────────────────────────────────────
 
   @Test
-  @DisplayName("findById : cas nominal — retourne l'utilisateur")
+  @Story("Consultation d'un compte")
+  @Severity(SeverityLevel.NORMAL)
+  @Description("Recherche par identifiant existant — utilisateur retourné.")
+  @DisplayName("findById — retourne l'utilisateur si l'identifiant existe")
   void findById_shouldReturnUser_whenExists() {
     User user = new User();
     user.setId(42L);
@@ -159,7 +180,10 @@ class UserServiceTest {
   }
 
   @Test
-  @DisplayName("findById : identifiant absent — lève UserNotFoundException")
+  @Story("Consultation d'un compte")
+  @Severity(SeverityLevel.NORMAL)
+  @Description("Identifiant inconnu en base — UserNotFoundException levée avec l'id dans le message.")
+  @DisplayName("findById — lève UserNotFoundException si l'identifiant est inconnu")
   void findById_shouldThrowException_whenNotFound() {
     when(userRepository.findById(99L)).thenReturn(Optional.empty());
 

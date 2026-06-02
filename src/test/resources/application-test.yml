@@ -8,13 +8,18 @@ spring:
     username: tortiki
     password: tortiki_secret
     driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: 5000       # échoue vite si PostgreSQL absent (vs 30s par défaut)
+      initialization-fail-timeout: 1
   jpa:
     hibernate:
       ddl-auto: validate
     show-sql: false
+    open-in-view: false              # bonne pratique — désactive l'anti-pattern OSIV
   flyway:
     enabled: true
     locations: classpath:db/migration
+    baseline-on-migrate: false
 
 # Swagger désactivé en tests
 springdoc:
@@ -22,3 +27,10 @@ springdoc:
     enabled: false
   swagger-ui:
     enabled: false
+
+# Logging réduit en CI — garde les erreurs visibles
+logging:
+  level:
+    root: WARN
+    com.tortiki: INFO
+    org.flywaydb: INFO               # utile pour débugger les migrations en CI
