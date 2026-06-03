@@ -4,12 +4,12 @@ import com.tortiki.api.application.port.in.FindUserUseCase;
 import com.tortiki.api.application.port.in.RegisterUserUseCase;
 import com.tortiki.api.application.port.out.RoleRepository;
 import com.tortiki.api.application.port.out.UserRepository;
+import com.tortiki.api.domain.exception.RoleNotFoundException;
 import com.tortiki.api.domain.exception.UserAlreadyExistsException;
 import com.tortiki.api.domain.exception.UserNotFoundException;
 import com.tortiki.api.domain.model.Role;
 import com.tortiki.api.domain.model.RoleName;
 import com.tortiki.api.domain.model.User;
-import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -67,10 +67,7 @@ public class UserService implements RegisterUserUseCase, FindUserUseCase {
     }
 
     Role assignedRole = roleRepository.findByName(role)
-        .orElseThrow(() -> new IllegalStateException(
-            "Rôle introuvable en base : " + role
-                + " — vérifier la migration Flyway V1"
-        ));
+        .orElseThrow(() -> new RoleNotFoundException(role.name()));
 
     User user = new User();
     user.setEmail(email);
