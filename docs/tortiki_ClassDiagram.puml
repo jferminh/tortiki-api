@@ -1,0 +1,539 @@
+@startuml Tortiki_ClassDiagram
+!theme plain
+skinparam backgroundColor #FAFAF8
+skinparam linetype ortho
+skinparam ClassBackgroundColor #F0F4F8
+skinparam ClassBorderColor #2D6A6F
+skinparam ClassFontName Arial
+skinparam ClassFontSize 12
+skinparam ClassAttributeFontSize 11
+skinparam PackageBackgroundColor #E8F0F2
+skinparam PackageBorderColor #2D6A6F
+skinparam ArrowColor #2D6A6F
+skinparam NoteBackgroundColor #FFFDE7
+skinparam NoteBorderColor #F9A825
+
+title Diagramme de Classes — Tortiki MVP\n<size:11>Architecture Hexagonale · Java 21 · Spring Boot 3.5</size>
+
+' ===================================================
+' COUCHE DOMAIN
+' ===================================================
+package "domain/model" #E8F5E9 {
+
+  class User <<POJO>> {
+    - id : Long
+    - email : String
+    - passwordHash : String
+    - firstName : String
+    - lastName : String
+    - phone : String
+    - avatarUrl : String
+    - city : String
+    - latitude : Double
+    - longitude : Double
+    - enabled : boolean
+    - createdAt : LocalDateTime
+    - updatedAt : LocalDateTime
+    - roles : Set<Role>
+  }
+
+  class Role <<POJO>> {
+    - id : Long
+    - name : RoleName
+  }
+
+  class Listing <<POJO>> {
+    - id : Long
+    - sellerId : Long
+    - cuisineTypeId : Long
+    - title : String
+    - description : String
+    - price : BigDecimal
+    - portions : int
+    - photoUrl : String
+    - pickupAddress : String
+    - pickupLat : Double
+    - pickupLng : Double
+    - pickupDatetime : LocalDateTime
+    - status : ListingStatus
+    - allergenIds : Set<Long>
+    - createdAt : LocalDateTime
+    - updatedAt : LocalDateTime
+  }
+
+  class CuisineType <<POJO>> {
+    - id : Long
+    - name : String
+    - description : String
+    - enabled : boolean
+  }
+
+  class Allergen <<POJO>> {
+    - id : Long
+    - name : String
+  }
+
+  class ContactRequest <<POJO>> {
+    - id : Long
+    - listingId : Long
+    - buyerId : Long
+    - portions : int
+    - status : ContactRequestStatus
+    - message : String
+    - createdAt : LocalDateTime
+    - updatedAt : LocalDateTime
+  }
+
+  class Review <<POJO>> {
+    - id : Long
+    - contactRequestId : Long
+    - reviewerId : Long
+    - sellerId : Long
+    - listingId : Long
+    - rating : int
+    - comment : String
+    - createdAt : LocalDateTime
+  }
+
+  enum RoleName <<enum>> {
+    ROLE_ADMIN
+    ROLE_SELLER
+    ROLE_BUYER
+  }
+
+  enum ListingStatus <<enum>> {
+    ACTIVE
+    INACTIVE
+    DELETED
+  }
+
+  enum ContactRequestStatus <<enum>> {
+    PENDING
+    CONFIRMED
+    REFUSED
+  }
+
+  User --> Role
+  Role --> RoleName
+  Listing --> ListingStatus
+  ContactRequest --> ContactRequestStatus
+}
+
+package "domain/exception" #FFEBEE {
+  class UserNotFoundException <<RuntimeException>>
+  class UserAlreadyExistsException <<RuntimeException>>
+  class ListingNotFoundException <<RuntimeException>>
+  class CuisineTypeNotFoundException <<RuntimeException>>
+  class UnauthorizedActionException <<RuntimeException>>
+  class ContactRequestNotFoundException <<RuntimeException>>
+  class ReviewAlreadyExistsException <<RuntimeException>>
+}
+
+' ===================================================
+' COUCHE APPLICATION — PORTS IN
+' ===================================================
+package "application/port/in" #E3F2FD {
+
+  interface RegisterUserUseCase <<Port in>> {
+    + register(command : RegisterUserCommand) : User
+  }
+
+  interface FindUserUseCase <<Port in>> {
+    + findByEmail(email : String) : User
+    + findById(id : Long) : User
+  }
+
+  interface ManageListingUseCase <<Port in>> {
+    + create(command : CreateListingCommand) : Listing
+    + update(id : Long, command : UpdateListingCommand, sellerId : Long) : Listing
+    + delete(id : Long, sellerId : Long) : void
+    + findById(id : Long) : Listing
+    + findBySeller(sellerId : Long) : List<Listing>
+  }
+
+  interface ManageCuisineTypeUseCase <<Port in>> {
+    + create(command : CreateCuisineTypeCommand) : CuisineType
+    + update(id : Long, command : UpdateCuisineTypeCommand) : CuisineType
+    + delete(id : Long) : void
+    + findAll() : List<CuisineType>
+  }
+
+  interface ManageContactRequestUseCase <<Port in>> {
+    + submit(command : SubmitContactRequestCommand) : ContactRequest
+    + confirm(id : Long, sellerId : Long) : ContactRequest
+    + refuse(id : Long, sellerId : Long) : ContactRequest
+    + findByBuyer(buyerId : Long) : List<ContactRequest>
+    + findByListing(listingId : Long) : List<ContactRequest>
+  }
+
+  interface ManageReviewUseCase <<Port in>> {
+    + submitReview(command : SubmitReviewCommand) : Review
+    + findBySeller(sellerId : Long) : List<Review>
+  }
+}
+
+' ===================================================
+' COUCHE APPLICATION — PORTS OUT
+' ===================================================
+package "application/port/out" #FFF3E0 {
+
+  interface UserRepository <<Port out>> {
+    + save(user : User) : User
+    + findByEmail(email : String) : Optional<User>
+    + findById(id : Long) : Optional<User>
+    + existsByEmail(email : String) : boolean
+  }
+
+  interface RoleRepository <<Port out>> {
+    + findByName(name : RoleName) : Optional<Role>
+  }
+
+  interface ListingRepository <<Port out>> {
+    + save(listing : Listing) : Listing
+    + findById(id : Long) : Optional<Listing>
+    + findBySellerId(sellerId : Long) : List<Listing>
+    + findByStatus(status : ListingStatus) : List<Listing>
+    + delete(id : Long) : void
+  }
+
+  interface CuisineTypeRepository <<Port out>> {
+    + save(cuisineType : CuisineType) : CuisineType
+    + findById(id : Long) : Optional<CuisineType>
+    + findAll() : List<CuisineType>
+    + existsByListings(id : Long) : boolean
+    + delete(id : Long) : void
+  }
+
+  interface ContactRequestRepository <<Port out>> {
+    + save(request : ContactRequest) : ContactRequest
+    + findById(id : Long) : Optional<ContactRequest>
+    + findByBuyerId(buyerId : Long) : List<ContactRequest>
+    + findByListingId(listingId : Long) : List<ContactRequest>
+    + existsByListingIdAndBuyerId(listingId : Long, buyerId : Long) : boolean
+  }
+
+  interface ReviewRepository <<Port out>> {
+    + save(review : Review) : Review
+    + findBySellerId(sellerId : Long) : List<Review>
+    + existsByContactRequestId(contactRequestId : Long) : boolean
+  }
+
+  interface StoragePort <<Port out>> {
+    + upload(filename : String, data : InputStream, size : long) : String
+    + delete(filename : String) : void
+  }
+
+  interface EmailPort <<Port out>> {
+    + sendContactConfirmation(to : String, listingTitle : String) : void
+    + sendContactRefusal(to : String, listingTitle : String) : void
+  }
+
+  interface GeoPort <<Port out>> {
+    + geocode(address : String) : GeoCoordinates
+  }
+}
+
+' ===================================================
+' COUCHE APPLICATION — SERVICES
+' ===================================================
+package "application/service" #F3E5F5 {
+
+  class UserService <<@Service>> {
+    - userRepository : UserRepository
+    - roleRepository : RoleRepository
+    - passwordEncoder : PasswordEncoder
+    + register(command) : User
+    + findByEmail(email) : User
+    + findById(id) : User
+  }
+
+  class ListingService <<@Service>> {
+    - listingRepository : ListingRepository
+    - cuisineTypeRepository : CuisineTypeRepository
+    - storagePort : StoragePort
+    + create(command) : Listing
+    + update(id, command, sellerId) : Listing
+    + delete(id, sellerId) : void
+    + findById(id) : Listing
+    + findBySeller(sellerId) : List<Listing>
+  }
+
+  class CuisineTypeService <<@Service>> {
+    - cuisineTypeRepository : CuisineTypeRepository
+    + create(command) : CuisineType
+    + update(id, command) : CuisineType
+    + delete(id) : void
+    + findAll() : List<CuisineType>
+  }
+
+  class ContactRequestService <<@Service>> {
+    - contactRequestRepository : ContactRequestRepository
+    - listingRepository : ListingRepository
+    - emailPort : EmailPort
+    + submit(command) : ContactRequest
+    + confirm(id, sellerId) : ContactRequest
+    + refuse(id, sellerId) : ContactRequest
+    + findByBuyer(buyerId) : List<ContactRequest>
+    + findByListing(listingId) : List<ContactRequest>
+  }
+
+  class ReviewService <<@Service>> {
+    - reviewRepository : ReviewRepository
+    - contactRequestRepository : ContactRequestRepository
+    + submitReview(command) : Review
+    + findBySeller(sellerId) : List<Review>
+  }
+}
+
+' ===================================================
+' COUCHE INFRASTRUCTURE — ADAPTERS OUT (Persistence)
+' ===================================================
+package "infrastructure/adapter/out/persistence" #FFF8E1 {
+
+  class UserEntity <<@Entity>> {
+    - id : Long
+    - email : String
+    - passwordHash : String
+    - firstName : String
+    - lastName : String
+    - phone : String
+    - avatarUrl : String
+    - city : String
+    - latitude : BigDecimal
+    - longitude : BigDecimal
+    - enabled : boolean
+    - createdAt : LocalDateTime
+    - updatedAt : LocalDateTime
+    - roles : Set<RoleEntity>
+    # onCreate() : void
+    # onUpdate() : void
+  }
+
+  class RoleEntity <<@Entity>> {
+    - id : Long
+    - name : RoleName
+  }
+
+  class ListingEntity <<@Entity>> {
+    - id : Long
+    - seller : UserEntity
+    - cuisineType : CuisineTypeEntity
+    - title : String
+    - description : String
+    - price : BigDecimal
+    - portions : int
+    - photoUrl : String
+    - pickupAddress : String
+    - pickupLat : BigDecimal
+    - pickupLng : BigDecimal
+    - pickupDatetime : LocalDateTime
+    - status : ListingStatus
+    - allergens : Set<AllergenEntity>
+    - createdAt : LocalDateTime
+    - updatedAt : LocalDateTime
+  }
+
+  class CuisineTypeEntity <<@Entity>> {
+    - id : Long
+    - name : String
+    - description : String
+    - enabled : boolean
+  }
+
+  class AllergenEntity <<@Entity>> {
+    - id : Long
+    - name : String
+  }
+
+  class ContactRequestEntity <<@Entity>> {
+    - id : Long
+    - listing : ListingEntity
+    - buyer : UserEntity
+    - portions : int
+    - status : ContactRequestStatus
+    - message : String
+    - createdAt : LocalDateTime
+    - updatedAt : LocalDateTime
+  }
+
+  class ReviewEntity <<@Entity>> {
+    - id : Long
+    - contactRequest : ContactRequestEntity
+    - reviewer : UserEntity
+    - seller : UserEntity
+    - listing : ListingEntity
+    - rating : short
+    - comment : String
+    - createdAt : LocalDateTime
+  }
+
+  interface UserJpaRepository <<JpaRepository>> {
+    + findByEmail(email : String) : Optional<UserEntity>
+    + existsByEmail(email : String) : boolean
+  }
+
+  interface ListingJpaRepository <<JpaRepository>> {
+    + findBySellerId(sellerId : Long) : List<ListingEntity>
+    + findByStatus(status : ListingStatus) : List<ListingEntity>
+  }
+
+  interface CuisineTypeJpaRepository <<JpaRepository>>
+  interface RoleJpaRepository <<JpaRepository>>
+  interface ContactRequestJpaRepository <<JpaRepository>>
+  interface ReviewJpaRepository <<JpaRepository>>
+
+  class UserRepositoryAdapter <<@Component>> {
+    - jpaRepository : UserJpaRepository
+    - mapper : UserMapper
+    + save(user) : User
+    + findByEmail(email) : Optional<User>
+    + findById(id) : Optional<User>
+    + existsByEmail(email) : boolean
+  }
+
+  class ListingRepositoryAdapter <<@Component>>
+  class CuisineTypeRepositoryAdapter <<@Component>>
+  class ContactRequestRepositoryAdapter <<@Component>>
+  class ReviewRepositoryAdapter <<@Component>>
+
+  class UserMapper <<@Component>> {
+    + toEntity(user : User) : UserEntity
+    + toDomain(entity : UserEntity) : User
+  }
+
+  UserEntity --> RoleEntity
+  ListingEntity --> UserEntity
+  ListingEntity --> CuisineTypeEntity
+  ListingEntity --> AllergenEntity
+  ContactRequestEntity --> ListingEntity
+  ContactRequestEntity --> UserEntity
+  ReviewEntity --> ContactRequestEntity
+  ReviewEntity --> UserEntity
+  ReviewEntity --> ListingEntity
+
+  UserJpaRepository ..> UserEntity
+  ListingJpaRepository ..> ListingEntity
+  UserRepositoryAdapter ..|> UserRepository
+  UserRepositoryAdapter --> UserJpaRepository
+  UserRepositoryAdapter --> UserMapper
+  UserMapper --> UserEntity
+}
+
+' ===================================================
+' COUCHE INFRASTRUCTURE — ADAPTERS OUT (Other)
+' ===================================================
+package "infrastructure/adapter/out" #FCE4EC {
+
+  class MinioStorageAdapter <<@Component>> {
+    - minioClient : MinioClient
+    + upload(filename, data, size) : String
+    + delete(filename) : void
+  }
+
+  class JavaMailEmailAdapter <<@Component>> {
+    - mailSender : JavaMailSender
+    + sendContactConfirmation(to, listingTitle) : void
+    + sendContactRefusal(to, listingTitle) : void
+  }
+
+  class NominatimGeoAdapter <<@Component>> {
+    - webClient : WebClient
+    + geocode(address) : GeoCoordinates
+  }
+
+  MinioStorageAdapter ..|> StoragePort
+  JavaMailEmailAdapter ..|> EmailPort
+  NominatimGeoAdapter ..|> GeoPort
+}
+
+' ===================================================
+' COUCHE INFRASTRUCTURE — ADAPTERS IN (Web)
+' ===================================================
+package "infrastructure/adapter/in/web" #E8EAF6 {
+
+  class AuthController <<@RestController>> {
+    - registerUseCase : RegisterUserUseCase
+    + register(request : RegisterRequest) : ResponseEntity<RegisterResponse>
+    + login(request : LoginRequest) : ResponseEntity<Void>
+    + logout(session : HttpSession) : ResponseEntity<Void>
+  }
+
+  class ListingController <<@RestController>> {
+    - manageListingUseCase : ManageListingUseCase
+    + create(request : CreateListingRequest) : ResponseEntity<ListingResponse>
+    + update(id, request, principal) : ResponseEntity<ListingResponse>
+    + delete(id, principal) : ResponseEntity<Void>
+    + findById(id) : ResponseEntity<ListingResponse>
+    + findBySeller(sellerId) : ResponseEntity<List<ListingResponse>>
+  }
+
+  class CuisineTypeController <<@RestController>> {
+    - manageCuisineTypeUseCase : ManageCuisineTypeUseCase
+    + findAll() : ResponseEntity<List<CuisineTypeResponse>>
+    + create(request) : ResponseEntity<CuisineTypeResponse>
+    + update(id, request) : ResponseEntity<CuisineTypeResponse>
+    + delete(id) : ResponseEntity<Void>
+  }
+
+  class ContactRequestController <<@RestController>> {
+    - manageContactRequestUseCase : ManageContactRequestUseCase
+    + submit(request) : ResponseEntity<ContactRequestResponse>
+    + confirm(id, principal) : ResponseEntity<ContactRequestResponse>
+    + refuse(id, principal) : ResponseEntity<ContactRequestResponse>
+  }
+}
+
+' ===================================================
+' COUCHE INFRASTRUCTURE — Security
+' ===================================================
+package "infrastructure/adapter/out/persistence (Security)" #F1F8E9 {
+  class UserDetailsServiceImpl <<@Service>> {
+    - userJpaRepository : UserJpaRepository
+    + loadUserByUsername(email : String) : UserDetails
+  }
+}
+
+' ===================================================
+' COUCHE CONFIG
+' ===================================================
+package "config" #ECEFF1 {
+  class SecurityConfig <<@Configuration>>
+  class OpenApiConfig <<@Configuration>>
+  class MinioConfig <<@Configuration>>
+}
+
+' ===================================================
+' RELATIONS INTER-COUCHES (Dependency Inversion)
+' ===================================================
+UserService ..|> RegisterUserUseCase
+UserService ..|> FindUserUseCase
+UserService --> UserRepository
+UserService --> RoleRepository
+
+ListingService ..|> ManageListingUseCase
+ListingService --> ListingRepository
+ListingService --> CuisineTypeRepository
+ListingService --> StoragePort
+
+CuisineTypeService ..|> ManageCuisineTypeUseCase
+CuisineTypeService --> CuisineTypeRepository
+
+ContactRequestService ..|> ManageContactRequestUseCase
+ContactRequestService --> ContactRequestRepository
+ContactRequestService --> EmailPort
+
+ReviewService ..|> ManageReviewUseCase
+ReviewService --> ReviewRepository
+
+AuthController --> RegisterUserUseCase
+AuthController --> FindUserUseCase
+ListingController --> ManageListingUseCase
+CuisineTypeController --> ManageCuisineTypeUseCase
+ContactRequestController --> ManageContactRequestUseCase
+
+ListingRepositoryAdapter ..|> ListingRepository
+CuisineTypeRepositoryAdapter ..|> CuisineTypeRepository
+ContactRequestRepositoryAdapter ..|> ContactRequestRepository
+ReviewRepositoryAdapter ..|> ReviewRepository
+
+@enduml

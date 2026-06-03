@@ -12,7 +12,7 @@ import org.springframework.stereotype.Repository;
  * aux requêtes paramétrées générées automatiquement.</p>
  */
 @Repository
-public interface UserRepository extends JpaRepository<UserEntity, Long> {
+public interface UserJpaRepository extends JpaRepository<UserEntity, Long> {
 
   /**
    * Recherche un utilisateur actif par son adresse email.
