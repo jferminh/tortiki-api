@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import com.tortiki.api.application.port.out.RoleRepository;
 import com.tortiki.api.application.port.out.UserRepository;
+import com.tortiki.api.domain.exception.RoleNotFoundException;
 import com.tortiki.api.domain.exception.UserAlreadyExistsException;
 import com.tortiki.api.domain.exception.UserNotFoundException;
 import com.tortiki.api.domain.model.Role;
@@ -55,14 +56,10 @@ class UserServiceTest {
   @InjectMocks
   private UserService userService;
 
-  /**
-   * Rôle SELLER utilisé dans les tests d'inscription.
-   */
+  /** Rôle SELLER utilisé dans les tests d'inscription. */
   private Role roleSeller;
 
-  /**
-   * Initialisation des données communes avant chaque test.
-   */
+  /** Initialisation des données communes avant chaque test. */
   @BeforeEach
   void setUp() {
     roleSeller = new Role(1L, RoleName.SELLER);
@@ -99,6 +96,48 @@ class UserServiceTest {
   @Test
   @Story("Inscription d'un vendeur")
   @Severity(SeverityLevel.CRITICAL)
+  @Description("Le mot de passe stocké est le hash BCrypt, jamais le mot de passe en clair.")
+  @DisplayName("register — stocke le hash BCrypt et non le mot de passe en clair")
+  void register_shouldStoreHashedPassword_notPlainText() {
+    when(userRepository.existsByEmail("sofia@example.com")).thenReturn(false);
+    when(roleRepository.findByName(RoleName.SELLER))
+        .thenReturn(Optional.of(roleSeller));
+    when(passwordEncoder.encode("motdepasse")).thenReturn("$2a$12$hash");
+    when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+    User result = userService.register(
+        "sofia@example.com", "motdepasse", "Sofia", "Kovalenko", RoleName.SELLER
+    );
+
+    assertThat(result.getPasswordHash()).isEqualTo("$2a$12$hash");
+    assertThat(result.getPasswordHash()).doesNotContain("motdepasse");
+  }
+
+  @Test
+  @Story("Inscription d'un vendeur")
+  @Severity(SeverityLevel.NORMAL)
+  @Description("Le rôle demandé est bien attribué à l'utilisateur lors de l'inscription.")
+  @DisplayName("register — attribue le rôle demandé à l'utilisateur créé")
+  void register_shouldAssignRequestedRole_toNewUser() {
+    when(userRepository.existsByEmail("sofia@example.com")).thenReturn(false);
+    when(roleRepository.findByName(RoleName.SELLER))
+        .thenReturn(Optional.of(roleSeller));
+    when(passwordEncoder.encode(anyString())).thenReturn("$2a$12$hash");
+    when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+    User result = userService.register(
+        "sofia@example.com", "motdepasse", "Sofia", "Kovalenko", RoleName.SELLER
+    );
+
+    assertThat(result.getRoles())
+        .hasSize(1)
+        .extracting(Role::getName)
+        .containsExactly(RoleName.SELLER);
+  }
+
+  @Test
+  @Story("Inscription d'un vendeur")
+  @Severity(SeverityLevel.CRITICAL)
   @Description("Email déjà enregistré — UserAlreadyExistsException levée, aucune persistance.")
   @DisplayName("register — lève UserAlreadyExistsException si l'email est déjà utilisé")
   void register_shouldThrowException_whenEmailAlreadyExists() {
@@ -116,17 +155,17 @@ class UserServiceTest {
   @Test
   @Story("Inscription d'un vendeur")
   @Severity(SeverityLevel.NORMAL)
-  @Description("Rôle absent en base (migration Flyway manquante) — IllegalStateException levée.")
-  @DisplayName("register — lève IllegalStateException si le rôle est absent en base")
-  void register_shouldThrowIllegalState_whenRoleNotFound() {
+  @Description("Rôle absent en base (migration Flyway manquante) — RoleNotFoundException levée.")
+  @DisplayName("register — lève RoleNotFoundException si le rôle est absent en base")
+  void register_shouldThrowRoleNotFound_whenRoleNotInDatabase() {
     when(userRepository.existsByEmail("sofia@example.com")).thenReturn(false);
     when(roleRepository.findByName(RoleName.SELLER)).thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> userService.register(
         "sofia@example.com", "motdepasse", "Sofia", "Kovalenko", RoleName.SELLER
     ))
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("Flyway");
+        .isInstanceOf(RoleNotFoundException.class)
+        .hasMessageContaining("SELLER");
 
     verify(userRepository, never()).save(any(User.class));
   }
