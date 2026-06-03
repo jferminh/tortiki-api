@@ -25,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class UserDetailsServiceImpl implements UserDetailsService {
 
-  private final UserRepository userRepository;
+  private final UserJpaRepository userJpaRepository;
 
   /**
    * Charge un utilisateur par son email pour l'authentification Spring Security.
@@ -41,7 +41,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     log.debug("Chargement de l'utilisateur pour l'email : {}", email);
 
-    UserEntity userEntity = userRepository.findByEmailAndEnabledTrue(email)
+    UserEntity userEntity = userJpaRepository.findByEmailAndEnabledTrue(email)
         .orElseThrow(() -> {
           log.warn("Tentative de connexion avec un email inconnu : {}", email);
           return new UsernameNotFoundException(
@@ -51,7 +51,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     List<SimpleGrantedAuthority> authorities = userEntity.getRoles()
         .stream()
-        .map(role -> new SimpleGrantedAuthority(role.getName()))
+        .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName()))
         .toList();
 
     log.debug("Utilisateur {} chargé avec les rôles : {}", email, authorities);

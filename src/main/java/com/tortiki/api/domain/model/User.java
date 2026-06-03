@@ -18,44 +18,31 @@ import java.util.Set;
  */
 public class User {
 
-  /**
-   * Identifiant technique de l'utilisateur.
-   */
+  /** Identifiant technique de l'utilisateur. */
   private Long id;
 
-  /**
-   * Adresse email unique, utilisée comme identifiant de connexion.
-   */
+  /** Adresse email unique, utilisée comme identifiant de connexion. */
   private String email;
 
-  /**
-   * Hash BCrypt du mot de passe (force 12).
-   */
+  /** Hash BCrypt du mot de passe (force 12). */
   private String passwordHash;
 
-  /**
-   * Prénom de l'utilisateur.
-   */
+  /** Prénom de l'utilisateur. */
   private String firstName;
 
-  /**
-   * Nom de famille de l'utilisateur.
-   */
+  /** Nom de famille de l'utilisateur. */
   private String lastName;
 
-  /**
-   * Indique si le compte est actif. Un compte désactivé ne peut pas se connecter.
-   */
+  /** Indique si le compte est actif. Un compte désactivé ne peut pas se connecter. */
   private boolean enabled;
 
-  /**
-   * Date et heure de création du compte.
-   */
+  /** Date et heure de création du compte. */
   private LocalDateTime createdAt;
 
-  /**
-   * Ensemble des rôles attribués à cet utilisateur.
-   */
+  /** Date et heure de dernière modification du compte. */
+  private LocalDateTime updatedAt;
+
+  /** Ensemble des rôles attribués à cet utilisateur. */
   private Set<Role> roles = new HashSet<>();
 
   /** Constructeur par défaut requis pour les mappers domain ↔ entité JPA. */
@@ -190,6 +177,24 @@ public class User {
   }
 
   /**
+   * Retourne la date et heure de dernière modification du compte.
+   *
+   * @return date de modification
+   */
+  public LocalDateTime getUpdatedAt() {
+    return updatedAt;
+  }
+
+  /**
+   * Définit la date et heure de dernière modification du compte.
+   *
+   * @param updatedAt date de modification
+   */
+  public void setUpdatedAt(LocalDateTime updatedAt) {
+    this.updatedAt = updatedAt;
+  }
+
+  /**
    * Retourne l'ensemble des rôles attribués à l'utilisateur.
    *
    * @return ensemble de rôles
@@ -210,6 +215,9 @@ public class User {
   /**
    * Ajoute un rôle à l'utilisateur.
    *
+   * <p>Utilisé par {@code UserService} lors de l'inscription pour
+   * attribuer le rôle demandé sans écraser les rôles existants.</p>
+   *
    * @param role rôle à ajouter
    */
   public void addRole(Role role) {
@@ -218,6 +226,8 @@ public class User {
 
   @Override
   public String toString() {
-    return "User{id=" + id + ", email='" + email + "', enabled=" + enabled + "}";
+    return "User{id=" + id
+        + ", email='" + email + "'"
+        + ", enabled=" + enabled + "}";
   }
 }

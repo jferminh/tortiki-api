@@ -78,7 +78,6 @@ public class UserService implements RegisterUserUseCase, FindUserUseCase {
     user.setFirstName(firstName);
     user.setLastName(lastName);
     user.setEnabled(true);
-    user.setCreatedAt(LocalDateTime.now());
     user.addRole(assignedRole);
 
     User saved = userRepository.save(user);
