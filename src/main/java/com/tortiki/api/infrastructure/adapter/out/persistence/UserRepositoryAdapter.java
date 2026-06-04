@@ -5,7 +5,7 @@ import com.tortiki.api.domain.model.User;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 
 /**
  * Adaptateur secondaire de persistence pour les utilisateurs.
@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
  * {@code application} et JPA pour l'entité {@code User}.</p>
  */
 @Slf4j
-@Component
+@Repository
 @RequiredArgsConstructor
 public class UserRepositoryAdapter implements UserRepository {
 
