@@ -2,6 +2,7 @@ package com.tortiki.api.infrastructure.adapter.in.web;
 
 import com.tortiki.api.domain.exception.CuisineTypeNotFoundException;
 import com.tortiki.api.domain.exception.ListingNotFoundException;
+import com.tortiki.api.domain.exception.RoleNotFoundException;
 import com.tortiki.api.domain.exception.UnauthorizedActionException;
 import com.tortiki.api.domain.exception.UserAlreadyExistsException;
 import com.tortiki.api.domain.exception.UserNotFoundException;
@@ -40,8 +41,12 @@ public class GlobalExceptionHandler {
   /** Libellé HTTP pour les erreurs de validation (400). */
   private static final String BAD_REQUEST = "Bad Request";
 
+  /** Libellé HTTP pour les entités non traitables (422). */
+  private static final String UNPROCESSABLE = "Unprocessable Entity";
+
   /** Libellé HTTP pour les erreurs serveur inattendues (500). */
   private static final String INTERNAL_SERVER_ERROR = "Internal Server Error";
+
 
   /**
    * Gère les tentatives d'inscription avec un email déjà utilisé.
@@ -104,6 +109,21 @@ public class GlobalExceptionHandler {
   }
 
   /**
+   * Gère les rôles introuvables en base lors de l'inscription.
+   *
+   * @param ex exception levée par {@code UserService}
+   * @return réponse HTTP 422 Unprocessable Entity
+   */
+  @ExceptionHandler(RoleNotFoundException.class)
+  public ResponseEntity<ErrorResponse> handleRoleNotFound(
+      RoleNotFoundException ex) {
+    log.error("Rôle introuvable — vérifier Flyway V1 : {}", ex.getMessage());
+    return ResponseEntity
+        .status(HttpStatus.UNPROCESSABLE_ENTITY)
+        .body(ErrorResponse.of(422, UNPROCESSABLE, ex.getMessage()));
+  }
+
+  /**
    * Gère les tentatives d'action non autorisée sur une ressource.
    *
    * @param ex exception levée par les services métier
@@ -127,11 +147,12 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<ErrorResponse> handleValidation(
       MethodArgumentNotValidException ex) {
+
     String message = ex.getBindingResult()
         .getFieldErrors()
         .stream()
         .map(fe -> fe.getField() + " : " + fe.getDefaultMessage())
-        .reduce("", (a, b) -> a.isEmpty() ? b : a + " | " + b);
+        .collect(java.util.stream.Collectors.joining(" | "));
     log.warn("Erreur de validation : {}", message);
     return ResponseEntity
         .status(HttpStatus.BAD_REQUEST)
