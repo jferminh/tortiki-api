@@ -2,31 +2,42 @@ package com.tortiki.api.infrastructure.adapter.out.persistence;
 
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 
 /**
- * Repository JPA pour l'accès aux données des utilisateurs.
+ * Repository Spring Data JPA pour la table {@code users}.
  *
- * <p>Étend {@link JpaRepository} pour bénéficier des opérations CRUD standard.
- * Les requêtes dérivées Spring Data évitent les injections SQL grâce
- * aux requêtes paramétrées générées automatiquement.</p>
+ * <p>Spring Data génère automatiquement les requêtes SQL
+ * à partir des noms de méthodes déclarées ici.</p>
  */
-@Repository
 public interface UserJpaRepository extends JpaRepository<UserEntity, Long> {
 
   /**
    * Recherche un utilisateur actif par son adresse email.
    *
-   * @param email l'adresse email à rechercher
-   * @return un {@link Optional} contenant l'entité si trouvée
+   * <p>Génère : {@code SELECT * FROM users WHERE email = ? AND enabled = true}</p>
+   *
+   * @param email adresse email
+   * @return un {@link Optional} contenant l'entité si le compte est actif
    */
   Optional<UserEntity> findByEmailAndEnabledTrue(String email);
 
   /**
-   * Vérifie l'existence d'un compte pour une adresse email donnée.
+   * Recherche un utilisateur par son adresse email (tous statuts).
    *
-   * @param email l'adresse email à vérifier
-   * @return {@code true} si un compte existe déjà pour cet email
+   * <p>Génère : {@code SELECT * FROM users WHERE email = ?}</p>
+   *
+   * @param email adresse email
+   * @return un {@link Optional} contenant l'entité, ou vide si absente
+   */
+  Optional<UserEntity> findByEmail(String email);
+
+  /**
+   * Vérifie si une adresse email est déjà enregistrée.
+   *
+   * <p>Génère : {@code SELECT COUNT(*) > 0 FROM users WHERE email = ?}</p>
+   *
+   * @param email adresse email à vérifier
+   * @return {@code true} si l'email existe déjà en base
    */
   boolean existsByEmail(String email);
 }
