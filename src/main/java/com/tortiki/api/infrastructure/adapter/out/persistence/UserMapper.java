@@ -1,7 +1,6 @@
 package com.tortiki.api.infrastructure.adapter.out.persistence;
 
 import com.tortiki.api.domain.model.Role;
-import com.tortiki.api.domain.model.RoleName;
 import com.tortiki.api.domain.model.User;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -28,7 +27,7 @@ public class UserMapper {
         .map(re -> {
           Role role = new Role();
           role.setId(re.getId());
-          role.setName(RoleName.valueOf(re.getName()));
+          role.setName(re.getName());
           return role;
         })
         .collect(Collectors.toSet());
@@ -49,8 +48,9 @@ public class UserMapper {
   /**
    * Convertit un {@link User} domaine en {@link UserEntity} JPA.
    *
-   * <p>Les rôles sont reconstruits en {@link RoleEntity} sans {@code @Lazy} :
-   * on passe directement par le nom issu de {@link RoleName}.</p>
+   * <p>Les rôles sont reconstruits en {@link RoleEntity} à partir
+   * de leur {@link com.tortiki.api.domain.model.RoleName} — le champ
+   * {@code name} de {@link RoleEntity} est directement compatible.</p>
    *
    * @param user le POJO domaine à convertir
    * @return l'entité JPA correspondante
@@ -68,7 +68,7 @@ public class UserMapper {
         .map(role -> {
           RoleEntity re = new RoleEntity();
           re.setId(role.getId());
-          re.setName(role.getName().name());
+          re.setName(role.getName());
           return re;
         })
         .collect(Collectors.toSet());

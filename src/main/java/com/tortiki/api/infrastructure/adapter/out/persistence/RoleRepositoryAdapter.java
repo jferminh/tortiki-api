@@ -5,34 +5,38 @@ import com.tortiki.api.domain.model.Role;
 import com.tortiki.api.domain.model.RoleName;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 
 /**
- * Adaptateur secondaire de persistence pour les rôles.
+ * Adaptateur secondaire — implémentation JPA du port {@link RoleRepository}.
  *
- * <p>Implémente le port {@link RoleRepository} défini dans la couche
- * {@code application}. Délègue à {@link RoleJpaRepository} et traduit
- * les entités via {@link RoleMapper}.</p>
+ * <p>Fait le pont entre le contrat du domaine ({@link RoleRepository})
+ * et la technologie de persistance (Spring Data JPA + PostgreSQL).
+ * {@code UserService} dépend de l'interface — jamais de cette classe.</p>
  */
-@Slf4j
-@Component
+@Repository
 @RequiredArgsConstructor
 public class RoleRepositoryAdapter implements RoleRepository {
 
+  /**
+   * Repository Spring Data JPA délégué.
+   */
   private final RoleJpaRepository roleJpaRepository;
+
+  /**
+   * Mapper domaine ↔ entité JPA.
+   */
   private final RoleMapper roleMapper;
 
   /**
    * {@inheritDoc}
    *
-   * <p>Convertit le {@link RoleName} en {@code String} via {@code .name()}
-   * pour correspondre à la valeur stockée en base de données.</p>
+   * <p>Délègue à {@link RoleJpaRepository#findByName(RoleName)}
+   * et convertit l'entité en POJO domaine via {@link RoleMapper}.</p>
    */
   @Override
   public Optional<Role> findByName(RoleName name) {
-    log.debug("Recherche du rôle : {}", name);
-    return roleJpaRepository.findByName(name.name())
+    return roleJpaRepository.findByName(name)
         .map(roleMapper::toDomain);
   }
 }
