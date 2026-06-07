@@ -47,4 +47,16 @@ public interface UserRepository {
    * @return {@code true} si l'email existe déjà en base
    */
   boolean existsByEmail(String email);
+
+  /**
+   * Recherche un utilisateur actif par son adresse email.
+   *
+   * <p>Seuls les comptes avec {@code enabled = true} sont retournés.
+   * Utilisé par Spring Security pour rejeter les comptes désactivés
+   * directement au niveau de la requête.</p>
+   *
+   * @param email adresse email de l'utilisateur
+   * @return un {@link Optional} contenant l'utilisateur actif, ou vide si absent/désactivé
+   */
+  Optional<User> findByEmailAndEnabledTrue(String email);
 }
