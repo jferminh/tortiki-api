@@ -10,8 +10,12 @@ import org.springframework.stereotype.Component;
  * Mapper entre le modèle domaine {@link User} et l'entité JPA {@link UserEntity}.
  *
  * <p>Ce composant garantit que ni {@link User} ni {@link UserEntity} ne se
- * connaissent mutuellement : seul l'adaptateur de persistence les fait
+ * connaissent mutuellement : seul l'adaptateur de persistance les fait
  * cohabiter.</p>
+ *
+ * <p>Depuis le refactoring de {@link RoleEntity}, le champ {@code name}
+ * est typé {@link com.tortiki.api.domain.model.RoleName} — aucune conversion
+ * {@code valueOf} / {@code .name()} n'est nécessaire dans ce mapper.</p>
  */
 @Component
 public class UserMapper {
@@ -27,7 +31,7 @@ public class UserMapper {
         .map(re -> {
           Role role = new Role();
           role.setId(re.getId());
-          role.setName(re.getName());
+          role.setName(re.getName()); // ✅ RoleName → RoleName, pas de conversion
           return role;
         })
         .collect(Collectors.toSet());
@@ -41,7 +45,7 @@ public class UserMapper {
     user.setEnabled(entity.isEnabled());
     user.setRoles(roles);
     user.setCreatedAt(entity.getCreatedAt());
-    user.setUpdatedAt(entity.getUpdatedAt()); // ← nécessite Option A
+    user.setUpdatedAt(entity.getUpdatedAt());
     return user;
   }
 
@@ -68,7 +72,7 @@ public class UserMapper {
         .map(role -> {
           RoleEntity re = new RoleEntity();
           re.setId(role.getId());
-          re.setName(role.getName());
+          re.setName(role.getName()); // ✅ RoleName → RoleName, pas de .name()
           return re;
         })
         .collect(Collectors.toSet());
