@@ -8,7 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 
 /**
- * Adaptateur secondaire de persistence pour les utilisateurs.
+ * Adaptateur secondaire de persistance pour les utilisateurs.
  *
  * <p>Implémente le port {@link UserRepository} défini dans la couche
  * {@code application}. Délègue les opérations à {@link UserJpaRepository}
@@ -22,7 +22,10 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class UserRepositoryAdapter implements UserRepository {
 
+  /** Repository Spring Data JPA. */
   private final UserJpaRepository userJpaRepository;
+
+  /** Mapper domaine ↔ entité JPA. */
   private final UserMapper userMapper;
 
   /**
@@ -41,10 +44,13 @@ public class UserRepositoryAdapter implements UserRepository {
 
   /**
    * {@inheritDoc}
+   *
+   * <p>Recherche un utilisateur par email, actif ou non.
+   * Ne filtre PAS les comptes désactivés — usage métier général.</p>
    */
   @Override
   public Optional<User> findByEmail(String email) {
-    return userJpaRepository.findByEmailAndEnabledTrue(email)
+    return userJpaRepository.findByEmail(email)
         .map(userMapper::toDomain);
   }
 
@@ -63,5 +69,17 @@ public class UserRepositoryAdapter implements UserRepository {
   @Override
   public boolean existsByEmail(String email) {
     return userJpaRepository.existsByEmail(email);
+  }
+
+  /**
+   * {@inheritDoc}
+   *
+   * <p>Utilisé exclusivement par Spring Security pour rejeter
+   * les comptes désactivés directement au niveau de la requête.</p>
+   */
+  @Override
+  public Optional<User> findByEmailAndEnabledTrue(String email) {
+    return userJpaRepository.findByEmailAndEnabledTrue(email)
+        .map(userMapper::toDomain);
   }
 }
