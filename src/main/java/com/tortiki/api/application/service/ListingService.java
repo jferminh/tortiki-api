@@ -14,6 +14,7 @@ import com.tortiki.api.domain.model.Listing;
 import com.tortiki.api.domain.model.ListingStatus;
 import com.tortiki.api.domain.model.User;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -87,7 +88,7 @@ public class ListingService implements ManageListingUseCase {
     listing.setPostalCode(command.postalCode());
     listing.setCuisineType(cuisineType);
     listing.setStatus(ListingStatus.ACTIVE);
-    listing.setCreatedAt(LocalDateTime.now());
+    listing.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
 
     Listing saved = listingRepository.save(listing);
     log.info("Annonce créée : id={} vendeur={}", saved.getId(), sellerId);
@@ -144,6 +145,14 @@ public class ListingService implements ManageListingUseCase {
     existing.setStatus(ListingStatus.INACTIVE);
     listingRepository.save(existing);
     log.info("Annonce désactivée (suppression logique) : id={}", listingId);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @Transactional(readOnly = true)
+  public List<Listing> findAll() {
+    log.debug("Récupération de toutes les annonces actives");
+    return listingRepository.findByStatus(ListingStatus.ACTIVE);
   }
 
   /**

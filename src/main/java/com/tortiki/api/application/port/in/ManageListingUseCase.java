@@ -72,6 +72,17 @@ public interface ManageListingUseCase {
   void delete(Long listingId, Long sellerId);
 
   /**
+   * Retourne toutes les annonces actives de la plateforme.
+   *
+   * <p>Utilisé par {@code GET /api/listings} pour afficher
+   * le catalogue public de Tortiki.</p>
+   *
+   * @return liste de toutes les annonces au statut {@code ACTIVE},
+   *         vide si aucune annonce disponible
+   */
+  List<Listing> findAll();
+
+  /**
    * Retourne toutes les annonces actives d'un vendeur.
    *
    * @param sellerId identifiant du vendeur

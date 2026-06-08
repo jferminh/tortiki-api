@@ -33,7 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Adaptateur primaire REST pour l'authentification sur la plateforme Tortiki.
  *
- * <p>Expose les endpoints publics d'inscription, de connexion et de déconnexion.
+ * <p>Expose des endpoints publics d'inscription, de connexion et de déconnexion.
  * Délègue la logique métier au port primaire {@link RegisterUserUseCase}.</p>
  *
  * <p>La gestion de session est stateful (pas de JWT en v1) :
