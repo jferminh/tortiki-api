@@ -11,7 +11,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tortiki.api.application.port.in.FindUserUseCase;
 import com.tortiki.api.application.port.in.RegisterUserUseCase;
 import com.tortiki.api.domain.exception.UserAlreadyExistsException;
 import com.tortiki.api.domain.model.Role;
@@ -25,7 +24,8 @@ import io.qameta.allure.Feature;
 import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
 import io.qameta.allure.Story;
-import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -38,6 +38,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -58,6 +59,17 @@ import org.springframework.test.web.servlet.MockMvc;
 @DisplayName("AuthController — Tests unitaires WebMvcTest")
 class AuthControllerTest {
 
+  // ── Constantes de test ────────────────────────────────────────────────────
+
+  private static final String TEST_EMAIL    = "sofia@example.com";
+  private static final String TEST_PASSWORD = "password123";
+  private static final String TEST_FIRST    = "Sofia";
+  private static final String TEST_LAST     = "Kovalenko";
+  private static final String TEST_ROLE     = "SELLER";
+
+  private static final String INVALID_EMAIL    = "pas-un-email";
+  private static final String INVALID_PASSWORD = "";
+
   @Autowired
   private MockMvc mockMvc;
 
@@ -66,9 +78,6 @@ class AuthControllerTest {
 
   @MockitoBean
   private RegisterUserUseCase registerUserUseCase;
-
-  @MockitoBean
-  private FindUserUseCase findUserUseCase;
 
   @MockitoBean
   private AuthenticationManager authenticationManager;
@@ -82,7 +91,9 @@ class AuthControllerTest {
   /** UserResponse retourné par le mapper web. */
   private UserResponse sofiaResponse;
 
-  /** Initialisation des données communes avant chaque test. */
+  /**
+   * Initialisation des données communes avant chaque test.
+   */
   @BeforeEach
   void setUp() {
     sofia = new User();
@@ -107,14 +118,13 @@ class AuthControllerTest {
   @DisplayName("POST /register — retourne 201 avec UserResponse si l'inscription réussit")
   void register_shouldReturn201_whenSuccessful() throws Exception {
     when(registerUserUseCase.register(
-        "sofia@example.com", "password123", "Sofia", "Kovalenko", RoleName.SELLER
+        TEST_EMAIL, TEST_PASSWORD, TEST_FIRST, TEST_LAST, RoleName.SELLER
     )).thenReturn(sofia);
     when(userWebMapper.toResponse(sofia)).thenReturn(sofiaResponse);
 
     mockMvc.perform(post("/api/auth/register")
             .contentType(MediaType.APPLICATION_JSON)
-            .content(buildRegisterBody("sofia@example.com", "password123",
-                "Sofia", "Kovalenko", "SELLER"))
+            .content(buildRegisterBody())
             .with(csrf()))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.id").value(1L))
@@ -135,12 +145,11 @@ class AuthControllerTest {
 
     mockMvc.perform(post("/api/auth/register")
             .contentType(MediaType.APPLICATION_JSON)
-            .content(buildRegisterBody("sofia@example.com", "password123",
-                "Sofia", "Kovalenko", "SELLER"))
+            .content(buildRegisterBody())
             .with(csrf()))
         .andExpect(status().isConflict());
 
-    verify(userWebMapper, never()).toResponse(any());
+    verify(userWebMapper, never()).toResponse(any(User.class));
   }
 
   @Test
@@ -149,13 +158,9 @@ class AuthControllerTest {
   @Description("Champs manquants dans la requête — HTTP 400 Bad Request.")
   @DisplayName("POST /register — retourne 400 si les champs obligatoires sont absents")
   void register_shouldReturn400_whenBodyIsInvalid() throws Exception {
-    HashMap<String, String> invalidBody = new HashMap<>();
-    invalidBody.put("email", "invalid-email");
-    invalidBody.put("password", "");
-
     mockMvc.perform(post("/api/auth/register")
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(invalidBody))
+            .content(buildInvalidRegisterBody())
             .with(csrf()))
         .andExpect(status().isBadRequest());
 
@@ -172,20 +177,25 @@ class AuthControllerTest {
   @Description("Sofia se connecte avec ses credentials valides — HTTP 200 avec profil.")
   @DisplayName("POST /login — retourne 200 avec UserResponse si les credentials sont valides")
   void login_shouldReturn200_whenCredentialsAreValid() throws Exception {
+    // Le principal DOIT être un UserDetails (cast dans AuthController)
+    UserDetails principalMock = new org.springframework.security.core.userdetails.User(
+        "sofia@example.com",
+        "",
+        List.of(new SimpleGrantedAuthority("ROLE_SELLER"))
+    );
     UsernamePasswordAuthenticationToken authToken =
         new UsernamePasswordAuthenticationToken(
-            "sofia@example.com",
+            principalMock,
             null,
-            Set.of(new SimpleGrantedAuthority("ROLE_SELLER"))
+            List.of(new SimpleGrantedAuthority("ROLE_SELLER"))
         );
 
     when(authenticationManager.authenticate(any())).thenReturn(authToken);
-    when(findUserUseCase.findByEmail("sofia@example.com")).thenReturn(sofia);
-    when(userWebMapper.toResponse(sofia)).thenReturn(sofiaResponse);
+    when(userWebMapper.toResponse(any(UserDetails.class))).thenReturn(sofiaResponse);
 
     mockMvc.perform(post("/api/auth/login")
             .contentType(MediaType.APPLICATION_JSON)
-            .content(buildLoginBody("sofia@example.com", "password123"))
+            .content(buildLoginBody())
             .with(csrf()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.email").value("sofia@example.com"))
@@ -203,11 +213,11 @@ class AuthControllerTest {
 
     mockMvc.perform(post("/api/auth/login")
             .contentType(MediaType.APPLICATION_JSON)
-            .content(buildLoginBody("sofia@example.com", "mauvaismdp"))
+            .content(buildLoginBody())
             .with(csrf()))
         .andExpect(status().isUnauthorized());
 
-    verify(findUserUseCase, never()).findByEmail(anyString());
+    verify(userWebMapper, never()).toResponse(any(UserDetails.class));
   }
 
   @Test
@@ -216,13 +226,9 @@ class AuthControllerTest {
   @Description("Corps de requête invalide — HTTP 400 Bad Request.")
   @DisplayName("POST /login — retourne 400 si l'email est invalide")
   void login_shouldReturn400_whenBodyIsInvalid() throws Exception {
-    HashMap<String, String> invalidBody = new HashMap<>();
-    invalidBody.put("email", "pas-un-email");
-    invalidBody.put("password", "");
-
     mockMvc.perform(post("/api/auth/login")
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(invalidBody))
+            .content(buildInvalidLoginBody())
             .with(csrf()))
         .andExpect(status().isBadRequest());
 
@@ -247,24 +253,43 @@ class AuthControllerTest {
   /**
    * Construit le corps JSON d'une requête d'inscription.
    */
-  private String buildRegisterBody(String email, String password,
-                                   String firstName, String lastName, String role) throws Exception {
-    HashMap<String, String> body = new HashMap<>();
-    body.put("email", email);
-    body.put("password", password);
-    body.put("firstName", firstName);
-    body.put("lastName", lastName);
-    body.put("role", role);
-    return objectMapper.writeValueAsString(body);
+  private String buildRegisterBody() throws Exception {
+    return objectMapper.writeValueAsString(Map.of(
+        "email", TEST_EMAIL,
+        "password", TEST_PASSWORD,
+        "firstName", TEST_FIRST,
+        "lastName", TEST_LAST,
+        "role", TEST_ROLE
+    ));
+  }
+
+  /**
+   * Corps JSON d'une requête d'inscription invalide (email malformé, mot de passe vide).
+   */
+  private String buildInvalidRegisterBody() throws Exception {
+    return objectMapper.writeValueAsString(Map.of(
+        "email", INVALID_EMAIL,
+        "password", INVALID_PASSWORD
+    ));
   }
 
   /**
    * Construit le corps JSON d'une requête de connexion.
    */
-  private String buildLoginBody(String email, String password) throws Exception {
-    HashMap<String, String> body = new HashMap<>();
-    body.put("email", email);
-    body.put("password", password);
-    return objectMapper.writeValueAsString(body);
+  private String buildLoginBody() throws Exception {
+    return objectMapper.writeValueAsString(Map.of(
+        "email", TEST_EMAIL,
+        "password", TEST_PASSWORD
+    ));
+  }
+
+  /**
+   * Corps JSON d'une requête de connexion invalide (email malformé, mot de passe vide).
+   */
+  private String buildInvalidLoginBody() throws Exception {
+    return objectMapper.writeValueAsString(Map.of(
+        "email", INVALID_EMAIL,
+        "password", INVALID_PASSWORD
+    ));
   }
 }
