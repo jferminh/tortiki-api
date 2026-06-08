@@ -1,6 +1,5 @@
 package com.tortiki.api.infrastructure.adapter.in.web;
 
-import com.tortiki.api.application.port.in.FindUserUseCase;
 import com.tortiki.api.application.port.in.RegisterUserUseCase;
 import com.tortiki.api.domain.exception.UserAlreadyExistsException;
 import com.tortiki.api.domain.model.User;
@@ -11,7 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +22,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -32,9 +33,8 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Adaptateur primaire REST pour l'authentification sur la plateforme Tortiki.
  *
- * <p>Exposer les endpoints publics d'inscription et de connexion.
- * Délègue la logique métier aux ports primaires
- * {@link RegisterUserUseCase} et {@link FindUserUseCase}.</p>
+ * <p>Expose les endpoints publics d'inscription, de connexion et de déconnexion.
+ * Délègue la logique métier au port primaire {@link RegisterUserUseCase}.</p>
  *
  * <p>La gestion de session est stateful (pas de JWT en v1) :
  * Spring Security stocke le contexte d'authentification en session HTTP.</p>
@@ -47,7 +47,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
   private final RegisterUserUseCase registerUserUseCase;
-  private final FindUserUseCase findUserUseCase;
   private final AuthenticationManager authenticationManager;
   private final UserWebMapper userWebMapper;
 
@@ -90,13 +89,13 @@ public class AuthController {
    * Authentifie un utilisateur et crée une session HTTP.
    *
    * <p>Spring Security vérifie les credentials via {@link AuthenticationManager}.
-   * En cas de succès, le contexte d'authentification est stocké en session
-   * pour les requêtes suivantes.</p>
+   * Le contexte d'authentification retourné est directement extrait pour
+   * construire la réponse — aucune requête base de données supplémentaire.</p>
    *
    * <p>Retourne HTTP 200 avec le profil utilisateur en cas de succès.
    * Retourne HTTP 401 si les credentials sont invalides.</p>
    *
-   * @param request        les credentials de connexion validée
+   * @param request        les credentials de connexion validés
    * @param servletRequest la requête HTTP pour la gestion de session
    * @return le profil utilisateur authentifié
    */
@@ -120,15 +119,14 @@ public class AuthController {
       context.setAuthentication(authentication);
       SecurityContextHolder.setContext(context);
 
-      HttpSession session = servletRequest.getSession(true);
-      session.setAttribute(
+      servletRequest.getSession(true).setAttribute(
           HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
           context
       );
 
-      User user = findUserUseCase.findByEmail(request.email());
+      UserDetails userDetails = (UserDetails) authentication.getPrincipal();
       log.info("Connexion réussie pour : {}", request.email());
-      return ResponseEntity.ok(userWebMapper.toResponse(user));
+      return ResponseEntity.ok(userWebMapper.toResponse(userDetails));
 
     } catch (BadCredentialsException ex) {
       log.warn("Tentative de connexion échouée pour : {}", request.email());
@@ -139,21 +137,27 @@ public class AuthController {
   /**
    * Déconnecte l'utilisateur en invalidant sa session HTTP.
    *
-   * <p>Retourne HTTP 204 No Content après invalidation de la session.</p>
+   * <p>Délègue à {@link SecurityContextLogoutHandler} pour invalider
+   * la session et nettoyer le contexte Spring Security.
+   * Retourne HTTP 204 No Content après déconnexion.</p>
    *
-   * @param servletRequest la requête HTTP contenant la session à invalider
+   * @param servletRequest  la requête HTTP contenant la session à invalider
+   * @param servletResponse la réponse HTTP
    * @return réponse vide avec statut 204
    */
   @PostMapping("/logout")
   @Operation(summary = "Déconnexion de l'utilisateur")
   @ApiResponse(responseCode = "204", description = "Déconnexion réussie")
-  public ResponseEntity<Void> logout(HttpServletRequest servletRequest) {
-    HttpSession session = servletRequest.getSession(false);
-    if (session != null) {
-      session.invalidate();
-    }
-    SecurityContextHolder.clearContext();
-    log.info("Session invalidée");
+  public ResponseEntity<Void> logout(
+      HttpServletRequest servletRequest,
+      HttpServletResponse servletResponse) {
+
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    String email = (authentication != null) ? authentication.getName() : "anonyme";
+
+    new SecurityContextLogoutHandler().logout(servletRequest, servletResponse, authentication);
+
+    log.info("Déconnexion de : {}", email);
     return ResponseEntity.noContent().build();
   }
 }
