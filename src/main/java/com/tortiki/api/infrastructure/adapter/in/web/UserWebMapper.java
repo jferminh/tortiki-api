@@ -6,6 +6,8 @@ import com.tortiki.api.domain.model.User;
 import com.tortiki.api.infrastructure.adapter.in.web.dto.UserResponse;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 /**
@@ -37,6 +39,37 @@ public class UserWebMapper {
         user.getEmail(),
         user.getFirstName(),
         user.getLastName(),
+        roles
+    );
+  }
+
+  /**
+   * Construit un {@link UserResponse} depuis un {@link UserDetails} Spring Security.
+   *
+   * <p>Utilisé après l'authentification pour éviter un second appel en base :
+   * le {@code UserDetails} est déjà chargé par {@code UserDetailsServiceImpl}
+   * lors de l'appel à {@code AuthenticationManager.authenticate()}.</p>
+   *
+   * <p>L'identifiant ({@code id}) et les noms ({@code firstName}, {@code lastName})
+   * ne sont pas portés par {@code UserDetails} — ils sont retournés comme {@code null}
+   * dans cette surcharge légère. Pour une réponse complète, privilégier
+   * {@link #toResponse(User)}.</p>
+   *
+   * @param userDetails le principal Spring Security authentifié
+   * @return le DTO de réponse HTTP minimal
+   */
+  public UserResponse toResponse(UserDetails userDetails) {
+    Set<RoleName> roles = userDetails.getAuthorities().stream()
+        .map(GrantedAuthority::getAuthority)
+        .map(authority -> authority.replace("ROLE_", ""))
+        .map(RoleName::valueOf)
+        .collect(Collectors.toSet());
+
+    return new UserResponse(
+        null,
+        userDetails.getUsername(),
+        null,
+        null,
         roles
     );
   }
