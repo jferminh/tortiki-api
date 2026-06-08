@@ -1,6 +1,5 @@
 package com.tortiki.api.config;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -13,7 +12,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 
 /**
  * Configuration principale de Spring Security pour Tortiki API.
@@ -25,11 +23,10 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
  * <p>Spring Boot auto-configure {@code DaoAuthenticationProvider} automatiquement
  * dès qu'un bean {@link org.springframework.security.core.userdetails.UserDetailsService}
  * et un bean {@link PasswordEncoder} sont présents dans le contexte.
- * La déclaration manuelle du provider est donc inutile et dépréciée
+ * La déclaration manuelle du provider est inutile et dépréciée
  * depuis Spring Security 6.4.</p>
  *
- * <p>Contrôle d'accès par rôle (RBAC) :
- * </p>
+ * <p>Contrôle d'accès par rôle (RBAC) :</p>
  * <ul>
  *   <li>{@code ROLE_ADMIN}  — administration de la plateforme</li>
  *   <li>{@code ROLE_SELLER} — gestion des annonces et des demandes</li>
@@ -39,48 +36,10 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
-@RequiredArgsConstructor
 public class SecurityConfig {
 
-  // ===== CONSTANTES — RÔLES =====
-
   /**
-   * Rôle administrateur de la plateforme.
-   */
-  private static final String ROLE_ADMIN = "ADMIN";
-
-  /**
-   * Rôle vendeur — gestion des annonces et des demandes.
-   */
-  private static final String ROLE_SELLER = "SELLER";
-
-  /**
-   * Rôle acheteur — recherche et expression d'intérêt.
-   */
-  private static final String ROLE_BUYER = "BUYER";
-
-  // ===== CONSTANTES — ROUTES =====
-
-  /**
-   * Route d'une annonce par identifiant.
-   */
-  private static final String ROUTE_LISTING_BY_ID = "/api/listings/{id}";
-
-  /**
-   * Route de confirmation d'une demande de contact.
-   */
-  private static final String ROUTE_CONTACT_CONFIRM = "/api/contact-requests/*/confirm";
-
-  /**
-   * Route de refus d'une demande de contact.
-   */
-  private static final String ROUTE_CONTACT_REFUSE = "/api/contact-requests/*/refuse";
-
-  /**
-   * Encodeur de mots de passe BCrypt (force 12).
-   *
-   * <p>BCrypt est recommandé par l'OWASP pour le stockage des mots de passe.
-   * Le facteur de coût 12 offre un bon équilibre sécurité / performance.</p>
+   * Encodeur de mots de passe BCrypt (force 12, recommandation OWASP).
    *
    * <p>Spring Boot détecte automatiquement ce bean et configure
    * {@code DaoAuthenticationProvider} sans déclaration manuelle.</p>
@@ -96,7 +55,7 @@ public class SecurityConfig {
    * Gestionnaire d'authentification exposé comme bean Spring.
    *
    * <p>Nécessaire pour déclencher l'authentification manuellement
-   * depuis le contrôleur de connexion.</p>
+   * depuis {@code AuthController} lors de la connexion.</p>
    *
    * @param config la configuration d'authentification auto-configurée
    * @return le gestionnaire d'authentification
@@ -130,21 +89,17 @@ public class SecurityConfig {
 
     http
         // ===== GESTION DE SESSION =====
+        // ALWAYS : session créée systématiquement à la connexion (API REST stateful MVP v1)
         .sessionManagement(session -> session
-            .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+            .sessionCreationPolicy(SessionCreationPolicy.ALWAYS)
             .maximumSessions(1)
             .maxSessionsPreventsLogin(false)
-        )
-        .securityContext(context -> context
-            .securityContextRepository(
-                new HttpSessionSecurityContextRepository()
-            )
         )
 
         // ===== RÈGLES D'ACCÈS =====
         .authorizeHttpRequests(auth -> auth
 
-            // Documentation API — accessible publiquement (désactivé en prod)
+            // Documentation API — accessible publiquement (désactivé en prod via profil)
             .requestMatchers(
                 "/swagger-ui.html",
                 "/swagger-ui/**",
@@ -159,7 +114,7 @@ public class SecurityConfig {
             ).permitAll()
             .requestMatchers(HttpMethod.GET,
                 "/api/listings",
-                ROUTE_LISTING_BY_ID,
+                SecurityConstants.ROUTE_LISTING_BY_ID,
                 "/api/listings/search",
                 "/api/cuisine-types"
             ).permitAll()
@@ -167,31 +122,38 @@ public class SecurityConfig {
             // Endpoints vendeur
             .requestMatchers(HttpMethod.POST,
                 "/api/listings"
-            ).hasRole(ROLE_SELLER)
+            ).hasRole(SecurityConstants.ROLE_SELLER)
             .requestMatchers(HttpMethod.PUT,
-                ROUTE_LISTING_BY_ID
-            ).hasRole(ROLE_SELLER)
+                SecurityConstants.ROUTE_LISTING_BY_ID
+            ).hasRole(SecurityConstants.ROLE_SELLER)
             .requestMatchers(HttpMethod.DELETE,
-                ROUTE_LISTING_BY_ID
-            ).hasRole(ROLE_SELLER)
+                SecurityConstants.ROUTE_LISTING_BY_ID
+            ).hasRole(SecurityConstants.ROLE_SELLER)
             .requestMatchers(
-                ROUTE_CONTACT_CONFIRM,
-                ROUTE_CONTACT_REFUSE
-            ).hasRole(ROLE_SELLER)
+                SecurityConstants.ROUTE_CONTACT_CONFIRM,
+                SecurityConstants.ROUTE_CONTACT_REFUSE
+            ).hasRole(SecurityConstants.ROLE_SELLER)
 
             // Endpoints administration
-            .requestMatchers("/api/admin/**").hasRole(ROLE_ADMIN)
+            .requestMatchers("/api/admin/**").hasRole(SecurityConstants.ROLE_ADMIN)
 
             // Tout le reste nécessite une authentification
             .anyRequest().authenticated()
         )
 
-        // ===== CSRF =====
+        // CSRF désactivé sur register et login uniquement (OWASP conforme) :
+        // Ces endpoints sont appelés SANS session active préalable — le token CSRF
+        // n'existe donc pas encore côté client. La protection CSRF ne s'applique
+        // qu'aux requêtes émises depuis un navigateur avec une session existante.
+        // Tous les autres endpoints mutants (POST/PUT/DELETE) conservent la protection CSRF.
         .csrf(csrf -> csrf
-            .ignoringRequestMatchers("/api/auth/**")
+            .ignoringRequestMatchers(
+                "/api/auth/register",
+                "/api/auth/login"
+            )
         )
 
-        // ===== GESTION DES ERREURS D'AUTHENTIFICATION =====
+        // ===== GESTION DES ERREURS =====
         .exceptionHandling(ex -> ex
             .authenticationEntryPoint((request, response, authException) -> {
               response.setStatus(401);
