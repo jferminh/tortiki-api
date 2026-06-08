@@ -1,7 +1,6 @@
 package com.tortiki.api.infrastructure.adapter.in.web;
 
 import com.tortiki.api.application.port.in.RegisterUserUseCase;
-import com.tortiki.api.domain.exception.UserAlreadyExistsException;
 import com.tortiki.api.domain.model.User;
 import com.tortiki.api.infrastructure.adapter.in.web.dto.LoginRequest;
 import com.tortiki.api.infrastructure.adapter.in.web.dto.RegisterRequest;
@@ -17,7 +16,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -54,10 +52,11 @@ public class AuthController {
    * Inscrit un nouvel utilisateur sur la plateforme.
    *
    * <p>Retourne HTTP 201 avec le profil créé en cas de succès.
-   * Retourne HTTP 409 si l'adresse email est déjà utilisée.</p>
+   * HTTP 409 si l'email est déjà utilisé — géré par
+   * {@link GlobalExceptionHandler#handleUserAlreadyExists}.</p>
    *
    * @param request les données d'inscription validées
-   * @return le profil utilisateur créé
+   * @return le profil utilisateur créé avec HTTP 201
    */
   @PostMapping("/register")
   @Operation(summary = "Inscription d'un nouvel utilisateur")
@@ -66,38 +65,28 @@ public class AuthController {
   @ApiResponse(responseCode = "409", description = "Email déjà utilisé")
   public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
     log.debug("Requête d'inscription reçue pour : {}", request.email());
-
-    try {
-      User created = registerUserUseCase.register(
-          request.email(),
-          request.password(),
-          request.firstName(),
-          request.lastName(),
-          request.role()
-      );
-      return ResponseEntity
-          .status(HttpStatus.CREATED)
-          .body(userWebMapper.toResponse(created));
-
-    } catch (UserAlreadyExistsException ex) {
-      log.warn("Tentative d'inscription avec un email existant : {}", request.email());
-      return ResponseEntity.status(HttpStatus.CONFLICT).build();
-    }
+    User created = registerUserUseCase.register(
+        request.email(),
+        request.password(),
+        request.firstName(),
+        request.lastName(),
+        request.role()
+    );
+    log.info("Utilisateur inscrit : id={} email={}", created.getId(), created.getEmail());
+    return ResponseEntity
+        .status(HttpStatus.CREATED)
+        .body(userWebMapper.toResponse(created));
   }
 
   /**
-   * Authentifie un utilisateur et crée une session HTTP.
+   * Authentifie un utilisateur et crée une session HTTP stateful.
    *
-   * <p>Spring Security vérifie les credentials via {@link AuthenticationManager}.
-   * Le contexte d'authentification retourné est directement extrait pour
-   * construire la réponse — aucune requête base de données supplémentaire.</p>
+   * <p>HTTP 401 si les credentials sont invalides — géré par
+   * {@link GlobalExceptionHandler} via {@code BadCredentialsException}.</p>
    *
-   * <p>Retourne HTTP 200 avec le profil utilisateur en cas de succès.
-   * Retourne HTTP 401 si les credentials sont invalides.</p>
-   *
-   * @param request        les credentials de connexion validés
+   * @param request        les credentials de connexion validée
    * @param servletRequest la requête HTTP pour la gestion de session
-   * @return le profil utilisateur authentifié
+   * @return le profil utilisateur authentifié avec HTTP 200
    */
   @PostMapping("/login")
   @Operation(summary = "Connexion d'un utilisateur existant")
@@ -109,29 +98,22 @@ public class AuthController {
       HttpServletRequest servletRequest) {
 
     log.debug("Requête de connexion reçue pour : {}", request.email());
+    Authentication authentication = authenticationManager.authenticate(
+        new UsernamePasswordAuthenticationToken(request.email(), request.password())
+    );
 
-    try {
-      Authentication authentication = authenticationManager.authenticate(
-          new UsernamePasswordAuthenticationToken(request.email(), request.password())
-      );
+    SecurityContext context = SecurityContextHolder.createEmptyContext();
+    context.setAuthentication(authentication);
+    SecurityContextHolder.setContext(context);
 
-      SecurityContext context = SecurityContextHolder.createEmptyContext();
-      context.setAuthentication(authentication);
-      SecurityContextHolder.setContext(context);
+    servletRequest.getSession(true).setAttribute(
+        HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+        context
+    );
 
-      servletRequest.getSession(true).setAttribute(
-          HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
-          context
-      );
-
-      UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-      log.info("Connexion réussie pour : {}", request.email());
-      return ResponseEntity.ok(userWebMapper.toResponse(userDetails));
-
-    } catch (BadCredentialsException ex) {
-      log.warn("Tentative de connexion échouée pour : {}", request.email());
-      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-    }
+    UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+    log.info("Connexion réussie pour : {}", request.email());
+    return ResponseEntity.ok(userWebMapper.toResponse(userDetails));
   }
 
   /**
