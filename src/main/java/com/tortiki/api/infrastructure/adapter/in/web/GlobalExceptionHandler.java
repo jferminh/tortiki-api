@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -191,6 +192,21 @@ public class GlobalExceptionHandler {
   public void handleAuthorizationDenied(AuthorizationDeniedException ex)
       throws AuthorizationDeniedException {
     throw ex;
+  }
+
+  /**
+   * Gère les tentatives de connexion avec des credentials invalides.
+   *
+   * @param ex l'exception de credentials invalides
+   * @return réponse HTTP 401 Unauthorized
+   */
+  @ExceptionHandler(BadCredentialsException.class)
+  public ResponseEntity<ErrorResponse> handleBadCredentials(
+      BadCredentialsException ex) {
+    log.warn("Tentative de connexion échouée : {}", ex.getMessage());
+    return ResponseEntity
+        .status(HttpStatus.UNAUTHORIZED)
+        .body(ErrorResponse.of(401, "Unauthorized", "Identifiants invalides"));
   }
 
   /**

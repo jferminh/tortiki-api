@@ -68,7 +68,7 @@ class AuthControllerTest {
   private static final String TEST_ROLE     = "SELLER";
 
   private static final String INVALID_EMAIL    = "pas-un-email";
-  private static final String INVALID_PASSWORD = "";
+  private static final String EMPTY_PASSWORD = "";
 
   @Autowired
   private MockMvc mockMvc;
@@ -136,7 +136,7 @@ class AuthControllerTest {
   @Test
   @Story("Inscription")
   @Severity(SeverityLevel.CRITICAL)
-  @Description("Email déjà utilisé — HTTP 409 Conflict retourné.")
+  @Description("Email déjà utilisé — HTTP 409 Conflict avec body ErrorResponse.")
   @DisplayName("POST /register — retourne 409 si l'email est déjà utilisé")
   void register_shouldReturn409_whenEmailAlreadyExists() throws Exception {
     when(registerUserUseCase.register(
@@ -147,7 +147,9 @@ class AuthControllerTest {
             .contentType(MediaType.APPLICATION_JSON)
             .content(buildRegisterBody())
             .with(csrf()))
-        .andExpect(status().isConflict());
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.status").value(409))
+        .andExpect(jsonPath("$.message").exists());
 
     verify(userWebMapper, never()).toResponse(any(User.class));
   }
@@ -205,7 +207,7 @@ class AuthControllerTest {
   @Test
   @Story("Connexion")
   @Severity(SeverityLevel.CRITICAL)
-  @Description("Mauvais mot de passe — HTTP 401 Unauthorized retourné.")
+  @Description("Mauvais mot de passe — HTTP 401 Unauthorized avec body ErrorResponse OWASP.")
   @DisplayName("POST /login — retourne 401 si les credentials sont invalides")
   void login_shouldReturn401_whenCredentialsAreInvalid() throws Exception {
     when(authenticationManager.authenticate(any()))
@@ -215,7 +217,9 @@ class AuthControllerTest {
             .contentType(MediaType.APPLICATION_JSON)
             .content(buildLoginBody())
             .with(csrf()))
-        .andExpect(status().isUnauthorized());
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.status").value(401))
+        .andExpect(jsonPath("$.message").value("Identifiants invalides"));
 
     verify(userWebMapper, never()).toResponse(any(UserDetails.class));
   }
@@ -269,7 +273,7 @@ class AuthControllerTest {
   private String buildInvalidRegisterBody() throws Exception {
     return objectMapper.writeValueAsString(Map.of(
         "email", INVALID_EMAIL,
-        "password", INVALID_PASSWORD
+        "password", EMPTY_PASSWORD
     ));
   }
 
@@ -289,7 +293,7 @@ class AuthControllerTest {
   private String buildInvalidLoginBody() throws Exception {
     return objectMapper.writeValueAsString(Map.of(
         "email", INVALID_EMAIL,
-        "password", INVALID_PASSWORD
+        "password", EMPTY_PASSWORD
     ));
   }
 }
