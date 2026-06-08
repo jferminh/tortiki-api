@@ -18,6 +18,7 @@ import com.tortiki.api.domain.model.Role;
 import com.tortiki.api.domain.model.RoleName;
 import com.tortiki.api.domain.model.User;
 import com.tortiki.api.infrastructure.adapter.in.web.dto.UserResponse;
+import com.tortiki.api.infrastructure.adapter.in.web.support.TestSecurityConfig;
 import io.qameta.allure.Description;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Feature;
