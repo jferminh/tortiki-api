@@ -3,6 +3,8 @@ package com.tortiki.api.infrastructure.adapter.in.web.support;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
@@ -14,17 +16,21 @@ import org.springframework.security.web.SecurityFilterChain;
  * authentification, afin que les tests de contrôleur se concentrent
  * sur la logique métier plutôt que sur la sécurité.</p>
  *
+ * <p>Configure explicitement {@code exceptionHandling()} pour que
+ * {@code AccessDeniedException} (levée par {@code @PreAuthorize})
+ * soit traduite en HTTP 403 et non en HTTP 500.</p>
+ *
  * <p>Usage : importer explicitement dans chaque classe {@code @WebMvcTest} :</p>
  * <pre>{@code
- * @WebMvcTest(AuthController.class)
+ * @WebMvcTest(CuisineTypeController.class)
  * @Import(TestSecurityConfig.class)
- * class AuthControllerTest { ... }
+ * class CuisineTypeControllerTest { ... }
  * }</pre>
  *
- * <p>Ce n'est jamais chargée en dehors du contexte de test.
- * Le bean {@code @Primary} garantit sa priorité sur {@code SecurityConfig}.</p>
+ * <p>Ce n'est jamais chargée en profil {@code dev} ou {@code prod}.</p>
  */
 @TestConfiguration
+@EnableMethodSecurity
 public class TestSecurityConfig {
 
   /**
@@ -33,8 +39,12 @@ public class TestSecurityConfig {
    * <p>{@code @Primary} écrase le bean {@code securityFilterChain} de production
    * dans le contexte {@code @WebMvcTest}.</p>
    *
+   * <p>Le handler {@code exceptionHandling()} traduit {@code AccessDeniedException}
+   * en HTTP 403 — nécessaire pour que {@code @PreAuthorize} retourne 403
+   * et non 500 dans les tests.</p>
+   *
    * @param http configurateur de sécurité HTTP
-   * @return la chaîne de filtres configurée sans restriction
+   * @return la chaîne de filtres configurée
    * @throws Exception si la configuration échoue
    */
   @Bean
@@ -43,7 +53,12 @@ public class TestSecurityConfig {
       throws Exception {
     http
         .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
-        .csrf(AbstractHttpConfigurer::disable);
+        .csrf(AbstractHttpConfigurer::disable)
+        .exceptionHandling(ex -> ex
+            .accessDeniedHandler((request, response, accessDeniedException) ->
+                response.sendError(HttpStatus.FORBIDDEN.value())
+            )
+        );
     return http.build();
   }
 }

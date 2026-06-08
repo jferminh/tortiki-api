@@ -10,6 +10,8 @@ import com.tortiki.api.infrastructure.adapter.in.web.dto.ErrorResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -157,6 +159,38 @@ public class GlobalExceptionHandler {
     return ResponseEntity
         .status(HttpStatus.BAD_REQUEST)
         .body(ErrorResponse.of(400, BAD_REQUEST, message));
+  }
+
+  /**
+   * Délègue {@link AccessDeniedException} à Spring Security.
+   *
+   * <p>Cette exception doit remonter à l'{@code ExceptionTranslationFilter}
+   * pour être traduite en HTTP 403 par l'{@code accessDeniedHandler}.
+   * L'attraper ici la transformerait en HTTP 500.</p>
+   *
+   * @param ex l'exception d'accès refusé Spring Security legacy
+   * @throws AccessDeniedException relancée vers Spring Security
+   */
+  @ExceptionHandler(AccessDeniedException.class)
+  public void handleAccessDenied(AccessDeniedException ex)
+      throws AccessDeniedException {
+    throw ex;
+  }
+
+  /**
+   * Délègue {@link AuthorizationDeniedException} à Spring Security.
+   *
+   * <p>Levée par {@code @PreAuthorize} depuis Spring Security 6.
+   * Doit remonter à l'{@code ExceptionTranslationFilter}
+   * pour être traduite en HTTP 403.</p>
+   *
+   * @param ex l'exception d'autorisation refusée Spring Security 6
+   * @throws AuthorizationDeniedException relancée vers Spring Security
+   */
+  @ExceptionHandler(AuthorizationDeniedException.class)
+  public void handleAuthorizationDenied(AuthorizationDeniedException ex)
+      throws AuthorizationDeniedException {
+    throw ex;
   }
 
   /**
