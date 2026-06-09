@@ -1,5 +1,7 @@
 package com.tortiki.api.infrastructure.adapter.in.web;
 
+import com.tortiki.api.domain.exception.ContactRequestAlreadyExistsException;
+import com.tortiki.api.domain.exception.ContactRequestNotFoundException;
 import com.tortiki.api.domain.exception.CuisineTypeNotFoundException;
 import com.tortiki.api.domain.exception.ListingNotFoundException;
 import com.tortiki.api.domain.exception.RoleNotFoundException;
@@ -113,6 +115,36 @@ public class GlobalExceptionHandler {
     return ResponseEntity
         .status(HttpStatus.NOT_FOUND)
         .body(ErrorResponse.of(404, NOT_FOUND, ex.getMessage()));
+  }
+
+  /**
+   * Gère les recherches de demande de contact infructueuses.
+   *
+   * @param ex exception levée par {@code ContactRequestService}
+   * @return réponse HTTP 404 Not Found
+   */
+  @ExceptionHandler(ContactRequestNotFoundException.class)
+  public ResponseEntity<ErrorResponse> handleContactRequestNotFound(
+      ContactRequestNotFoundException ex) {
+    log.warn("Demande de contact introuvable : {}", ex.getMessage());
+    return ResponseEntity
+        .status(HttpStatus.NOT_FOUND)
+        .body(ErrorResponse.of(404, NOT_FOUND, ex.getMessage()));
+  }
+
+  /**
+   * Gère les tentatives de double demande sur une même annonce.
+   *
+   * @param ex exception levée par {@code ContactRequestService}
+   * @return réponse HTTP 409 Conflict
+   */
+  @ExceptionHandler(ContactRequestAlreadyExistsException.class)
+  public ResponseEntity<ErrorResponse> handleContactRequestAlreadyExists(
+      ContactRequestAlreadyExistsException ex) {
+    log.warn("Demande de contact en doublon : {}", ex.getMessage());
+    return ResponseEntity
+        .status(HttpStatus.CONFLICT)
+        .body(ErrorResponse.of(409, CONFLICT, ex.getMessage()));
   }
 
   /**
