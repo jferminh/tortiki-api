@@ -4,6 +4,7 @@ import com.tortiki.api.application.port.in.ListingCommand;
 import com.tortiki.api.application.port.in.ManageListingUseCase;
 import com.tortiki.api.application.port.out.CuisineTypeRepository;
 import com.tortiki.api.application.port.out.ListingRepository;
+import com.tortiki.api.application.port.out.StoragePort;
 import com.tortiki.api.application.port.out.UserRepository;
 import com.tortiki.api.domain.exception.CuisineTypeNotFoundException;
 import com.tortiki.api.domain.exception.ListingNotFoundException;
@@ -13,9 +14,11 @@ import com.tortiki.api.domain.model.CuisineType;
 import com.tortiki.api.domain.model.Listing;
 import com.tortiki.api.domain.model.ListingStatus;
 import com.tortiki.api.domain.model.User;
+import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,8 +29,9 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p>Implémente le port primaire {@link ManageListingUseCase}.
  * Dépend des ports secondaires {@link ListingRepository},
- * {@link UserRepository} et {@link CuisineTypeRepository} —
- * aucune dépendance directe vers JPA ou la base de données.</p>
+ * {@link UserRepository}, {@link CuisineTypeRepository}
+ * et {@link StoragePort} — aucune dépendance directe vers
+ * JPA, MinIO ou la base de données.</p>
  *
  * <p>La règle de propriété est appliquée ici : seul le vendeur
  * propriétaire peut modifier ou supprimer son annonce.</p>
@@ -59,9 +63,10 @@ public class ListingService implements ManageListingUseCase {
   /** Port secondaire de persistance des origines culinaires. */
   private final CuisineTypeRepository cuisineTypeRepository;
 
-  /**
-   * {@inheritDoc}
-   */
+  /** Port secondaire de stockage des photos d'annonces. */
+  private final StoragePort storagePort;
+
+  /** {@inheritDoc} */
   @Override
   @Transactional
   public Listing create(Long sellerId, ListingCommand command) {
@@ -95,9 +100,7 @@ public class ListingService implements ManageListingUseCase {
     return saved;
   }
 
-  /**
-   * {@inheritDoc}
-   */
+  /** {@inheritDoc} */
   @Override
   @Transactional
   public Listing update(Long listingId, Long sellerId, ListingCommand command) {
@@ -119,15 +122,28 @@ public class ListingService implements ManageListingUseCase {
 
   /**
    * {@inheritDoc}
+   *
+   * <p>Génère un nom de fichier unique via UUID pour éviter les
+   * collisions en bucket. Délègue upload à {@link StoragePort}
+   * sans connaître l'implémentation MinIO.</p>
    */
   @Override
   @Transactional
-  public Listing updatePhoto(Long listingId, Long sellerId, String photoUrl) {
-    log.debug("Mise à jour photo annonce id={}", listingId);
+  public Listing updatePhoto(
+      Long listingId,
+      Long sellerId,
+      InputStream photoStream,
+      String contentType) {
+    log.debug("Upload photo annonce id={} par vendeur id={}", listingId, sellerId);
+
     Listing existing = getListingOwnedBySeller(listingId, sellerId);
+
+    String fileName = UUID.randomUUID() + "-listing-" + listingId + ".jpg";
+    String photoUrl = storagePort.upload(fileName, photoStream, contentType);
+
     existing.setPhotoUrl(photoUrl);
     Listing updated = listingRepository.save(existing);
-    log.info("Photo mise à jour annonce id={}", listingId);
+    log.info("Photo upload annonce id={} : {}", listingId, photoUrl);
     return updated;
   }
 
@@ -155,9 +171,7 @@ public class ListingService implements ManageListingUseCase {
     return listingRepository.findByStatus(ListingStatus.ACTIVE);
   }
 
-  /**
-   * {@inheritDoc}
-   */
+  /** {@inheritDoc} */
   @Override
   @Transactional(readOnly = true)
   public List<Listing> findBySeller(Long sellerId) {
@@ -165,9 +179,7 @@ public class ListingService implements ManageListingUseCase {
     return listingRepository.findBySellerIdAndStatus(sellerId, ListingStatus.ACTIVE);
   }
 
-  /**
-   * {@inheritDoc}
-   */
+  /** {@inheritDoc} */
   @Override
   @Transactional(readOnly = true)
   public Listing findById(Long listingId) {
@@ -178,9 +190,7 @@ public class ListingService implements ManageListingUseCase {
         ));
   }
 
-  /**
-   * {@inheritDoc}
-   */
+  /** {@inheritDoc} */
   @Override
   @Transactional
   public Listing changeStatus(Long listingId, ListingStatus status) {
@@ -191,22 +201,18 @@ public class ListingService implements ManageListingUseCase {
         ));
     existing.setStatus(status);
     Listing updated = listingRepository.save(existing);
-    log.info("Statut annonce id={} changé vers {}", listingId, status);
+    log.info("statut annonce id={} changé vers {}", listingId, status);
     return updated;
   }
 
   /**
    * Récupère une annonce et vérifie qu'elle appartient au vendeur demandeur.
    *
-   * <p>Méthode privée mutualisée pour éviter la duplication de la
-   * logique de propriété dans {@code update}, {@code updatePhoto}
-   * et {@code delete}.</p>
-   *
    * @param listingId identifiant de l'annonce
    * @param sellerId  identifiant du vendeur demandeur
    * @return l'annonce si elle existe et appartient au vendeur
-   * @throws ListingNotFoundException     si l'annonce est introuvable
-   * @throws UnauthorizedActionException  si le vendeur n'est pas propriétaire
+   * @throws ListingNotFoundException    si l'annonce est introuvable
+   * @throws UnauthorizedActionException si le vendeur n'est pas propriétaire
    */
   private Listing getListingOwnedBySeller(Long listingId, Long sellerId) {
     Listing listing = listingRepository.findById(listingId)
