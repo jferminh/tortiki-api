@@ -20,7 +20,7 @@ minio:
   endpoint: http://localhost:9000
   access-key: minioadmin
   secret-key: minioadmin
-  bucket: tortiki-dev
+  bucket: tortiki-photos
 
 # Email : MailHog en local (pas de vrai envoi)
 spring.mail:
