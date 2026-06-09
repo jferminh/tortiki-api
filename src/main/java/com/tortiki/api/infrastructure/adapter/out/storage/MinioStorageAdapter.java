@@ -40,8 +40,8 @@ public class MinioStorageAdapter implements StoragePort {
    * @param fileName    nom du fichier cible dans le bucket
    * @param inputStream flux binaire du fichier à uploader
    * @param contentType type MIME du fichier (ex. {@code image/jpeg})
-   * @return l'URL publique d'accès au fichier uploadé
-   * @throws StorageException en cas d'échec de l'upload
+   * @return l'URL publique d'accès au fichier upload
+   * @throws StorageException en cas d'échec de upload
    */
   @Override
   public String upload(String fileName, InputStream inputStream, String contentType) {
