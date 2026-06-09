@@ -2,6 +2,7 @@ package com.tortiki.api.application.port.in;
 
 import com.tortiki.api.domain.model.Listing;
 import com.tortiki.api.domain.model.ListingStatus;
+import java.io.InputStream;
 import java.util.List;
 
 /**
@@ -45,19 +46,18 @@ public interface ManageListingUseCase {
    */
   Listing update(Long listingId, Long sellerId, ListingCommand command);
 
+  // application/port/in/ManageListingUseCase.java — updatePhoto() à modifier
   /**
-   * Met à jour la photo d'une annonce après upload MinIO.
+   * Met à jour la photo d'une annonce via upload vers le stockage.
    *
-   * @param listingId identifiant de l'annonce
-   * @param sellerId  identifiant du vendeur propriétaire
-   * @param photoUrl  URL de la photo stockée dans MinIO
-   * @return l'annonce avec la nouvelle photo
-   * @throws com.tortiki.api.domain.exception.ListingNotFoundException
-   *         si l'annonce est introuvable
-   * @throws com.tortiki.api.domain.exception.UnauthorizedActionException
-   *         si le vendeur n'est pas propriétaire de l'annonce
+   * @param listingId   identifiant de l'annonce
+   * @param sellerId    identifiant du vendeur propriétaire
+   * @param photoStream flux binaire de la photo
+   * @param contentType type MIME (ex. {@code image/jpeg})
+   * @return l'annonce mise à jour avec la nouvelle URL photo
    */
-  Listing updatePhoto(Long listingId, Long sellerId, String photoUrl);
+  Listing updatePhoto(Long listingId, Long sellerId,
+                      InputStream photoStream, String contentType);
 
   /**
    * Supprime une annonce (suppression logique — statut {@code INACTIVE}).

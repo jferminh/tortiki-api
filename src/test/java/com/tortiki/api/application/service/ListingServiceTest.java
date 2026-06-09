@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import com.tortiki.api.application.port.in.ListingCommand;
 import com.tortiki.api.application.port.out.CuisineTypeRepository;
 import com.tortiki.api.application.port.out.ListingRepository;
+import com.tortiki.api.application.port.out.StoragePort;
 import com.tortiki.api.application.port.out.UserRepository;
 import com.tortiki.api.domain.exception.CuisineTypeNotFoundException;
 import com.tortiki.api.domain.exception.ListingNotFoundException;
@@ -24,6 +25,8 @@ import io.qameta.allure.Feature;
 import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
 import io.qameta.allure.Story;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -56,6 +59,9 @@ class ListingServiceTest {
 
   @Mock
   private CuisineTypeRepository cuisineTypeRepository;
+
+  @Mock
+  private StoragePort storagePort;
 
   @InjectMocks
   private ListingService listingService;
@@ -190,15 +196,21 @@ class ListingServiceTest {
   @Test
   @Story("Modification d'une annonce")
   @Severity(SeverityLevel.MINOR)
-  @Description("Sofia met à jour la photo de son annonce — URL persistée.")
-  @DisplayName("updatePhoto — met à jour l'URL photo de l'annonce")
-  void updatePhoto_shouldUpdatePhotoUrl_whenSellerIsOwner() {
+  @Description("Sofia upload la photo de son annonce — StoragePort appelé, URL persistée.")
+  @DisplayName("updatePhoto — upload la photo via StoragePort et persiste l'URL")
+  void updatePhoto_shouldUploadAndPersistPhotoUrl_whenSellerIsOwner() {
+    InputStream photoStream = new ByteArrayInputStream("photo".getBytes());
+    String photoUrl = "http://localhost:9000/tortiki-photos/uuid-listing-100.jpg";
+
     when(listingRepository.findById(100L)).thenReturn(Optional.of(listing));
+    when(storagePort.upload(any(String.class), any(InputStream.class), any(String.class)))
+        .thenReturn(photoUrl);
     when(listingRepository.save(any(Listing.class))).thenReturn(listing);
 
-    Listing result = listingService.updatePhoto(100L, 1L, "https://minio/bortsch.jpg");
+    Listing result = listingService.updatePhoto(100L, 1L, photoStream, "image/jpeg");
 
     assertThat(result).isNotNull();
+    verify(storagePort).upload(any(String.class), any(InputStream.class), any(String.class));
     verify(listingRepository).save(any(Listing.class));
   }
 

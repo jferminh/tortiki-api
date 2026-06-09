@@ -3,6 +3,7 @@ package com.tortiki.api.infrastructure.adapter.in.web;
 import com.tortiki.api.domain.exception.CuisineTypeNotFoundException;
 import com.tortiki.api.domain.exception.ListingNotFoundException;
 import com.tortiki.api.domain.exception.RoleNotFoundException;
+import com.tortiki.api.domain.exception.StorageException;
 import com.tortiki.api.domain.exception.UnauthorizedActionException;
 import com.tortiki.api.domain.exception.UserAlreadyExistsException;
 import com.tortiki.api.domain.exception.UserNotFoundException;
@@ -49,6 +50,9 @@ public class GlobalExceptionHandler {
 
   /** Libellé HTTP pour les erreurs serveur inattendues (500). */
   private static final String INTERNAL_SERVER_ERROR = "Internal Server Error";
+
+  /** Libellé HTTP pour les erreurs de service externe (503). */
+  private static final String SERVICE_UNAVAILABLE = "Service Unavailable";
 
 
   /**
@@ -207,6 +211,24 @@ public class GlobalExceptionHandler {
     return ResponseEntity
         .status(HttpStatus.UNAUTHORIZED)
         .body(ErrorResponse.of(401, "Unauthorized", "Identifiants invalides"));
+  }
+
+  /**
+   * Gère les échecs de stockage de fichier (upload MinIO).
+   *
+   * <p>Retourne HTTP 503, car l'échec provient d'un service externe
+   * (MinIO), pas d'une erreur de l'utilisateur ni du code métier.</p>
+   *
+   * @param ex exception levée par {@code MinioStorageAdapter}
+   * @return réponse HTTP 503 Service Unavailable
+   */
+  @ExceptionHandler(StorageException.class)
+  public ResponseEntity<ErrorResponse> handleStorage(StorageException ex) {
+    log.error("Échec du stockage fichier : {}", ex.getMessage());
+    return ResponseEntity
+        .status(HttpStatus.SERVICE_UNAVAILABLE)
+        .body(ErrorResponse.of(503, SERVICE_UNAVAILABLE,
+            "Le service de stockage est temporairement indisponible"));
   }
 
   /**
