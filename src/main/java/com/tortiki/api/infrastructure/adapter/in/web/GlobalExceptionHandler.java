@@ -1,5 +1,6 @@
 package com.tortiki.api.infrastructure.adapter.in.web;
 
+import com.tortiki.api.domain.exception.AllergenNotFoundException;
 import com.tortiki.api.domain.exception.CuisineTypeNotFoundException;
 import com.tortiki.api.domain.exception.ListingNotFoundException;
 import com.tortiki.api.domain.exception.RoleNotFoundException;
@@ -110,6 +111,21 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ErrorResponse> handleCuisineTypeNotFound(
       CuisineTypeNotFoundException ex) {
     log.warn("Origine culinaire introuvable : {}", ex.getMessage());
+    return ResponseEntity
+        .status(HttpStatus.NOT_FOUND)
+        .body(ErrorResponse.of(404, NOT_FOUND, ex.getMessage()));
+  }
+
+  /**
+   * Gère les recherches d'allergène infructueuses.
+   *
+   * @param ex exception levée lors de la validation des allergènes d'une annonce
+   * @return réponse HTTP 404 Not Found
+   */
+  @ExceptionHandler(AllergenNotFoundException.class)
+  public ResponseEntity<ErrorResponse> handleAllergenNotFound(
+      AllergenNotFoundException ex) {
+    log.warn("Allergène introuvable : {}", ex.getMessage());
     return ResponseEntity
         .status(HttpStatus.NOT_FOUND)
         .body(ErrorResponse.of(404, NOT_FOUND, ex.getMessage()));
