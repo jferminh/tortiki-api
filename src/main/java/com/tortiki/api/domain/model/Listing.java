@@ -2,6 +2,8 @@ package com.tortiki.api.domain.model;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Représente une annonce de plat fait maison publiée par un vendeur.
@@ -86,6 +88,9 @@ public class Listing {
    * Origine culinaire associée à l'annonce.
    */
   private CuisineType cuisineType;
+
+  /** Liste des allergènes présents dans le plat, conformément à la réglementation INCO EU. */
+  private List<Allergen> allergens = new ArrayList<>();
 
   /**
    * Constructeur par défaut requis pour les mappers domain ↔ entité JPA.
@@ -326,6 +331,24 @@ public class Listing {
    */
   public void setCuisineType(CuisineType cuisineType) {
     this.cuisineType = cuisineType;
+  }
+
+  /**
+   * Retourne la liste des allergènes associés à cette annonce.
+   *
+   * @return liste d'allergènes, jamais {@code null}
+   */
+  public List<Allergen> getAllergens() {
+    return allergens;
+  }
+
+  /**
+   * Définit la liste des allergènes associés à cette annonce.
+   *
+   * @param allergens liste d'allergènes
+   */
+  public void setAllergens(List<Allergen> allergens) {
+    this.allergens = allergens != null ? allergens : new ArrayList<>();
   }
 
   @Override
