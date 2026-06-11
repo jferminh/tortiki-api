@@ -20,6 +20,11 @@ minio:
   secret-key: ${MINIO_SECRET_KEY}
   bucket: ${MINIO_BUCKET}
 
+nominatim:
+  base-url: ${NOMINATIM_BASE_URL:https://nominatim.openstreetmap.org}
+  user-agent: ${NOMINATIM_USER_AGENT:Tortiki/1.0}
+  timeout-seconds: ${NOMINATIM_TIMEOUT:5}
+
 spring.mail:
   host: ${MAIL_HOST}
   port: ${MAIL_PORT}

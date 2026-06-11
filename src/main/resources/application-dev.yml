@@ -29,6 +29,12 @@ spring.mail:
   username: ""
   password: ""
 
+# Géolocalisation Nominatim OpenStreetMap
+nominatim:
+  base-url: https://nominatim.openstreetmap.org
+  user-agent: Tortiki/1.0 (contact@tortiki.fr)
+  timeout-seconds: 5
+
 logging:
   level:
     com.tortiki: DEBUG
