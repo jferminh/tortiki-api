@@ -21,7 +21,7 @@ public final class SecurityConstants {
   public static final String ROLE_BUYER = "BUYER";
 
   /** Route d'une annonce par identifiant numérique. */
-  public static final String ROUTE_LISTING_BY_ID = "/api/listings/{id}";
+  public static final String ROUTE_LISTING_BY_ID = "/api/v1/listings/{id}";
 
   /**
    * Route de confirmation d'une demande de contact.
