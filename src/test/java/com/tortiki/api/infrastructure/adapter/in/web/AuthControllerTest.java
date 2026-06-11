@@ -12,12 +12,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tortiki.api.application.port.in.RegisterUserUseCase;
+import com.tortiki.api.config.SecurityConfig;
 import com.tortiki.api.domain.exception.UserAlreadyExistsException;
 import com.tortiki.api.domain.model.Role;
 import com.tortiki.api.domain.model.RoleName;
 import com.tortiki.api.domain.model.User;
 import com.tortiki.api.infrastructure.adapter.in.web.dto.UserResponse;
-import com.tortiki.api.infrastructure.adapter.in.web.support.TestSecurityConfig;
+import com.tortiki.api.infrastructure.adapter.out.persistence.UserDetailsServiceImpl;
 import io.qameta.allure.Description;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Feature;
@@ -39,6 +40,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -55,7 +57,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @Epic("Authentification")
 @Feature("Endpoints REST auth")
 @WebMvcTest(AuthController.class)
-@Import(TestSecurityConfig.class)
+@Import(SecurityConfig.class)
 @DisplayName("AuthController — Tests unitaires WebMvcTest")
 class AuthControllerTest {
 
@@ -122,7 +124,7 @@ class AuthControllerTest {
     )).thenReturn(sofia);
     when(userWebMapper.toResponse(sofia)).thenReturn(sofiaResponse);
 
-    mockMvc.perform(post("/api/auth/register")
+    mockMvc.perform(post("/api/v1/auth/register")
             .contentType(MediaType.APPLICATION_JSON)
             .content(buildRegisterBody())
             .with(csrf()))
@@ -143,7 +145,7 @@ class AuthControllerTest {
         anyString(), anyString(), anyString(), anyString(), any(RoleName.class)
     )).thenThrow(new UserAlreadyExistsException("Email déjà utilisé"));
 
-    mockMvc.perform(post("/api/auth/register")
+    mockMvc.perform(post("/api/v1/auth/register")
             .contentType(MediaType.APPLICATION_JSON)
             .content(buildRegisterBody())
             .with(csrf()))
@@ -160,7 +162,7 @@ class AuthControllerTest {
   @Description("Champs manquants dans la requête — HTTP 400 Bad Request.")
   @DisplayName("POST /register — retourne 400 si les champs obligatoires sont absents")
   void register_shouldReturn400_whenBodyIsInvalid() throws Exception {
-    mockMvc.perform(post("/api/auth/register")
+    mockMvc.perform(post("/api/v1/auth/register")
             .contentType(MediaType.APPLICATION_JSON)
             .content(buildInvalidRegisterBody())
             .with(csrf()))
@@ -195,7 +197,7 @@ class AuthControllerTest {
     when(authenticationManager.authenticate(any())).thenReturn(authToken);
     when(userWebMapper.toResponse(any(UserDetails.class))).thenReturn(sofiaResponse);
 
-    mockMvc.perform(post("/api/auth/login")
+    mockMvc.perform(post("/api/v1/auth/login")
             .contentType(MediaType.APPLICATION_JSON)
             .content(buildLoginBody())
             .with(csrf()))
@@ -213,7 +215,7 @@ class AuthControllerTest {
     when(authenticationManager.authenticate(any()))
         .thenThrow(new BadCredentialsException("Credentials invalides"));
 
-    mockMvc.perform(post("/api/auth/login")
+    mockMvc.perform(post("/api/v1/auth/login")
             .contentType(MediaType.APPLICATION_JSON)
             .content(buildLoginBody())
             .with(csrf()))
@@ -230,7 +232,7 @@ class AuthControllerTest {
   @Description("Corps de requête invalide — HTTP 400 Bad Request.")
   @DisplayName("POST /login — retourne 400 si l'email est invalide")
   void login_shouldReturn400_whenBodyIsInvalid() throws Exception {
-    mockMvc.perform(post("/api/auth/login")
+    mockMvc.perform(post("/api/v1/auth/login")
             .contentType(MediaType.APPLICATION_JSON)
             .content(buildInvalidLoginBody())
             .with(csrf()))
@@ -247,7 +249,7 @@ class AuthControllerTest {
   @Description("Déconnexion — session invalidée, HTTP 204 No Content retourné.")
   @DisplayName("POST /logout — retourne 204 et invalide la session")
   void logout_shouldReturn204() throws Exception {
-    mockMvc.perform(post("/api/auth/logout")
+    mockMvc.perform(post("/api/v1/auth/logout")
             .with(csrf()))
         .andExpect(status().isNoContent());
   }
