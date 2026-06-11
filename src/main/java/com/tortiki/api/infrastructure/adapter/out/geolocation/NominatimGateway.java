@@ -77,7 +77,7 @@ public class NominatimGateway implements GeolocationPort {
         return Optional.empty();
       }
 
-      NominatimResponse first = results.get(0);
+      NominatimResponse first = results.getFirst();
       double latitude = Double.parseDouble(first.lat());
       double longitude = Double.parseDouble(first.lon());
       log.debug("Nominatim : '{}' géocodé → lat={}, lng={}", city, latitude, longitude);
