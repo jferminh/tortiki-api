@@ -9,23 +9,27 @@ package com.tortiki.api.domain.model;
  * <p>La gestion du référentiel (CRUD) est réservée au rôle
  * {@code ROLE_ADMIN}. Ce modèle est utilisé comme critère de
  * filtrage dans la recherche d'annonces.</p>
+ *
+ * <p>Une origine désactivée ({@code enabled = false}) n'est pas
+ * proposée lors de la création d'annonce — règle métier administrable
+ * sans migration de schéma.</p>
  */
 public class CuisineType {
 
-  /**
-   * Identifiant technique de l'origine culinaire.
-   */
+  /** Identifiant technique de l'origine culinaire. */
   private Long id;
 
-  /**
-   * Nom de l'origine culinaire, unique en base.
-   */
+  /** Nom de l'origine culinaire, unique en base. */
   private String name;
 
-  /**
-   * Description optionnelle de l'origine culinaire.
-   */
+  /** Description optionnelle de l'origine culinaire. */
   private String description;
+
+  /**
+   * Indique si l'origine est active et proposable à la création d'annonce.
+   * Valeur par défaut : {@code true}.
+   */
+  private boolean enabled = true;
 
   /**
    * Constructeur par défaut requis pour les mappers domain ↔ entité JPA.
@@ -40,11 +44,13 @@ public class CuisineType {
    * @param id          identifiant technique
    * @param name        nom de l'origine culinaire
    * @param description description optionnelle
+   * @param enabled     indique si l'origine est active
    */
-  public CuisineType(Long id, String name, String description) {
+  public CuisineType(Long id, String name, String description, boolean enabled) {
     this.id = id;
     this.name = name;
     this.description = description;
+    this.enabled = enabled;
   }
 
   /**
@@ -101,8 +107,29 @@ public class CuisineType {
     this.description = description;
   }
 
+  /**
+   * Indique si l'origine culinaire est active.
+   *
+   * @return {@code true} si active, {@code false} si désactivée par un admin
+   */
+  public boolean isEnabled() {
+    return enabled;
+  }
+
+  /**
+   * Définit si l'origine culinaire est active.
+   *
+   * @param enabled {@code true} pour activer, {@code false} pour désactiver
+   */
+  public void setEnabled(boolean enabled) {
+    this.enabled = enabled;
+  }
+
   @Override
   public String toString() {
-    return "CuisineType{id=" + id + ", name='" + name + "'}";
+    return "CuisineType{id=" + id
+        + ", name='" + name + "'"
+        + ", enabled=" + enabled
+        + "}";
   }
 }
