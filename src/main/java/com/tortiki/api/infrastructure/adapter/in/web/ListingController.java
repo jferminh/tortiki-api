@@ -36,7 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/listings")
+@RequestMapping("/api/v1/listings")
 @RequiredArgsConstructor
 @Tag(name = "Annonces", description = "Consultation et création des annonces de plats")
 public class ListingController {

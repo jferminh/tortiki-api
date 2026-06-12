@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/cuisine-types")
+@RequestMapping("/api/v1/cuisine-types")
 @RequiredArgsConstructor
 @Tag(name = "Origines culinaires", description = "Référentiel des origines culinaires")
 public class CuisineTypeController {

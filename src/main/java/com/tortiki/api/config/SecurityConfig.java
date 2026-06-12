@@ -41,9 +41,6 @@ public class SecurityConfig {
   /**
    * Encodeur de mots de passe BCrypt (force 12, recommandation OWASP).
    *
-   * <p>Spring Boot détecte automatiquement ce bean et configure
-   * {@code DaoAuthenticationProvider} sans déclaration manuelle.</p>
-   *
    * @return une instance de {@link BCryptPasswordEncoder}
    */
   @Bean
@@ -53,9 +50,6 @@ public class SecurityConfig {
 
   /**
    * Gestionnaire d'authentification exposé comme bean Spring.
-   *
-   * <p>Nécessaire pour déclencher l'authentification manuellement
-   * depuis {@code AuthController} lors de la connexion.</p>
    *
    * @param config la configuration d'authentification auto-configurée
    * @return le gestionnaire d'authentification
@@ -88,18 +82,15 @@ public class SecurityConfig {
       throws Exception {
 
     http
-        // ===== GESTION DE SESSION =====
-        // ALWAYS : session créée systématiquement à la connexion (API REST stateful MVP v1)
         .sessionManagement(session -> session
             .sessionCreationPolicy(SessionCreationPolicy.ALWAYS)
             .maximumSessions(1)
             .maxSessionsPreventsLogin(false)
         )
 
-        // ===== RÈGLES D'ACCÈS =====
         .authorizeHttpRequests(auth -> auth
 
-            // Documentation API — accessible publiquement (désactivé en prod via profil)
+            // Documentation API — accès public (désactivé en prod via profil)
             .requestMatchers(
                 "/swagger-ui.html",
                 "/swagger-ui/**",
@@ -109,19 +100,23 @@ public class SecurityConfig {
 
             // Endpoints publics — visiteurs non authentifiés
             .requestMatchers(HttpMethod.POST,
-                "/api/auth/register",
-                "/api/auth/login"
+                "/api/v1/auth/register",
+                "/api/v1/auth/login"
+            ).permitAll()
+            .requestMatchers(HttpMethod.POST,
+                "/api/v1/auth/logout"
             ).permitAll()
             .requestMatchers(HttpMethod.GET,
-                "/api/listings",
+                "/api/v1/listings",
                 SecurityConstants.ROUTE_LISTING_BY_ID,
-                "/api/listings/search",
-                "/api/cuisine-types"
+                "/api/v1/listings/search",
+                "/api/v1/cuisine-types",
+                "/api/v1/cuisine-types/**"
             ).permitAll()
 
             // Endpoints vendeur
             .requestMatchers(HttpMethod.POST,
-                "/api/listings"
+                "/api/v1/listings"
             ).hasRole(SecurityConstants.ROLE_SELLER)
             .requestMatchers(HttpMethod.PUT,
                 SecurityConstants.ROUTE_LISTING_BY_ID
@@ -135,25 +130,20 @@ public class SecurityConfig {
             ).hasRole(SecurityConstants.ROLE_SELLER)
 
             // Endpoints administration
-            .requestMatchers("/api/admin/**").hasRole(SecurityConstants.ROLE_ADMIN)
+            .requestMatchers("/api/v1/admin/**").hasRole(SecurityConstants.ROLE_ADMIN)
 
             // Tout le reste nécessite une authentification
             .anyRequest().authenticated()
         )
 
-        // CSRF désactivé sur register et login uniquement (OWASP conforme) :
-        // Ces endpoints sont appelés SANS session active préalable — le token CSRF
-        // n'existe donc pas encore côté client. La protection CSRF ne s'applique
-        // qu'aux requêtes émises depuis un navigateur avec une session existante.
-        // Tous les autres endpoints mutants (POST/PUT/DELETE) conservent la protection CSRF.
+        // CSRF désactivé sur register et login uniquement (OWASP conforme)
         .csrf(csrf -> csrf
             .ignoringRequestMatchers(
-                "/api/auth/register",
-                "/api/auth/login"
+                "/api/v1/auth/register",
+                "/api/v1/auth/login"
             )
         )
 
-        // ===== GESTION DES ERREURS =====
         .exceptionHandling(ex -> ex
             .authenticationEntryPoint((request, response, authException) -> {
               response.setStatus(401);

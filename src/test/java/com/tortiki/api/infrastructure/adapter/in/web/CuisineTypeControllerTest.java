@@ -14,10 +14,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tortiki.api.application.port.in.ManageCuisineTypeUseCase;
+import com.tortiki.api.config.SecurityConfig;
 import com.tortiki.api.domain.exception.CuisineTypeNotFoundException;
 import com.tortiki.api.domain.model.CuisineType;
 import com.tortiki.api.infrastructure.adapter.in.web.dto.CuisineTypeResponse;
-import com.tortiki.api.infrastructure.adapter.in.web.support.TestSecurityConfig;
+import com.tortiki.api.infrastructure.adapter.out.persistence.UserDetailsServiceImpl;
 import io.qameta.allure.Description;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Feature;
@@ -41,8 +42,11 @@ import org.springframework.test.web.servlet.MockMvc;
  * Tests unitaires de la couche REST {@link CuisineTypeController}.
  *
  * <p>Utilise {@code @WebMvcTest} pour charger uniquement la couche web.
- * {@link ManageCuisineTypeUseCase} et {@link CuisineTypeWebMapper}
- * sont mockés — aucune base de données sollicitée.</p>
+ * {@link ManageCuisineTypeUseCase}, {@link CuisineTypeWebMapper}
+ * et {@link UserDetailsServiceImpl} sont mockés — aucune base sollicitée.</p>
+ *
+ * <p>{@link GlobalExceptionHandler} est importé pour que les handlers
+ * {@code @ExceptionHandler} soient actifs dans le contexte de test.</p>
  *
  * <p>Le cas 403 vérifie que {@code @PreAuthorize("hasRole('ADMIN')")}
  * bloque les requêtes sans le rôle {@code ROLE_ADMIN}.</p>
@@ -50,19 +54,19 @@ import org.springframework.test.web.servlet.MockMvc;
 @Epic("Référentiel")
 @Feature("Endpoints REST cuisine-types")
 @WebMvcTest(CuisineTypeController.class)
-@Import(TestSecurityConfig.class)
+@Import({SecurityConfig.class, GlobalExceptionHandler.class})
 @DisplayName("CuisineTypeController — Tests unitaires WebMvcTest")
 class CuisineTypeControllerTest {
 
   // ── Constantes de test ────────────────────────────────────────────────────
 
-  private static final Long   CUISINE_ID        = 1L;
-  private static final String CUISINE_NAME      = "Ukrainienne";
-  private static final String CUISINE_DESC      = "Cuisine traditionnelle d'Ukraine";
-  private static final String ADMIN_EMAIL       = "admin@tortiki.com";
-  private static final Long   UNKNOWN_ID        = 99L;
+  private static final Long   CUISINE_ID   = 1L;
+  private static final String CUISINE_NAME = "Ukrainienne";
+  private static final String CUISINE_DESC = "Cuisine traditionnelle d'Ukraine";
+  private static final String ADMIN_EMAIL  = "admin@tortiki.com";
+  private static final Long   UNKNOWN_ID   = 99L;
 
-  // ── Injection MockMvc ─────────────────────────────────────────────────────
+  // ── MockMvc ───────────────────────────────────────────────────────────────
 
   @Autowired
   private MockMvc mockMvc;
@@ -70,7 +74,7 @@ class CuisineTypeControllerTest {
   @Autowired
   private ObjectMapper objectMapper;
 
-  // ── Mocks des dépendances du contrôleur ───────────────────────────────────
+  // ── Mocks ─────────────────────────────────────────────────────────────────
 
   @MockitoBean
   private ManageCuisineTypeUseCase manageCuisineTypeUseCase;
@@ -78,15 +82,21 @@ class CuisineTypeControllerTest {
   @MockitoBean
   private CuisineTypeWebMapper cuisineTypeWebMapper;
 
+  /**
+   * Mock obligatoire : permet à {@link SecurityConfig} de trouver un
+   * {@code UserDetailsService} et d'initialiser correctement la
+   * {@code SecurityFilterChain} dans le contexte {@code @WebMvcTest}.
+   * Sans ce mock, Spring Boot crée un {@code InMemoryUserDetailsManager}
+   * de secours et le routage MVC vers le contrôleur est rompu (HTTP 500).
+   */
+  @MockitoBean
+  private UserDetailsServiceImpl userDetailsService;
+
   // ── Données communes ──────────────────────────────────────────────────────
 
-  /** Origine culinaire domaine utilisée dans les mocks. */
   private CuisineType cuisineType;
-
-  /** DTO de réponse retournée par le mapper web. */
   private CuisineTypeResponse cuisineTypeResponse;
 
-  /** Initialisation des données communes avant chaque test. */
   @BeforeEach
   void setUp() {
     cuisineType = new CuisineType();
@@ -99,7 +109,7 @@ class CuisineTypeControllerTest {
     );
   }
 
-  // ── GET /api/cuisine-types ────────────────────────────────────────────────
+  // ── GET /api/v1/cuisine-types ─────────────────────────────────────────────
 
   @Test
   @Story("Consultation référentiel")
@@ -110,7 +120,7 @@ class CuisineTypeControllerTest {
     when(manageCuisineTypeUseCase.findAll()).thenReturn(List.of(cuisineType));
     when(cuisineTypeWebMapper.toResponse(cuisineType)).thenReturn(cuisineTypeResponse);
 
-    mockMvc.perform(get("/api/cuisine-types"))
+    mockMvc.perform(get("/api/v1/cuisine-types"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].id").value(CUISINE_ID))
         .andExpect(jsonPath("$[0].name").value(CUISINE_NAME))
@@ -125,13 +135,13 @@ class CuisineTypeControllerTest {
   void findAll_shouldReturn200_withEmptyList() throws Exception {
     when(manageCuisineTypeUseCase.findAll()).thenReturn(List.of());
 
-    mockMvc.perform(get("/api/cuisine-types"))
+    mockMvc.perform(get("/api/v1/cuisine-types"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$").isArray())
         .andExpect(jsonPath("$").isEmpty());
   }
 
-  // ── GET /api/cuisine-types/{id} ───────────────────────────────────────────
+  // ── GET /api/v1/cuisine-types/{id} ───────────────────────────────────────
 
   @Test
   @Story("Détail origine culinaire")
@@ -142,7 +152,7 @@ class CuisineTypeControllerTest {
     when(manageCuisineTypeUseCase.findById(CUISINE_ID)).thenReturn(cuisineType);
     when(cuisineTypeWebMapper.toResponse(cuisineType)).thenReturn(cuisineTypeResponse);
 
-    mockMvc.perform(get("/api/cuisine-types/{id}", CUISINE_ID))
+    mockMvc.perform(get("/api/v1/cuisine-types/{id}", CUISINE_ID))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(CUISINE_ID))
         .andExpect(jsonPath("$.name").value(CUISINE_NAME));
@@ -159,13 +169,13 @@ class CuisineTypeControllerTest {
             "Origine culinaire introuvable pour l'identifiant : " + UNKNOWN_ID
         ));
 
-    mockMvc.perform(get("/api/cuisine-types/{id}", UNKNOWN_ID))
+    mockMvc.perform(get("/api/v1/cuisine-types/{id}", UNKNOWN_ID))
         .andExpect(status().isNotFound());
 
     verify(cuisineTypeWebMapper, never()).toResponse(any());
   }
 
-  // ── POST /api/cuisine-types ───────────────────────────────────────────────
+  // ── POST /api/v1/cuisine-types ────────────────────────────────────────────
 
   @Test
   @Story("Création référentiel")
@@ -177,7 +187,7 @@ class CuisineTypeControllerTest {
         .thenReturn(cuisineType);
     when(cuisineTypeWebMapper.toResponse(cuisineType)).thenReturn(cuisineTypeResponse);
 
-    mockMvc.perform(post("/api/cuisine-types")
+    mockMvc.perform(post("/api/v1/cuisine-types")
             .contentType(MediaType.APPLICATION_JSON)
             .content(buildCreateBody())
             .with(csrf())
@@ -194,7 +204,7 @@ class CuisineTypeControllerTest {
   @Description("Corps invalide — HTTP 400, le use case n'est pas appelé.")
   @DisplayName("POST /cuisine-types — retourne 400 si le nom est vide")
   void create_shouldReturn400_whenBodyIsInvalid() throws Exception {
-    mockMvc.perform(post("/api/cuisine-types")
+    mockMvc.perform(post("/api/v1/cuisine-types")
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(Map.of("name", "")))
             .with(csrf())
@@ -211,7 +221,7 @@ class CuisineTypeControllerTest {
   @Description("Utilisateur sans ROLE_ADMIN — HTTP 403 Forbidden.")
   @DisplayName("POST /cuisine-types — retourne 403 si le rôle ADMIN est absent")
   void create_shouldReturn403_whenNotAdmin() throws Exception {
-    mockMvc.perform(post("/api/cuisine-types")
+    mockMvc.perform(post("/api/v1/cuisine-types")
             .contentType(MediaType.APPLICATION_JSON)
             .content(buildCreateBody())
             .with(csrf())

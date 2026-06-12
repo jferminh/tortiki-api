@@ -155,7 +155,7 @@ class ListingControllerTest {
     when(manageListingUseCase.findAll()).thenReturn(List.of(listing));
     when(listingWebMapper.toResponse(listing)).thenReturn(listingResponse);
 
-    mockMvc.perform(get("/api/listings"))
+    mockMvc.perform(get("/api/v1/listings"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].id").value(LISTING_ID))
         .andExpect(jsonPath("$[0].title").value(LISTING_TITLE))
@@ -170,7 +170,7 @@ class ListingControllerTest {
   void findAll_shouldReturn200_withEmptyList() throws Exception {
     when(manageListingUseCase.findAll()).thenReturn(List.of());
 
-    mockMvc.perform(get("/api/listings"))
+    mockMvc.perform(get("/api/v1/listings"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$").isArray())
         .andExpect(jsonPath("$").isEmpty());
@@ -187,7 +187,7 @@ class ListingControllerTest {
     when(manageListingUseCase.findById(LISTING_ID)).thenReturn(listing);
     when(listingWebMapper.toResponse(listing)).thenReturn(listingResponse);
 
-    mockMvc.perform(get("/api/listings/{id}", LISTING_ID))
+    mockMvc.perform(get("/api/v1/listings/{id}", LISTING_ID))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(LISTING_ID))
         .andExpect(jsonPath("$.title").value(LISTING_TITLE))
@@ -204,8 +204,10 @@ class ListingControllerTest {
     when(manageListingUseCase.findById(anyLong()))
         .thenThrow(new ListingNotFoundException("Annonce introuvable pour l'identifiant : 99"));
 
-    mockMvc.perform(get("/api/listings/{id}", 99L))
-        .andExpect(status().isNotFound());
+    mockMvc.perform(get("/api/v1/listings/{id}", 99L))
+        .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.error").value("Not Found"));
 
     verify(listingWebMapper, never()).toResponse(any());
   }
@@ -223,7 +225,7 @@ class ListingControllerTest {
     when(listingWebMapper.toResponse(listing)).thenReturn(listingResponse);
     when(listingWebMapper.toCommand(any())).thenReturn(null);
 
-    mockMvc.perform(post("/api/listings")
+    mockMvc.perform(post("/api/v1/listings")
             .contentType(MediaType.APPLICATION_JSON)
             .content(buildCreateBody())
             .with(csrf())
@@ -240,7 +242,7 @@ class ListingControllerTest {
   @Description("Corps invalide — HTTP 400 Bad Request, le use case n'est pas appelé.")
   @DisplayName("POST /listings — retourne 400 si le corps est invalide")
   void create_shouldReturn400_whenBodyIsInvalid() throws Exception {
-    mockMvc.perform(post("/api/listings")
+    mockMvc.perform(post("/api/v1/listings")
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(Map.of(
                 "title", "",
