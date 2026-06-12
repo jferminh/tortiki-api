@@ -1,4 +1,3 @@
-// infrastructure/adapter/in/web/ListingWebMapper.java
 package com.tortiki.api.infrastructure.adapter.in.web;
 
 import com.tortiki.api.application.port.in.ManageListingUseCase;
