@@ -9,7 +9,7 @@ import java.util.Optional;
  * Port secondaire — contrat de persistance des annonces.
  *
  * <p>Ne dépend d'aucune technologie JPA ou SQL. L'implémentation
- * est assurée par {@code ListingRepositoryAdapter} dans
+ * est assurée par {@code ListingJpaAdapter} dans
  * {@code infrastructure/adapter/out/persistence/}.</p>
  */
 public interface ListingRepository {
@@ -46,11 +46,4 @@ public interface ListingRepository {
    * @return liste des annonces correspondantes, vide si aucune
    */
   List<Listing> findByStatus(ListingStatus status);
-
-  /**
-   * Supprime une annonce par son identifiant.
-   *
-   * @param id identifiant de l'annonce à supprimer
-   */
-  void deleteById(Long id);
 }

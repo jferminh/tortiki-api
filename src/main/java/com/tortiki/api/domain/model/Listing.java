@@ -11,25 +11,27 @@ import java.util.List;
  * <p>POJO pur du domaine : aucune annotation Spring ou JPA.
  * Une annonce contient les informations métier nécessaires au parcours
  * Click &amp; Collect : description du plat, prix, portions disponibles,
- * créneau de retrait unique (v1) et photo.</p>
+ * créneau de retrait et photo.</p>
  *
  * <p>Contraintes métier :</p>
  * <ul>
- *   <li>Un seul créneau de retrait par annonce en v1</li>
- *   <li>Une seule photo par annonce en v1</li>
+ *   <li>Un seul créneau de retrait par annonce en v1.</li>
+ *   <li>Une seule photo par annonce en v1.</li>
  *   <li>Le vendeur est obligatoirement un {@link User} avec le rôle
- *       {@code ROLE_SELLER}</li>
+ *       {@code ROLE_SELLER}.</li>
+ *   <li>Les allergènes sont obligatoires conformément au règlement INCO EU
+ *       n°1169/2011.</li>
  * </ul>
  */
 public class Listing {
 
   /**
-   * Identifiant technique de l'annonce.
+   * Identifiant technique.
    */
   private Long id;
 
   /**
-   * Titre de l'annonce, affiché dans les résultats de recherche.
+   * Titre affiché dans les résultats de recherche.
    */
   private String title;
 
@@ -49,35 +51,46 @@ public class Listing {
   private Integer portions;
 
   /**
-   * Créneau de retrait unique proposé par le vendeur.
-   * Format libre en v1 (ex. : "Samedi 14h-16h, Nancy centre").
-   */
-  private String pickupSlot;
-
-  /**
    * URL de la photo stockée dans MinIO.
    */
   private String photoUrl;
 
   /**
-   * Ville de retrait, utilisée pour la recherche géographique.
+   * Adresse de retrait saisie par le vendeur.
    */
-  private String city;
+  private String pickupAddress;
 
   /**
-   * Code postal de retrait, utilisé pour la recherche géographique.
+   * Latitude géocodée via Nominatim.
    */
-  private String postalCode;
+  private Double pickupLat;
 
   /**
-   * Statut de l'annonce (ACTIVE, INACTIVE, MODERATED).
+   * Longitude géocodée via Nominatim.
+   */
+  private Double pickupLng;
+
+  /**
+   * Date et heure du créneau de retrait.
+   * Remplace {@code pickupSlot} (String libre) aligné sur
+   * {@code pickup_datetime TIMESTAMP} en base.
+   */
+  private LocalDateTime pickupDatetime;
+
+  /**
+   * Statut de l'annonce.
    */
   private ListingStatus status;
 
   /**
-   * Date et heure de création de l'annonce.
+   * Date de création.
    */
   private LocalDateTime createdAt;
+
+  /**
+   * Date de dernière modification.
+   */
+  private LocalDateTime updatedAt;
 
   /**
    * Vendeur propriétaire de l'annonce.
@@ -85,11 +98,14 @@ public class Listing {
   private User seller;
 
   /**
-   * Origine culinaire associée à l'annonce.
+   * Origine culinaire associée.
    */
   private CuisineType cuisineType;
 
-  /** Liste des allergènes présents dans le plat, conformément à la réglementation INCO EU. */
+  /**
+   * Allergènes présents dans le plat.
+   * Conformément au règlement INCO EU n°1169/2011.
+   */
   private List<Allergen> allergens = new ArrayList<>();
 
   /**
@@ -190,24 +206,6 @@ public class Listing {
   }
 
   /**
-   * Retourne le créneau de retrait proposé par le vendeur.
-   *
-   * @return créneau de retrait
-   */
-  public String getPickupSlot() {
-    return pickupSlot;
-  }
-
-  /**
-   * Définit le créneau de retrait proposé par le vendeur.
-   *
-   * @param pickupSlot créneau de retrait
-   */
-  public void setPickupSlot(String pickupSlot) {
-    this.pickupSlot = pickupSlot;
-  }
-
-  /**
    * Retourne l'URL de la photo stockée dans MinIO.
    *
    * @return URL de la photo ou {@code null}
@@ -226,39 +224,75 @@ public class Listing {
   }
 
   /**
-   * Retourne la ville de retrait.
+   * return adresse de retrait
    *
-   * @return ville
+   * @return adresse de retrait
    */
-  public String getCity() {
-    return city;
+  public String getPickupAddress() {
+    return pickupAddress;
   }
 
   /**
-   * Définit la ville de retrait.
+   * Définit l'adresse de retrait.
    *
-   * @param city ville
+   * @param pickupAddress adresse de retrait
    */
-  public void setCity(String city) {
-    this.city = city;
+  public void setPickupAddress(String pickupAddress) {
+    this.pickupAddress = pickupAddress;
   }
 
   /**
-   * Retourne le code postal de retrait.
+   * Retourne la latitude géocodée.
    *
-   * @return code postal
+   * @return latitude géocodée
    */
-  public String getPostalCode() {
-    return postalCode;
+  public Double getPickupLat() {
+    return pickupLat;
   }
 
   /**
-   * Définit le code postal de retrait.
+   * Définit la latitud.
    *
-   * @param postalCode code postal
+   * @param pickupLat latitude
    */
-  public void setPostalCode(String postalCode) {
-    this.postalCode = postalCode;
+  public void setPickupLat(Double pickupLat) {
+    this.pickupLat = pickupLat;
+  }
+
+  /**
+   * Retourne la longitude.
+   *
+   * @return longitude géocodée
+   */
+  public Double getPickupLng() {
+    return pickupLng;
+  }
+
+  /**
+   * Définit la longitud.
+   *
+   * @param pickupLng longitude
+   */
+  public void setPickupLng(Double pickupLng) {
+    this.pickupLng = pickupLng;
+  }
+
+  /**
+   * Retourne la date et heure du créneau de retrait.
+   *
+   * @return date et heure du créneau de retrait
+   */
+  public LocalDateTime getPickupDatetime() {
+    return pickupDatetime;
+  }
+
+  /**
+   * Définit la date et heure de retrait.
+   *
+   * @param pickupDatetime date et heure de retrait
+   */
+  public void setPickupDatetime(LocalDateTime pickupDatetime) {
+    this.pickupDatetime = pickupDatetime;
   }
 
   /**
@@ -295,6 +329,22 @@ public class Listing {
    */
   public void setCreatedAt(LocalDateTime createdAt) {
     this.createdAt = createdAt;
+  }
+
+  /**
+   * Retourne la date de la dernière modification.
+   *
+   * @return date de dernière modification */
+  public LocalDateTime getUpdatedAt() {
+    return updatedAt;
+  }
+
+  /**
+   * Définit la date de la modification.
+   *
+   * @param updatedAt date de modification */
+  public void setUpdatedAt(LocalDateTime updatedAt) {
+    this.updatedAt = updatedAt;
   }
 
   /**

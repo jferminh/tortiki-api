@@ -21,14 +21,31 @@ public interface RegisterUserUseCase {
    * <p>Le mot de passe est haché par BCrypt (force 12) avant persistance.
    * Un compte est créé avec le rôle spécifié et activé immédiatement.</p>
    *
-   * @param email     adresse email unique de l'utilisateur
-   * @param password  mot de passe en clair (haché avant persistance)
+   * @param command données d'inscription de l'utilisateur
+   * @return l'utilisateur créé avec son identifiant technique
+   * @throws com.tortiki.api.domain.exception.UserAlreadyExistsException
+   *         si l'adresse email est déjà utilisée
+   */
+  User register(RegisterUserUseCase.Command command);
+
+  /**
+   * Commande d'entrée pour l'inscription d'un nouvel utilisateur.
+   *
+   * <p>Record immuable Java 21 — garantit qu'aucune donnée n'est modifiée
+   * entre le contrôleur et le service. Évite l'inversion accidentelle
+   * des paramètres {@code firstName} / {@code lastName}.</p>
+   *
+   * @param email     adresse email unique (identifiant de connexion)
+   * @param password  mot de passe en clair (haché avant persistance BCrypt force 12)
    * @param firstName prénom de l'utilisateur
    * @param lastName  nom de famille de l'utilisateur
    * @param role      rôle initial attribué ({@code SELLER} ou {@code BUYER})
-   * @return l'utilisateur créé avec son identifiant technique
-   * @throws com.tortiki.api.domain.exception.UserAlreadyExistsException si l'email est déjà utilisé
    */
-  User register(String email, String password, String firstName,
-                String lastName, RoleName role);
+  record Command(
+      String email,
+      String password,
+      String firstName,
+      String lastName,
+      RoleName role
+  ) {}
 }

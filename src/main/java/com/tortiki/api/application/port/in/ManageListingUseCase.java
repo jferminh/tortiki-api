@@ -2,14 +2,15 @@ package com.tortiki.api.application.port.in;
 
 import com.tortiki.api.domain.model.Listing;
 import com.tortiki.api.domain.model.ListingStatus;
-import java.io.InputStream;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
  * Port primaire — cas d'usage : gestion des annonces de plats.
  *
- * <p>Regroupe les opérations CRUD sur les annonces ainsi que
- * la gestion du statut. L'implémentation est assurée par
+ * <p>Regroupe les opérations CRUD sur les annonces ainsi que la gestion
+ * du statut et de la photo. L'implémentation est assurée par
  * {@code ListingService} dans la couche {@code application/service/}.</p>
  *
  * <p>Ce port est appelé par {@code ListingController} dans
@@ -28,7 +29,7 @@ public interface ManageListingUseCase {
    * @throws com.tortiki.api.domain.exception.CuisineTypeNotFoundException
    *         si l'origine culinaire est introuvable
    */
-  Listing create(Long sellerId, ListingCommand command);
+  Listing create(Long sellerId, ManageListingUseCase.Command command);
 
   /**
    * Met à jour une annonce existante.
@@ -44,20 +45,25 @@ public interface ManageListingUseCase {
    * @throws com.tortiki.api.domain.exception.UnauthorizedActionException
    *         si le vendeur n'est pas propriétaire de l'annonce
    */
-  Listing update(Long listingId, Long sellerId, ListingCommand command);
+  Listing update(Long listingId, Long sellerId, ManageListingUseCase.Command command);
 
-  // application/port/in/ManageListingUseCase.java — updatePhoto() à modifier
   /**
    * Met à jour la photo d'une annonce via upload vers le stockage.
    *
-   * @param listingId   identifiant de l'annonce
-   * @param sellerId    identifiant du vendeur propriétaire
-   * @param photoStream flux binaire de la photo
-   * @param contentType type MIME (ex. {@code image/jpeg})
+   * <p>Le port reste agnostique du transport HTTP — il reçoit un
+   * {@link PhotoCommand} contenant les bytes, jamais un
+   * {@code MultipartFile}.</p>
+   *
+   * @param listingId identifiant de l'annonce
+   * @param sellerId  identifiant du vendeur propriétaire
+   * @param command   données de la photo à uploader
    * @return l'annonce mise à jour avec la nouvelle URL photo
+   * @throws com.tortiki.api.domain.exception.ListingNotFoundException
+   *         si l'annonce est introuvable
+   * @throws com.tortiki.api.domain.exception.UnauthorizedActionException
+   *         si le vendeur n'est pas propriétaire de l'annonce
    */
-  Listing updatePhoto(Long listingId, Long sellerId,
-                      InputStream photoStream, String contentType);
+  Listing updatePhoto(Long listingId, Long sellerId, ManageListingUseCase.PhotoCommand command);
 
   /**
    * Supprime une annonce (suppression logique — statut {@code INACTIVE}).
@@ -74,11 +80,7 @@ public interface ManageListingUseCase {
   /**
    * Retourne toutes les annonces actives de la plateforme.
    *
-   * <p>Utilisé par {@code GET /api/listings} pour afficher
-   * le catalogue public de Tortiki.</p>
-   *
-   * @return liste de toutes les annonces au statut {@code ACTIVE},
-   *         vide si aucune annonce disponible
+   * @return liste des annonces au statut {@code ACTIVE}, vide si aucune
    */
   List<Listing> findAll();
 
@@ -103,7 +105,7 @@ public interface ManageListingUseCase {
   /**
    * Change le statut d'une annonce.
    *
-   * <p>La modération vers {@code MODERATED}, est réservée au rôle
+   * <p>La modération vers {@code MODERATED} est réservée au rôle
    * {@code ROLE_ADMIN}. La vérification est faite par Spring Security
    * en amont dans le contrôleur.</p>
    *
@@ -114,4 +116,46 @@ public interface ManageListingUseCase {
    *         si l'annonce est introuvable
    */
   Listing changeStatus(Long listingId, ListingStatus status);
+
+  /**
+   * Commande d'entrée pour la création et la modification d'une annonce.
+   *
+   * <p>Record immuable Java 21. Remplace l'ancien {@code ListingCommand}
+   * fichier séparé — le Command appartient sémantiquement à ce port.</p>
+   *
+   * @param title          titre de l'annonce
+   * @param description    description détaillée du plat
+   * @param price          prix unitaire en euros
+   * @param portions       nombre de portions disponibles
+   * @param pickupAddress  adresse de retrait saisie par le vendeur
+   * @param pickupDatetime date et heure du créneau de retrait
+   * @param cuisineTypeId  identifiant de l'origine culinaire
+   * @param allergenIds    identifiants des allergènes présents
+   */
+  record Command(
+      String title,
+      String description,
+      BigDecimal price,
+      Integer portions,
+      String pickupAddress,
+      LocalDateTime pickupDatetime,
+      Long cuisineTypeId,
+      List<Long> allergenIds
+  ) {}
+
+  /**
+   * Commande d'entrée pour la mise à jour de la photo d'une annonce.
+   *
+   * <p>Encapsule le contenu binaire afin que le port primaire reste
+   * agnostique de {@code MultipartFile} (couche HTTP).</p>
+   *
+   * @param photoBytes  contenu binaire de la photo
+   * @param contentType type MIME (ex. {@code image/jpeg})
+   * @param fileName    nom du fichier cible dans le bucket MinIO
+   */
+  record PhotoCommand(
+      byte[] photoBytes,
+      String contentType,
+      String fileName
+  ) {}
 }
