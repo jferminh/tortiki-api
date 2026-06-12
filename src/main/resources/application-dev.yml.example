@@ -4,8 +4,8 @@
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/tortiki
-    username: tortiki
-    password: tortiki
+    username: CHANGE_ME
+    password: CHANGE_ME
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -18,16 +18,22 @@ spring:
 # MinIO local (Docker Compose)
 minio:
   endpoint: http://localhost:9000
-  access-key: minioadmin
-  secret-key: minioadmin
+  access-key: CHANGE_ME
+  secret-key:  CHANGE_ME
   bucket: tortiki-photos
 
 # Email : MailHog en local (pas de vrai envoi)
 spring.mail:
   host: localhost
   port: 1025
-  username: ""
-  password: ""
+  username: CHANGE_ME
+  password: CHANGE_ME
+
+# Géolocalisation Nominatim OpenStreetMap
+nominatim:
+  base-url: https://nominatim.openstreetmap.org
+  user-agent: Tortiki/1.0 (contact@tortiki.fr)
+  timeout-seconds: 5
 
 logging:
   level:

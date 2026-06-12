@@ -4,6 +4,9 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+# Profil de développement local — contient des credentials
+src/main/resources/application-dev.yml
+
 # ===== INTELLIJ =====
 .idea/
 *.iml
