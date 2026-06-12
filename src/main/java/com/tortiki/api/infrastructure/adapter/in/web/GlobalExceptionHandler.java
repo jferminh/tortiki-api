@@ -1,8 +1,8 @@
 package com.tortiki.api.infrastructure.adapter.in.web;
 
+import com.tortiki.api.domain.exception.AllergenNotFoundException;
 import com.tortiki.api.domain.exception.ContactRequestAlreadyExistsException;
 import com.tortiki.api.domain.exception.ContactRequestNotFoundException;
-import com.tortiki.api.domain.exception.AllergenNotFoundException;
 import com.tortiki.api.domain.exception.CuisineTypeNotFoundException;
 import com.tortiki.api.domain.exception.ListingNotFoundException;
 import com.tortiki.api.domain.exception.RoleNotFoundException;
@@ -36,25 +36,39 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-  /** Libellé HTTP pour les ressources introuvables (404). */
+  /**
+   * Libellé HTTP pour les ressources introuvables (404).
+   */
   private static final String NOT_FOUND = "Not Found";
 
-  /** Libellé HTTP pour les accès refusés (403). */
+  /**
+   * Libellé HTTP pour les accès refusés (403).
+   */
   private static final String FORBIDDEN = "Forbidden";
 
-  /** Libellé HTTP pour les conflits de données (409). */
+  /**
+   * Libellé HTTP pour les conflits de données (409).
+   */
   private static final String CONFLICT = "Conflict";
 
-  /** Libellé HTTP pour les erreurs de validation (400). */
+  /**
+   * Libellé HTTP pour les erreurs de validation (400).
+   */
   private static final String BAD_REQUEST = "Bad Request";
 
-  /** Libellé HTTP pour les entités non traitables (422). */
+  /**
+   * Libellé HTTP pour les entités non traitables (422).
+   */
   private static final String UNPROCESSABLE = "Unprocessable Entity";
 
-  /** Libellé HTTP pour les erreurs serveur inattendues (500). */
+  /**
+   * Libellé HTTP pour les erreurs serveur inattendues (500).
+   */
   private static final String INTERNAL_SERVER_ERROR = "Internal Server Error";
 
-  /** Libellé HTTP pour les erreurs de service externe (503). */
+  /**
+   * Libellé HTTP pour les erreurs de service externe (503).
+   */
   private static final String SERVICE_UNAVAILABLE = "Service Unavailable";
 
 
@@ -119,15 +133,6 @@ public class GlobalExceptionHandler {
   }
 
   /**
-   * Gère les recherches de demande de contact infructueuses.
-   *
-   * @param ex exception levée par {@code ContactRequestService}
-   * @return réponse HTTP 404 Not Found
-   */
-  @ExceptionHandler(ContactRequestNotFoundException.class)
-  public ResponseEntity<ErrorResponse> handleContactRequestNotFound(
-      ContactRequestNotFoundException ex) {
-    log.warn("Demande de contact introuvable : {}", ex.getMessage());
    * Gère les recherches d'allergène infructueuses.
    *
    * @param ex exception levée lors de la validation des allergènes d'une annonce
@@ -137,6 +142,21 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ErrorResponse> handleAllergenNotFound(
       AllergenNotFoundException ex) {
     log.warn("Allergène introuvable : {}", ex.getMessage());
+    return ResponseEntity
+        .status(HttpStatus.NOT_FOUND)
+        .body(ErrorResponse.of(404, NOT_FOUND, ex.getMessage()));
+  }
+
+  /**
+   * Gère les recherches de demande de contact infructueuses.
+   *
+   * @param ex exception levée par {@code ContactRequestService}
+   * @return réponse HTTP 404 Not Found
+   */
+  @ExceptionHandler(ContactRequestNotFoundException.class)
+  public ResponseEntity<ErrorResponse> handleContactRequestNotFound(
+      ContactRequestNotFoundException ex) {
+    log.warn("Demande de contact introuvable : {}", ex.getMessage());
     return ResponseEntity
         .status(HttpStatus.NOT_FOUND)
         .body(ErrorResponse.of(404, NOT_FOUND, ex.getMessage()));
