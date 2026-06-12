@@ -104,7 +104,7 @@ public class ListingJpaEntity {
    */
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "seller_id", nullable = false)
-  private UserJpaEntity seller;
+  private UserEntity seller;
 
   /**
    * Origine culinaire associée à l'annonce.

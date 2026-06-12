@@ -1,4 +1,3 @@
-// infrastructure/adapter/out/persistence/ListingJpaRepository.java
 package com.tortiki.api.infrastructure.adapter.out.persistence;
 
 import com.tortiki.api.domain.model.ListingStatus;
@@ -30,4 +29,16 @@ public interface ListingJpaRepository extends JpaRepository<ListingJpaEntity, Lo
    * @return liste des entités JPA correspondantes
    */
   List<ListingJpaEntity> findByStatus(ListingStatus status);
+
+  /**
+   * Vérifie l'existence d'au moins une annonce pour une origine culinaire et un statut.
+   *
+   * <p>Utilisé par {@link CuisineTypeJpaAdapter#isUsedByActiveListing(Long)}
+   * pour bloquer la suppression d'une origine référencée.</p>
+   *
+   * @param cuisineTypeId identifiant de l'origine culinaire
+   * @param status        statut à vérifier
+   * @return {@code true} si au moins une annonce existe
+   */
+  boolean existsByCuisineTypeIdAndStatus(Long cuisineTypeId, ListingStatus status);
 }

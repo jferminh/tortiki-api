@@ -1,8 +1,8 @@
-// infrastructure/adapter/out/persistence/CuisineTypeJpaAdapter.java
 package com.tortiki.api.infrastructure.adapter.out.persistence;
 
 import com.tortiki.api.application.port.out.CuisineTypeRepository;
 import com.tortiki.api.domain.model.CuisineType;
+import com.tortiki.api.domain.model.ListingStatus;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +20,13 @@ public class CuisineTypeJpaAdapter implements CuisineTypeRepository {
 
   private final CuisineTypeJpaRepository jpaRepository;
   private final CuisineTypePersistenceMapper mapper;
+  private final ListingJpaRepository listingJpaRepository;
+
+  /** {@inheritDoc} */
+  @Override
+  public CuisineType save(CuisineType cuisineType) {
+    return mapper.toDomain(jpaRepository.save(mapper.toEntity(cuisineType)));
+  }
 
   /** {@inheritDoc} */
   @Override
@@ -45,9 +52,21 @@ public class CuisineTypeJpaAdapter implements CuisineTypeRepository {
         .toList();
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * <p>Vérifie en base si au moins une annonce au statut {@code ACTIVE}
+   * référence cette origine culinaire avant suppression.</p>
+   */
+  @Override
+  public boolean isUsedByActiveListing(Long id) {
+    return listingJpaRepository
+        .existsByCuisineTypeIdAndStatus(id, ListingStatus.ACTIVE);
+  }
+
   /** {@inheritDoc} */
   @Override
-  public CuisineType save(CuisineType cuisineType) {
-    return mapper.toDomain(jpaRepository.save(mapper.toEntity(cuisineType)));
+  public void deleteById(Long id) {
+    jpaRepository.deleteById(id);
   }
 }

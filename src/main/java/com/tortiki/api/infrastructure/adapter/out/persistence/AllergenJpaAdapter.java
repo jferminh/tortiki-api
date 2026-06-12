@@ -1,4 +1,3 @@
-// infrastructure/adapter/out/persistence/AllergenJpaAdapter.java
 package com.tortiki.api.infrastructure.adapter.out.persistence;
 
 import com.tortiki.api.application.port.out.AllergenRepository;
