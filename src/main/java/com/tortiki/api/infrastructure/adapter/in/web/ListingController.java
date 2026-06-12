@@ -1,4 +1,3 @@
-// infrastructure/adapter/in/web/ListingController.java
 package com.tortiki.api.infrastructure.adapter.in.web;
 
 import com.tortiki.api.application.port.in.FindUserUseCase;
@@ -25,7 +24,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
