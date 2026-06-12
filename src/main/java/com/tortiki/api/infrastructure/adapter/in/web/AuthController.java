@@ -65,13 +65,17 @@ public class AuthController {
   @ApiResponse(responseCode = "409", description = "Email déjà utilisé")
   public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
     log.debug("Requête d'inscription reçue pour : {}", request.email());
+
     User created = registerUserUseCase.register(
-        request.email(),
-        request.password(),
-        request.firstName(),
-        request.lastName(),
-        request.role()
+        new RegisterUserUseCase.Command(
+            request.email(),
+            request.password(),
+            request.firstName(),
+            request.lastName(),
+            request.role()
+        )
     );
+
     log.info("Utilisateur inscrit : id={} email={}", created.getId(), created.getEmail());
     return ResponseEntity
         .status(HttpStatus.CREATED)

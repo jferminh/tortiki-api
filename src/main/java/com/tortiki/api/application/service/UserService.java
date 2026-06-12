@@ -8,7 +8,6 @@ import com.tortiki.api.domain.exception.RoleNotFoundException;
 import com.tortiki.api.domain.exception.UserAlreadyExistsException;
 import com.tortiki.api.domain.exception.UserNotFoundException;
 import com.tortiki.api.domain.model.Role;
-import com.tortiki.api.domain.model.RoleName;
 import com.tortiki.api.domain.model.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -56,29 +55,28 @@ public class UserService implements RegisterUserUseCase, FindUserUseCase {
    */
   @Override
   @Transactional
-  public User register(String email, String password, String firstName,
-                       String lastName, RoleName role) {
-    log.debug("Tentative d'inscription pour l'email : {}", email);
+  public User register(RegisterUserUseCase.Command command) {
+    log.debug("Tentative d'inscription pour l'email : {}", command.email());
 
-    if (userRepository.existsByEmail(email)) {
+    if (userRepository.existsByEmail(command.email())) {
       throw new UserAlreadyExistsException(
-          "Un compte existe déjà pour l'adresse email : " + email
+          "Un compte existe déjà pour l'adresse email : " + command.email()
       );
     }
 
-    Role assignedRole = roleRepository.findByName(role)
-        .orElseThrow(() -> new RoleNotFoundException(role.name()));
+    Role assignedRole = roleRepository.findByName(command.role())
+        .orElseThrow(() -> new RoleNotFoundException(command.role().name()));
 
     User user = new User();
-    user.setEmail(email);
-    user.setPasswordHash(passwordEncoder.encode(password));
-    user.setFirstName(firstName);
-    user.setLastName(lastName);
+    user.setEmail(command.email());
+    user.setPasswordHash(passwordEncoder.encode(command.password()));
+    user.setFirstName(command.firstName());
+    user.setLastName(command.lastName());
     user.setEnabled(true);
     user.addRole(assignedRole);
 
     User saved = userRepository.save(user);
-    log.info("Compte créé avec succès pour l'email : {}", email);
+    log.info("Compte créé avec succès pour l'email : {}", command.email());
     return saved;
   }
 
