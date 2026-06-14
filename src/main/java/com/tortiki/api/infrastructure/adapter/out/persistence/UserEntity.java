@@ -14,6 +14,7 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.HashSet;
 import java.util.Set;
 import lombok.AllArgsConstructor;
@@ -155,7 +156,7 @@ public class UserEntity {
    */
   @PrePersist
   protected void onCreate() {
-    final LocalDateTime now = LocalDateTime.now();
+    final LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
     this.createdAt = now;
     this.updatedAt = now;
   }
@@ -165,6 +166,6 @@ public class UserEntity {
    */
   @PreUpdate
   protected void onUpdate() {
-    this.updatedAt = LocalDateTime.now();
+    this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
   }
 }
