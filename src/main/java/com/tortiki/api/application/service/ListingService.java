@@ -16,7 +16,6 @@ import com.tortiki.api.domain.model.CuisineType;
 import com.tortiki.api.domain.model.Listing;
 import com.tortiki.api.domain.model.ListingStatus;
 import com.tortiki.api.domain.model.User;
-import java.io.ByteArrayInputStream;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -114,9 +113,9 @@ public class ListingService implements ManageListingUseCase {
   /**
    * {@inheritDoc}
    *
-   * <p>Convertit les bytes de {@link ManageListingUseCase.PhotoCommand} en
-   * {@link ByteArrayInputStream} — seul le service connaît ce détail
-   * d'implémentation, pas le port.</p>
+   * <p>Délègue l'upload à {@link StoragePort} en passant directement
+   * les bytes de {@link ManageListingUseCase.PhotoCommand}.
+   * La conversion en flux est gérée par l'adaptateur MinIO.</p>
    */
   @Override
   @Transactional
@@ -128,17 +127,17 @@ public class ListingService implements ManageListingUseCase {
 
     Listing existing = getListingOwnedBySeller(listingId, sellerId);
 
-    String fileName = UUID.randomUUID() + "-listing-" + listingId;
+    final String fileName = UUID.randomUUID() + "-listing-" + listingId;
     try {
-      String photoUrl = storagePort.upload(
+      final String photoUrl = storagePort.upload(
           fileName,
-          new ByteArrayInputStream(command.photoBytes()),
+          command.photoBytes(),       // ← byte[] directement, plus de ByteArrayInputStream
           command.contentType()
       );
       existing.setPhotoUrl(photoUrl);
       existing.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
-    } catch (Exception e) {
-      throw new StorageException("Échec upload photo annonce id=" + listingId, e);
+    } catch (Exception ex) {
+      throw new StorageException("Échec upload photo annonce id=" + listingId, ex);
     }
 
     Listing updated = listingRepository.save(existing);
