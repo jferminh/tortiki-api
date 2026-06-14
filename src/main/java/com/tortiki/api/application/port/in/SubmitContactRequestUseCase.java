@@ -17,12 +17,11 @@ public interface SubmitContactRequestUseCase {
   /**
    * Soumet une demande de contact pour une annonce.
    *
-   * <p>Applique les règles métier avant persistance :
+   * <p>Applique les règles métier avant persistance :</p>
    * <ul>
    *   <li>L'acheteur ne peut pas contacter sa propre annonce.</li>
    *   <li>Un seul contact par acheteur par annonce (unicité).</li>
    * </ul>
-   * </p>
    *
    * @param command données de la demande (listingId, buyerId, message, portions)
    * @return la {@link ContactRequest} créée avec son identifiant et statut {@code PENDING}
