@@ -6,6 +6,7 @@ import io.minio.BucketExistsArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,30 +38,35 @@ public class MinioStorageAdapter implements StoragePort {
   /**
    * Téléverse un fichier dans le bucket MinIO et retourne son URL publique.
    *
+   * <p>Convertit le tableau d'octets en {@link ByteArrayInputStream}
+   * pour satisfaire l'API MinIO SDK. La taille exacte est fournie à
+   * {@code PutObjectArgs} pour éviter le buffering en mémoire MinIO.</p>
+   *
    * @param fileName    nom du fichier cible dans le bucket
-   * @param inputStream flux binaire du fichier à uploader
+   * @param fileBytes   contenu binaire du fichier à uploader
    * @param contentType type MIME du fichier (ex. {@code image/jpeg})
-   * @return l'URL publique d'accès au fichier upload
-   * @throws StorageException en cas d'échec de upload
+   * @return l'URL publique d'accès au fichier uploadé
+   * @throws StorageException en cas d'échec de l'upload
    */
   @Override
-  public String upload(String fileName, InputStream inputStream, String contentType) {
+  public String upload(String fileName, byte[] fileBytes, String contentType) {
     try {
       creerBucketSiAbsent();
+      final InputStream stream = new ByteArrayInputStream(fileBytes);
       minioClient.putObject(
           PutObjectArgs.builder()
               .bucket(bucket)
               .object(fileName)
-              .stream(inputStream, -1, 10_485_760)
+              .stream(stream, fileBytes.length, -1)
               .contentType(contentType)
               .build()
       );
-      String url = endpoint + "/" + bucket + "/" + fileName;
-      log.info("Fichier upload avec succès : {}", url);
+      final String url = endpoint + "/" + bucket + "/" + fileName;
+      log.info("Fichier uploadé avec succès : {}", url);
       return url;
-    } catch (Exception e) {
-      log.error("Échec de upload du fichier {} : {}", fileName, e.getMessage());
-      throw new StorageException("Échec de upload du fichier : " + fileName, e);
+    } catch (Exception ex) {
+      log.error("Échec de l'upload du fichier {} : {}", fileName, ex.getMessage());
+      throw new StorageException("Échec de l'upload du fichier : " + fileName, ex);
     }
   }
 
@@ -70,7 +76,7 @@ public class MinioStorageAdapter implements StoragePort {
    * @throws Exception en cas d'erreur de communication avec MinIO
    */
   private void creerBucketSiAbsent() throws Exception {
-    boolean exists = minioClient.bucketExists(
+    final boolean exists = minioClient.bucketExists(
         BucketExistsArgs.builder().bucket(bucket).build()
     );
     if (!exists) {

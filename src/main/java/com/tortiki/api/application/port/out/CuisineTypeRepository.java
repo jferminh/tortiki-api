@@ -37,6 +37,16 @@ public interface CuisineTypeRepository {
   List<CuisineType> findAll();
 
   /**
+   * Retourne uniquement les origines culinaires actives ({@code enabled = true}).
+   *
+   * <p>Utilisé par le catalogue public — les origines désactivées par
+   * {@code ROLE_ADMIN} ne sont pas proposées lors de la création d'annonce.</p>
+   *
+   * @return liste des origines actives, vide si aucune
+   */
+  List<CuisineType> findAllEnabled();
+
+  /**
    * Vérifie si une origine culinaire est utilisée par au moins une annonce active.
    *
    * <p>Utilisé avant suppression pour éviter les incohérences métier.</p>

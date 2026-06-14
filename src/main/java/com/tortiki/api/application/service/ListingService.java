@@ -1,20 +1,21 @@
 package com.tortiki.api.application.service;
 
-import com.tortiki.api.application.port.in.ListingCommand;
 import com.tortiki.api.application.port.in.ManageListingUseCase;
+import com.tortiki.api.application.port.out.AllergenRepository;
 import com.tortiki.api.application.port.out.CuisineTypeRepository;
 import com.tortiki.api.application.port.out.ListingRepository;
 import com.tortiki.api.application.port.out.StoragePort;
 import com.tortiki.api.application.port.out.UserRepository;
 import com.tortiki.api.domain.exception.CuisineTypeNotFoundException;
 import com.tortiki.api.domain.exception.ListingNotFoundException;
+import com.tortiki.api.domain.exception.StorageException;
 import com.tortiki.api.domain.exception.UnauthorizedActionException;
 import com.tortiki.api.domain.exception.UserNotFoundException;
+import com.tortiki.api.domain.model.Allergen;
 import com.tortiki.api.domain.model.CuisineType;
 import com.tortiki.api.domain.model.Listing;
 import com.tortiki.api.domain.model.ListingStatus;
 import com.tortiki.api.domain.model.User;
-import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -27,60 +28,45 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Service métier gérant les annonces de plats cuisinés.
  *
- * <p>Implémente le port primaire {@link ManageListingUseCase}.
- * Dépend des ports secondaires {@link ListingRepository},
- * {@link UserRepository}, {@link CuisineTypeRepository}
- * et {@link StoragePort} — aucune dépendance directe vers
- * JPA, MinIO ou la base de données.</p>
+ * <p>Implémente {@link ManageListingUseCase}. Dépend uniquement des ports
+ * secondaires — aucune dépendance directe vers JPA, MinIO ou HTTP.</p>
  *
- * <p>La règle de propriété est appliquée ici : seul le vendeur
- * propriétaire peut modifier ou supprimer son annonce.</p>
+ * <p>Règles métier appliquées :</p>
+ * <ul>
+ *   <li>Seul le vendeur propriétaire peut modifier ou supprimer son annonce.</li>
+ *   <li>La suppression est logique (statut {@code INACTIVE}).</li>
+ *   <li>Les allergènes sont chargés depuis {@link AllergenRepository}.</li>
+ * </ul>
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
 public class ListingService implements ManageListingUseCase {
 
-  /** Message d'erreur pour une annonce introuvable. */
-  private static final String LISTING_NOT_FOUND =
-      "Annonce introuvable pour l'identifiant : ";
+  private static final String LISTING_NOT_FOUND = "Annonce introuvable : ";
+  private static final String SELLER_NOT_FOUND = "Vendeur introuvable : ";
+  private static final String CUISINE_TYPE_NOT_FOUND = "Origine culinaire introuvable : ";
 
-  /** Message d'erreur pour un vendeur introuvable. */
-  private static final String SELLER_NOT_FOUND =
-      "Vendeur introuvable pour l'identifiant : ";
-
-  /** Message d'erreur pour une origine culinaire introuvable. */
-  private static final String CUISINE_TYPE_NOT_FOUND =
-      "Origine culinaire introuvable pour l'identifiant : ";
-
-  /** Port secondaire de persistance des annonces. */
   private final ListingRepository listingRepository;
-
-  /** Port secondaire de persistance des utilisateurs. */
   private final UserRepository userRepository;
-
-  /** Port secondaire de persistance des origines culinaires. */
   private final CuisineTypeRepository cuisineTypeRepository;
-
-  /** Port secondaire de stockage des photos d'annonces. */
+  private final AllergenRepository allergenRepository;
   private final StoragePort storagePort;
 
   /** {@inheritDoc} */
   @Override
   @Transactional
-  public Listing create(Long sellerId, ListingCommand command) {
-    log.debug("Création d'une annonce pour le vendeur id={}", sellerId);
+  public Listing create(Long sellerId, ManageListingUseCase.Command command) {
+    log.debug("Création annonce pour vendeur id={}", sellerId);
 
     User seller = userRepository.findById(sellerId)
-        .orElseThrow(() -> new UserNotFoundException(
-            SELLER_NOT_FOUND + sellerId
-        ));
+        .orElseThrow(() -> new UserNotFoundException(SELLER_NOT_FOUND + sellerId));
 
     CuisineType cuisineType = cuisineTypeRepository.findById(command.cuisineTypeId())
         .orElseThrow(() -> new CuisineTypeNotFoundException(
-            CUISINE_TYPE_NOT_FOUND + command.cuisineTypeId()
-        ));
+            CUISINE_TYPE_NOT_FOUND + command.cuisineTypeId()));
+
+    List<Allergen> allergens = allergenRepository.findAllByIdIn(command.allergenIds());
 
     Listing listing = new Listing();
     listing.setSeller(seller);
@@ -88,86 +74,93 @@ public class ListingService implements ManageListingUseCase {
     listing.setDescription(command.description());
     listing.setPrice(command.price());
     listing.setPortions(command.portions());
-    listing.setPickupSlot(command.pickupSlot());
-    listing.setCity(command.city());
-    listing.setPostalCode(command.postalCode());
+    listing.setPickupAddress(command.pickupAddress());
+    listing.setPickupDatetime(command.pickupDatetime());
     listing.setCuisineType(cuisineType);
+    listing.setAllergens(allergens);
     listing.setStatus(ListingStatus.ACTIVE);
     listing.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
+    listing.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
 
     Listing saved = listingRepository.save(listing);
-    log.info("Annonce créée : id={} vendeur={}", saved.getId(), sellerId);
+    log.info("Annonce créée id={} vendeur={}", saved.getId(), sellerId);
     return saved;
   }
 
   /** {@inheritDoc} */
   @Override
   @Transactional
-  public Listing update(Long listingId, Long sellerId, ListingCommand command) {
-    log.debug("Mise à jour annonce id={} par vendeur id={}", listingId, sellerId);
+  public Listing update(Long listingId, Long sellerId, ManageListingUseCase.Command command) {
+    log.debug("Mise à jour annonce id={} vendeur id={}", listingId, sellerId);
 
     Listing existing = getListingOwnedBySeller(listingId, sellerId);
+    List<Allergen> allergens = allergenRepository.findAllByIdIn(command.allergenIds());
+
     existing.setTitle(command.title());
     existing.setDescription(command.description());
     existing.setPrice(command.price());
     existing.setPortions(command.portions());
-    existing.setPickupSlot(command.pickupSlot());
-    existing.setCity(command.city());
-    existing.setPostalCode(command.postalCode());
+    existing.setPickupAddress(command.pickupAddress());
+    existing.setPickupDatetime(command.pickupDatetime());
+    existing.setAllergens(allergens);
+    existing.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
 
     Listing updated = listingRepository.save(existing);
-    log.info("Annonce mise à jour : id={}", listingId);
+    log.info("Annonce mise à jour id={}", listingId);
     return updated;
   }
 
   /**
    * {@inheritDoc}
    *
-   * <p>Génère un nom de fichier unique via UUID pour éviter les
-   * collisions en bucket. Délègue upload à {@link StoragePort}
-   * sans connaître l'implémentation MinIO.</p>
+   * <p>Délègue l'upload à {@link StoragePort} en passant directement
+   * les bytes de {@link ManageListingUseCase.PhotoCommand}.
+   * La conversion en flux est gérée par l'adaptateur MinIO.</p>
    */
   @Override
   @Transactional
   public Listing updatePhoto(
       Long listingId,
       Long sellerId,
-      InputStream photoStream,
-      String contentType) {
-    log.debug("Upload photo annonce id={} par vendeur id={}", listingId, sellerId);
+      ManageListingUseCase.PhotoCommand command) {
+    log.debug("Upload photo annonce id={} vendeur id={}", listingId, sellerId);
 
     Listing existing = getListingOwnedBySeller(listingId, sellerId);
 
-    String fileName = UUID.randomUUID() + "-listing-" + listingId + ".jpg";
-    String photoUrl = storagePort.upload(fileName, photoStream, contentType);
+    final String fileName = UUID.randomUUID() + "-listing-" + listingId;
+    try {
+      final String photoUrl = storagePort.upload(
+          fileName,
+          command.photoBytes(),       // ← byte[] directement, plus de ByteArrayInputStream
+          command.contentType()
+      );
+      existing.setPhotoUrl(photoUrl);
+      existing.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
+    } catch (Exception ex) {
+      throw new StorageException("Échec upload photo annonce id=" + listingId, ex);
+    }
 
-    existing.setPhotoUrl(photoUrl);
     Listing updated = listingRepository.save(existing);
-    log.info("Photo upload annonce id={} : {}", listingId, photoUrl);
+    log.info("Photo uploadée annonce id={}", listingId);
     return updated;
   }
 
-  /**
-   * {@inheritDoc}
-   *
-   * <p>Suppression logique : le statut passe à {@code INACTIVE},
-   * l'annonce reste en base pour l'historique.</p>
-   */
+  /** {@inheritDoc} */
   @Override
   @Transactional
   public void delete(Long listingId, Long sellerId) {
-    log.debug("Suppression logique annonce id={} par vendeur id={}", listingId, sellerId);
+    log.debug("Suppression logique annonce id={} vendeur id={}", listingId, sellerId);
     Listing existing = getListingOwnedBySeller(listingId, sellerId);
     existing.setStatus(ListingStatus.INACTIVE);
+    existing.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
     listingRepository.save(existing);
-    log.info("Annonce désactivée (suppression logique) : id={}", listingId);
+    log.info("Annonce désactivée id={}", listingId);
   }
 
   /** {@inheritDoc} */
   @Override
   @Transactional(readOnly = true)
   public List<Listing> findAll() {
-    log.debug("Récupération de toutes les annonces actives");
     return listingRepository.findByStatus(ListingStatus.ACTIVE);
   }
 
@@ -175,7 +168,6 @@ public class ListingService implements ManageListingUseCase {
   @Override
   @Transactional(readOnly = true)
   public List<Listing> findBySeller(Long sellerId) {
-    log.debug("Récupération annonces actives vendeur id={}", sellerId);
     return listingRepository.findBySellerIdAndStatus(sellerId, ListingStatus.ACTIVE);
   }
 
@@ -183,11 +175,8 @@ public class ListingService implements ManageListingUseCase {
   @Override
   @Transactional(readOnly = true)
   public Listing findById(Long listingId) {
-    log.debug("Recherche annonce id={}", listingId);
     return listingRepository.findById(listingId)
-        .orElseThrow(() -> new ListingNotFoundException(
-            LISTING_NOT_FOUND + listingId
-        ));
+        .orElseThrow(() -> new ListingNotFoundException(LISTING_NOT_FOUND + listingId));
   }
 
   /** {@inheritDoc} */
@@ -196,12 +185,11 @@ public class ListingService implements ManageListingUseCase {
   public Listing changeStatus(Long listingId, ListingStatus status) {
     log.debug("Changement statut annonce id={} vers {}", listingId, status);
     Listing existing = listingRepository.findById(listingId)
-        .orElseThrow(() -> new ListingNotFoundException(
-            LISTING_NOT_FOUND + listingId
-        ));
+        .orElseThrow(() -> new ListingNotFoundException(LISTING_NOT_FOUND + listingId));
     existing.setStatus(status);
+    existing.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
     Listing updated = listingRepository.save(existing);
-    log.info("statut annonce id={} changé vers {}", listingId, status);
+    log.info("Statut annonce id={} → {}", listingId, status);
     return updated;
   }
 
@@ -209,20 +197,17 @@ public class ListingService implements ManageListingUseCase {
    * Récupère une annonce et vérifie qu'elle appartient au vendeur demandeur.
    *
    * @param listingId identifiant de l'annonce
-   * @param sellerId  identifiant du vendeur demandeur
+   * @param sellerId  identifiant du vendeur
    * @return l'annonce si elle existe et appartient au vendeur
    * @throws ListingNotFoundException    si l'annonce est introuvable
    * @throws UnauthorizedActionException si le vendeur n'est pas propriétaire
    */
   private Listing getListingOwnedBySeller(Long listingId, Long sellerId) {
     Listing listing = listingRepository.findById(listingId)
-        .orElseThrow(() -> new ListingNotFoundException(
-            LISTING_NOT_FOUND + listingId
-        ));
+        .orElseThrow(() -> new ListingNotFoundException(LISTING_NOT_FOUND + listingId));
     if (!listing.getSeller().getId().equals(sellerId)) {
       throw new UnauthorizedActionException(
-          "Le vendeur id=" + sellerId
-              + " n'est pas propriétaire de l'annonce id=" + listingId
+          "Vendeur id=" + sellerId + " non propriétaire de l'annonce id=" + listingId
       );
     }
     return listing;
