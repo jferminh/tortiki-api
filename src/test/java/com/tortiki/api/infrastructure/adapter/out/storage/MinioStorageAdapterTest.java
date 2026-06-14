@@ -16,8 +16,6 @@ import io.qameta.allure.Feature;
 import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
 import io.qameta.allure.Story;
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -45,10 +43,11 @@ class MinioStorageAdapterTest {
   @InjectMocks
   private MinioStorageAdapter adapter;
 
-  private static final String BUCKET = "tortiki-photos";
-  private static final String ENDPOINT = "http://localhost:9000";
-  private static final String FILE_NAME = "annonce-123.jpg";
+  private static final String BUCKET       = "tortiki-photos";
+  private static final String ENDPOINT     = "http://localhost:9000";
+  private static final String FILE_NAME    = "annonce-123.jpg";
   private static final String CONTENT_TYPE = "image/jpeg";
+  private static final byte[] FILE_BYTES   = "photo".getBytes();
 
   @BeforeEach
   void setUp() {
@@ -61,10 +60,9 @@ class MinioStorageAdapterTest {
   @Severity(SeverityLevel.CRITICAL)
   @DisplayName("upload() — cas nominal : bucket existant → retourne l'URL publique")
   void upload_bucketExistant_retourneUrl() throws Exception {
-    InputStream stream = new ByteArrayInputStream("photo".getBytes());
     when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(true);
 
-    String url = adapter.upload(FILE_NAME, stream, CONTENT_TYPE);
+    String url = adapter.upload(FILE_NAME, FILE_BYTES, CONTENT_TYPE);
 
     assertThat(url).isEqualTo(ENDPOINT + "/" + BUCKET + "/" + FILE_NAME);
     verify(minioClient).putObject(any(PutObjectArgs.class));
@@ -75,10 +73,9 @@ class MinioStorageAdapterTest {
   @Severity(SeverityLevel.NORMAL)
   @DisplayName("upload() — bucket absent → crée le bucket puis upload")
   void upload_bucketAbsent_creeBucketPuisUploade() throws Exception {
-    InputStream stream = new ByteArrayInputStream("photo".getBytes());
     when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(false);
 
-    adapter.upload(FILE_NAME, stream, CONTENT_TYPE);
+    adapter.upload(FILE_NAME, FILE_BYTES, CONTENT_TYPE);
 
     verify(minioClient).makeBucket(any(MakeBucketArgs.class));
     verify(minioClient).putObject(any(PutObjectArgs.class));
@@ -89,11 +86,10 @@ class MinioStorageAdapterTest {
   @Severity(SeverityLevel.NORMAL)
   @DisplayName("upload() — échec MinIO → lève StorageException")
   void upload_echecMinio_leveStorageException() throws Exception {
-    InputStream stream = new ByteArrayInputStream("photo".getBytes());
     when(minioClient.bucketExists(any(BucketExistsArgs.class)))
         .thenThrow(new RuntimeException("MinIO indisponible"));
 
-    assertThatThrownBy(() -> adapter.upload(FILE_NAME, stream, CONTENT_TYPE))
+    assertThatThrownBy(() -> adapter.upload(FILE_NAME, FILE_BYTES, CONTENT_TYPE))
         .isInstanceOf(StorageException.class)
         .hasMessageContaining(FILE_NAME);
   }
