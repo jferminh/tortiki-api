@@ -146,9 +146,10 @@ class UserServiceTest {
   void register_shouldThrowException_whenEmailAlreadyExists() {
     when(userRepository.existsByEmail("sofia@example.com")).thenReturn(true);
 
-    assertThatThrownBy(() -> userService.register(new RegisterUserUseCase.Command(
+    RegisterUserUseCase.Command command = new RegisterUserUseCase.Command(
         "sofia@example.com", "motdepasse", "Sofia", "Kovalenko", RoleName.SELLER
-    )))
+    );
+    assertThatThrownBy(() -> userService.register(command))
         .isInstanceOf(UserAlreadyExistsException.class)
         .hasMessageContaining("sofia@example.com");
 
@@ -164,9 +165,10 @@ class UserServiceTest {
     when(userRepository.existsByEmail("sofia@example.com")).thenReturn(false);
     when(roleRepository.findByName(RoleName.SELLER)).thenReturn(Optional.empty());
 
-    assertThatThrownBy(() -> userService.register(new RegisterUserUseCase.Command(
+    RegisterUserUseCase.Command command = new RegisterUserUseCase.Command(
         "sofia@example.com", "motdepasse", "Sofia", "Kovalenko", RoleName.SELLER
-    )))
+    );
+    assertThatThrownBy(() -> userService.register(command))
         .isInstanceOf(RoleNotFoundException.class)
         .hasMessageContaining("SELLER");
 
