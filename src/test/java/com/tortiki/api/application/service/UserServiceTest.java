@@ -20,12 +20,12 @@ import com.tortiki.api.domain.model.User;
 import io.qameta.allure.Description;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Feature;
+import io.qameta.allure.Owner;
 import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
 import io.qameta.allure.Story;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,9 +42,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
  */
 @Epic("Utilisateurs")
 @Feature("Gestion des comptes")
+@Owner("Tortiki")
 @ExtendWith(MockitoExtension.class)
 @DisplayName("UserService — Tests unitaires")
-@Disabled("En attente : RegisterUserUseCase.Command alignement — refs #23")
 class UserServiceTest {
 
   @Mock
@@ -146,9 +146,10 @@ class UserServiceTest {
   void register_shouldThrowException_whenEmailAlreadyExists() {
     when(userRepository.existsByEmail("sofia@example.com")).thenReturn(true);
 
-    assertThatThrownBy(() -> userService.register(new RegisterUserUseCase.Command(
+    RegisterUserUseCase.Command command = new RegisterUserUseCase.Command(
         "sofia@example.com", "motdepasse", "Sofia", "Kovalenko", RoleName.SELLER
-    )))
+    );
+    assertThatThrownBy(() -> userService.register(command))
         .isInstanceOf(UserAlreadyExistsException.class)
         .hasMessageContaining("sofia@example.com");
 
@@ -164,9 +165,10 @@ class UserServiceTest {
     when(userRepository.existsByEmail("sofia@example.com")).thenReturn(false);
     when(roleRepository.findByName(RoleName.SELLER)).thenReturn(Optional.empty());
 
-    assertThatThrownBy(() -> userService.register(new RegisterUserUseCase.Command(
+    RegisterUserUseCase.Command command = new RegisterUserUseCase.Command(
         "sofia@example.com", "motdepasse", "Sofia", "Kovalenko", RoleName.SELLER
-    )))
+    );
+    assertThatThrownBy(() -> userService.register(command))
         .isInstanceOf(RoleNotFoundException.class)
         .hasMessageContaining("SELLER");
 

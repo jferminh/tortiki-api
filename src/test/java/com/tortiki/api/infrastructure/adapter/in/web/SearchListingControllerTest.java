@@ -23,7 +23,6 @@ import io.qameta.allure.Story;
 import java.math.BigDecimal;
 import java.time.Month;
 import java.util.List;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,7 +44,6 @@ import org.springframework.test.web.servlet.MockMvc;
 @WebMvcTest(SearchListingController.class)
 @Import(SecurityConfig.class)
 @DisplayName("SearchListingController — Tests unitaires WebMvcTest")
-@Disabled("En attente : refactor Listing.pickupAddress + pickupDatetime — refs #25")
 class SearchListingControllerTest {
 
   @Autowired

@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.tortiki.api.application.port.in.ManageListingUseCase;
+import com.tortiki.api.application.port.out.AllergenRepository;
 import com.tortiki.api.application.port.out.CuisineTypeRepository;
 import com.tortiki.api.application.port.out.ListingRepository;
 import com.tortiki.api.application.port.out.StoragePort;
@@ -22,6 +23,7 @@ import com.tortiki.api.domain.model.User;
 import io.qameta.allure.Description;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Feature;
+import io.qameta.allure.Owner;
 import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
 import io.qameta.allure.Story;
@@ -31,7 +33,6 @@ import java.time.Month;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,9 +49,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
  */
 @Epic("Annonces")
 @Feature("Gestion des annonces")
+@Owner("Tortiki")
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ListingService — Tests unitaires")
-@Disabled("En attente : ManageListingUseCase.Command + PhotoCommand — refs #24")
 class ListingServiceTest {
 
   @Mock
@@ -61,6 +62,9 @@ class ListingServiceTest {
 
   @Mock
   private CuisineTypeRepository cuisineTypeRepository;
+
+  @Mock
+  private AllergenRepository allergenRepository;
 
   @Mock
   private StoragePort storagePort;
@@ -114,6 +118,7 @@ class ListingServiceTest {
   void create_shouldReturnSavedListing_whenSellerAndCuisineTypeExist() {
     when(userRepository.findById(1L)).thenReturn(Optional.of(sofia));
     when(cuisineTypeRepository.findById(10L)).thenReturn(Optional.of(ukrainienne));
+    when(allergenRepository.findAllByIdIn(List.of())).thenReturn(List.of());
     when(listingRepository.save(any(Listing.class))).thenReturn(listing);
 
     Listing result = listingService.create(1L, command);
@@ -159,6 +164,7 @@ class ListingServiceTest {
   @DisplayName("update — met à jour une annonce appartenant au vendeur")
   void update_shouldUpdateListing_whenSellerIsOwner() {
     when(listingRepository.findById(100L)).thenReturn(Optional.of(listing));
+    when(allergenRepository.findAllByIdIn(List.of())).thenReturn(List.of());
     when(listingRepository.save(any(Listing.class))).thenReturn(listing);
 
     Listing result = listingService.update(100L, 1L, command);

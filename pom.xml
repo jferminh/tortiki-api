@@ -190,8 +190,6 @@
                         <exclude>com/tortiki/api/domain/model/**</exclude>
                         <!-- Exceptions métier — pas de logique conditionnelle -->
                         <exclude>com/tortiki/api/domain/exception/**</exclude>
-                        <exclude>com/tortiki/api/application/service/UserService.class</exclude>
-                        <exclude>com/tortiki/api/application/service/ListingService.class</exclude>
                     </excludes>
                 </configuration>
                 <executions>
