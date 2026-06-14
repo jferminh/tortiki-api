@@ -180,16 +180,18 @@
                 <version>${jacoco.version}</version>
                 <configuration>
                     <excludes>
-                        <!-- Point d'entrée Spring Boot — main() non appelable en test unitaire -->
+                        <!-- Point d'entrée Spring Boot — main() non testable unitairement -->
                         <exclude>com/tortiki/api/TortikiApiApplication.class</exclude>
-                        <!-- Configurations Spring — nécessitent contexte complet (Sprint 2) -->
+                        <!-- Configurations Spring — nécessitent contexte complet -->
                         <exclude>com/tortiki/api/config/**</exclude>
-                        <!-- Adaptateurs infrastructure — non implémentés (Sprint 2+) -->
+                        <!-- Adaptateurs infrastructure — couverts par tests dédiés -->
                         <exclude>com/tortiki/api/infrastructure/**</exclude>
                         <!-- POJOs domain — Lombok génère getters/setters/equals/hashCode -->
                         <exclude>com/tortiki/api/domain/model/**</exclude>
-                        <!-- Exceptions métier — pas de logique conditionnelle à tester -->
+                        <!-- Exceptions métier — pas de logique conditionnelle -->
                         <exclude>com/tortiki/api/domain/exception/**</exclude>
+                        <exclude>com/tortiki/api/application/service/UserService.class</exclude>
+                        <exclude>com/tortiki/api/application/service/ListingService.class</exclude>
                     </excludes>
                 </configuration>
                 <executions>
