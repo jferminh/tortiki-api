@@ -1,7 +1,5 @@
 package com.tortiki.api.application.port.out;
 
-import java.io.InputStream;
-
 /**
  * Port secondaire pour le stockage de fichiers.
  *
@@ -10,6 +8,10 @@ import java.io.InputStream;
  *
  * <p>Appartient à la couche {@code application/port/out} — aucune dépendance
  * vers l'infrastructure n'est autorisée dans cette interface.</p>
+ *
+ * <p>Le contenu binaire est passé sous forme de {@code byte[]} afin de
+ * rester cohérent avec {@code ManageListingUseCase.PhotoCommand} et de
+ * faciliter les tests unitaires sans mock de flux.</p>
  */
 public interface StoragePort {
 
@@ -17,9 +19,9 @@ public interface StoragePort {
    * Téléverse un fichier et retourne son URL publique.
    *
    * @param fileName    nom du fichier cible dans le bucket
-   * @param inputStream flux binaire du fichier à uploader
+   * @param fileBytes   contenu binaire du fichier à uploader
    * @param contentType type MIME du fichier (ex. {@code image/jpeg})
    * @return l'URL publique d'accès au fichier uploadé
    */
-  String upload(String fileName, InputStream inputStream, String contentType);
+  String upload(String fileName, byte[] fileBytes, String contentType);
 }
