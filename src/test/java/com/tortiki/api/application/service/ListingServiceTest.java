@@ -27,6 +27,7 @@ import io.qameta.allure.SeverityLevel;
 import io.qameta.allure.Story;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.Month;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -97,7 +98,7 @@ class ListingServiceTest {
         new BigDecimal("8.50"),
         4,
         "12 rue des Acacias, 67000 Strasbourg",
-        LocalDateTime.of(2026, 6, 21, 12, 0),
+        LocalDateTime.of(2026, Month.JUNE, 21, 12, 0),
         10L,
         List.of()
     );
