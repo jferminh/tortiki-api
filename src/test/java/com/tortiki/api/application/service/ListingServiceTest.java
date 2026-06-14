@@ -22,6 +22,7 @@ import com.tortiki.api.domain.model.User;
 import io.qameta.allure.Description;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Feature;
+import io.qameta.allure.Owner;
 import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
 import io.qameta.allure.Story;
@@ -31,7 +32,6 @@ import java.time.Month;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,9 +48,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
  */
 @Epic("Annonces")
 @Feature("Gestion des annonces")
+@Owner("Tortiki")
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ListingService — Tests unitaires")
-@Disabled("En attente : ManageListingUseCase.Command + PhotoCommand — refs #24")
 class ListingServiceTest {
 
   @Mock

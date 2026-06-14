@@ -224,7 +224,7 @@ public class Listing {
   }
 
   /**
-   * return adresse de retrait
+   * Retourne l'adresse de retrait saisie par le vendeur.
    *
    * @return adresse de retrait
    */
@@ -251,9 +251,9 @@ public class Listing {
   }
 
   /**
-   * Définit la latitud.
+   * Définit la latitude géocodée via Nominatim.
    *
-   * @param pickupLat latitude
+   * @param pickupLat latitude en degrés décimaux
    */
   public void setPickupLat(Double pickupLat) {
     this.pickupLat = pickupLat;
@@ -269,9 +269,9 @@ public class Listing {
   }
 
   /**
-   * Définit la longitud.
+   * Définit la longitude géocodée via Nominatim.
    *
-   * @param pickupLng longitude
+   * @param pickupLng longitude en degrés décimaux
    */
   public void setPickupLng(Double pickupLng) {
     this.pickupLng = pickupLng;

@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,7 +56,6 @@ import org.springframework.test.web.servlet.MockMvc;
 @WebMvcTest(AuthController.class)
 @Import(SecurityConfig.class)
 @DisplayName("AuthController — Tests unitaires WebMvcTest")
-@Disabled("En attente : RegisterUserUseCase.Command dans les mocks — refs #23")
 class AuthControllerTest {
 
   // ── Constantes de test ────────────────────────────────────────────────────

@@ -36,7 +36,6 @@ import java.time.Month;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,7 +62,6 @@ import org.springframework.test.web.servlet.MockMvc;
 @WebMvcTest(ListingController.class)
 @Import(TestSecurityConfig.class)
 @DisplayName("ListingController — Tests unitaires WebMvcTest")
-@Disabled("En attente finalisation RegisterUserUseCase.Command — refs #23")
 class ListingControllerTest {
 
   // ── Constantes de test ────────────────────────────────────────────────────

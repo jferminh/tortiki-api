@@ -20,12 +20,12 @@ import com.tortiki.api.domain.model.User;
 import io.qameta.allure.Description;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Feature;
+import io.qameta.allure.Owner;
 import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
 import io.qameta.allure.Story;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,9 +42,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
  */
 @Epic("Utilisateurs")
 @Feature("Gestion des comptes")
+@Owner("Tortiki")
 @ExtendWith(MockitoExtension.class)
 @DisplayName("UserService — Tests unitaires")
-@Disabled("En attente : RegisterUserUseCase.Command alignement — refs #23")
 class UserServiceTest {
 
   @Mock
