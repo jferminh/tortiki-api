@@ -17,4 +17,16 @@ public class ContactRequestAlreadyExistsException extends RuntimeException {
   public ContactRequestAlreadyExistsException(Long listingId) {
     super("Une demande existe déjà pour l'annonce avec l'identifiant : " + listingId);
   }
+
+  /**
+   * Construit l'exception avec un message descriptif personnalisé.
+   *
+   * <p>Utilisé pour les violations de règles métier contextuelles,
+   * notamment lorsqu'un vendeur tente de contacter sa propre annonce.</p>
+   *
+   * @param message description précise de la violation
+   */
+  public ContactRequestAlreadyExistsException(String message) {
+    super(message);
+  }
 }
