@@ -20,12 +20,14 @@ import io.qameta.allure.Epic;
 import io.qameta.allure.Feature;
 import io.qameta.allure.Step;
 import io.qameta.allure.Story;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -42,13 +44,18 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @DisplayName("ContactRequestService")
 class ContactRequestServiceTest {
 
+  private static final Instant FIXED_INSTANT =
+      Instant.parse("2026-06-15T10:00:00Z");
+
+  private static final Clock FIXED_CLOCK =
+      Clock.fixed(FIXED_INSTANT, ZoneOffset.UTC);
+
   @Mock
   private ContactRequestRepository contactRequestRepository;
 
   @Mock
   private ListingRepository listingRepository;
 
-  @InjectMocks
   private ContactRequestService contactRequestService;
 
   private Listing listing;
@@ -57,6 +64,11 @@ class ContactRequestServiceTest {
 
   @BeforeEach
   void setUp() {
+    contactRequestService = new ContactRequestService(
+        contactRequestRepository,
+        listingRepository,
+        FIXED_CLOCK
+    );
     seller = new User();
     seller.setId(1L);
 
