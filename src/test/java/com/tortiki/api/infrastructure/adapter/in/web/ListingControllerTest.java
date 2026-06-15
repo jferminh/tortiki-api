@@ -15,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tortiki.api.application.port.in.FindUserUseCase;
 import com.tortiki.api.application.port.in.ManageListingUseCase;
+import com.tortiki.api.config.SecurityConfig;
 import com.tortiki.api.domain.exception.ListingNotFoundException;
 import com.tortiki.api.domain.model.CuisineType;
 import com.tortiki.api.domain.model.Listing;
@@ -23,7 +24,6 @@ import com.tortiki.api.domain.model.Role;
 import com.tortiki.api.domain.model.RoleName;
 import com.tortiki.api.domain.model.User;
 import com.tortiki.api.infrastructure.adapter.in.web.dto.ListingResponse;
-import com.tortiki.api.infrastructure.adapter.in.web.support.TestSecurityConfig;
 import io.qameta.allure.Description;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Feature;
@@ -60,7 +60,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @Epic("Annonces")
 @Feature("Endpoints REST listings")
 @WebMvcTest(ListingController.class)
-@Import(TestSecurityConfig.class)
+@Import(SecurityConfig.class)
 @DisplayName("ListingController — Tests unitaires WebMvcTest")
 class ListingControllerTest {
 

@@ -38,6 +38,9 @@ public class ContactRequestService implements SubmitContactRequestUseCase {
   /** Port secondaire de persistance des annonces. */
   private final ListingRepository listingRepository;
 
+  /** Horloge injectable — permet le test déterministe. */
+  private final Clock clock;
+
   /**
    * {@inheritDoc}
    *
