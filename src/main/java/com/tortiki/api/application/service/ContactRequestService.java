@@ -73,15 +73,16 @@ public class ContactRequestService implements SubmitContactRequestUseCase {
       );
     }
 
-    ContactRequest contactRequest = new ContactRequest();
-    contactRequest.setListing(listing);
     User buyer = new User();
     buyer.setId(command.buyerId());
+
+    ContactRequest contactRequest = new ContactRequest();
+    contactRequest.setListing(listing);
     contactRequest.setBuyer(buyer);
     contactRequest.setMessage(command.message());
     contactRequest.setPortions(command.portions());
     contactRequest.setStatus(ContactRequestStatus.PENDING);
-    contactRequest.setCreatedAt(LocalDateTime.now(Clock.systemUTC()));
+    contactRequest.setCreatedAt(LocalDateTime.now(clock));
 
     return contactRequestRepository.save(contactRequest);
   }
