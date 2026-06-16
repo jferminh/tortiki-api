@@ -47,7 +47,7 @@ public class ListingJpaEntity {
   private Long id;
 
   /** Titre de l'annonce. */
-  @Column(name = "title", nullable = false, length = 255)
+  @Column(name = "title", nullable = false)
   private String title;
 
   /** Description détaillée du plat. */
@@ -67,7 +67,7 @@ public class ListingJpaEntity {
   private String photoUrl;
 
   /** Adresse de retrait saisie par le vendeur. */
-  @Column(name = "pickup_address", nullable = false, length = 255)
+  @Column(name = "pickup_address", nullable = false)
   private String pickupAddress;
 
   /** Latitude géocodée via Nominatim. */
