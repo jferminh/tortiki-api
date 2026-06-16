@@ -12,7 +12,6 @@ import jakarta.persistence.ManyToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.HashSet;
@@ -103,13 +102,13 @@ public class UserEntity {
    * Précision 7 décimales ≈ 1 cm — suffisant pour usage urbain.
    */
   @Column(name = "latitude", precision = 10, scale = 7)
-  private BigDecimal latitude;
+  private Double latitude;
 
   /**
    * Longitude géographique pour les recherches de proximité (Nominatim).
    */
   @Column(name = "longitude", precision = 10, scale = 7)
-  private BigDecimal longitude;
+  private Double longitude;
 
   /**
    * Indique si le compte est actif.
