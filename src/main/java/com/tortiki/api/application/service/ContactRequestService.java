@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
  * les règles métier avant persistance :</p>
  * <ul>
  *   <li>L'annonce doit exister.</li>
+ *   <li>L'acheteur doit exister et son compte doit être actif.</li>
  *   <li>L'acheteur ne peut pas contacter sa propre annonce.</li>
  *   <li>Un seul contact par acheteur par annonce (unicité).</li>
  * </ul>
@@ -53,9 +54,10 @@ public class ContactRequestService implements SubmitContactRequestUseCase {
    * <p>Ordre d'application des règles métier :</p>
    * <ol>
    *   <li>Vérification existence de l'annonce.</li>
+   *   <li>Résolution et vérification de l'acheteur (compte actif).</li>
    *   <li>Vérification que l'acheteur n'est pas le vendeur.</li>
    *   <li>Vérification unicité de la demande.</li>
-   *   <li>Création et persistance de la demande avec statut {@code PENDING}.</li>
+   *   <li>Création et persistance avec statut {@code PENDING}.</li>
    * </ol>
    */
   @Override
@@ -66,29 +68,29 @@ public class ContactRequestService implements SubmitContactRequestUseCase {
                 + command.listingId()
         ));
 
-    if (listing.getSeller().getId().equals(command.buyerId())) {
+    User buyer = userRepository.findByEmailAndEnabledTrue(command.buyerEmail())
+        .orElseThrow(() -> new UserNotFoundException(
+            "Acheteur introuvable ou inactif : "
+                + command.buyerEmail()
+        ));
+
+    if (listing.getSeller().getId().equals(buyer.getId())) {
       throw new SelfContactException(
-          "L'acheteur " + command.buyerId()
+          "L'acheteur " + buyer.getId()
               + " est le vendeur de l'annonce "
               + command.listingId()
       );
     }
 
     if (contactRequestRepository.existsByListingIdAndBuyerId(
-        command.listingId(), command.buyerId())) {
+        command.listingId(), buyer.getId())) {
       throw new ContactRequestAlreadyExistsException(
           "Une demande existe déjà pour l'annonce "
               + command.listingId()
               + " par l'acheteur "
-              + command.buyerId()
+              + buyer.getId()
       );
     }
-
-    User buyer = userRepository.findById(command.buyerId())
-        .orElseThrow(() -> new UserNotFoundException(
-            "Acheteur introuvable avec l'identifiant : "
-                + command.buyerId()
-        ));
 
     ContactRequest contactRequest = new ContactRequest();
     contactRequest.setListing(listing);
