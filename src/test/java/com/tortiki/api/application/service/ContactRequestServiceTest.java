@@ -10,7 +10,9 @@ import static org.mockito.Mockito.when;
 import com.tortiki.api.application.port.in.SubmitContactRequestUseCase.Command;
 import com.tortiki.api.application.port.out.ContactRequestRepository;
 import com.tortiki.api.application.port.out.ListingRepository;
+import com.tortiki.api.application.port.out.UserRepository;
 import com.tortiki.api.domain.exception.ContactRequestAlreadyExistsException;
+import com.tortiki.api.domain.exception.SelfContactException;
 import com.tortiki.api.domain.model.ContactRequest;
 import com.tortiki.api.domain.model.ContactRequestStatus;
 import com.tortiki.api.domain.model.Listing;
@@ -34,9 +36,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 /**
  * Tests unitaires du service {@link ContactRequestService}.
  *
- * <p>Vérifie les trois règles métier principales :
- * soumission nominale, unicité de la demande et
- * interdiction pour le vendeur de contacter sa propre annonce.</p>
+ * <p>Vérifie les quatre règles métier principales :
+ * soumission nominale, interdiction vendeur = acheteur,
+ * unicité de la demande et acheteur introuvable.</p>
  */
 @Epic("Demande de contact")
 @Feature("Soumission d'une demande")
@@ -56,6 +58,9 @@ class ContactRequestServiceTest {
   @Mock
   private ListingRepository listingRepository;
 
+  @Mock
+  private UserRepository userRepository;
+
   private ContactRequestService contactRequestService;
 
   private Listing listing;
@@ -67,8 +72,10 @@ class ContactRequestServiceTest {
     contactRequestService = new ContactRequestService(
         contactRequestRepository,
         listingRepository,
+        userRepository,
         FIXED_CLOCK
     );
+
     seller = new User();
     seller.setId(1L);
 
@@ -85,12 +92,13 @@ class ContactRequestServiceTest {
 
   @Test
   @Story("Soumission nominale")
-  @Description("Un acheteur soumet une demande valide — la demande est créée avec le statut PENDING.")
+  @Description("Un acheteur soumet une demande valide — créée avec statut PENDING.")
   @DisplayName("Doit créer la demande avec statut PENDING")
   void shouldCreateContactRequestWithPendingStatus() {
     ContactRequest saved = buildSavedContactRequest();
     givenListingExists();
     givenNoDuplicateExists();
+    givenBuyerExists();
     when(contactRequestRepository.save(any(ContactRequest.class))).thenReturn(saved);
 
     ContactRequest result = whenSubmitCommand();
@@ -105,14 +113,14 @@ class ContactRequestServiceTest {
 
   @Test
   @Story("Règle métier : vendeur = acheteur")
-  @Description("Un vendeur tente de contacter sa propre annonce — l'exception est levée.")
-  @DisplayName("Doit lever ContactRequestAlreadyExistsException si acheteur == vendeur")
+  @Description("Un vendeur tente de contacter sa propre annonce — SelfContactException levée.")
+  @DisplayName("Doit lever SelfContactException si acheteur == vendeur")
   void shouldThrowWhenBuyerIsTheSeller() {
     Command selfCommand = new Command(10L, 1L, "Mon propre plat", 1);
     givenListingExists();
 
     assertThatThrownBy(() -> contactRequestService.submit(selfCommand))
-        .isInstanceOf(ContactRequestAlreadyExistsException.class)
+        .isInstanceOf(SelfContactException.class)
         .hasMessageContaining("vendeur");
 
     verify(contactRequestRepository, never()).save(any());
@@ -124,7 +132,7 @@ class ContactRequestServiceTest {
 
   @Test
   @Story("Règle métier : doublon")
-  @Description("Un acheteur soumet une seconde demande pour la même annonce — l'exception est levée.")
+  @Description("Un acheteur soumet une seconde demande pour la même annonce — exception levée.")
   @DisplayName("Doit lever ContactRequestAlreadyExistsException si doublon")
   void shouldThrowWhenDuplicateContactRequestExists() {
     givenListingExists();
@@ -141,19 +149,28 @@ class ContactRequestServiceTest {
   // Méthodes Given / When / Then (pattern Allure)
   // ─────────────────────────────────────────────────────────
 
-  @Step("Étant donné que l'annonce {listing.id} existe")
+  @Step("Étant donné que l'annonce 10 existe")
   private void givenListingExists() {
     when(listingRepository.findById(10L)).thenReturn(Optional.of(listing));
   }
 
   @Step("Étant donné qu'aucun doublon n'existe")
   private void givenNoDuplicateExists() {
-    when(contactRequestRepository.existsByListingIdAndBuyerId(10L, 2L)).thenReturn(false);
+    when(contactRequestRepository.existsByListingIdAndBuyerId(10L, 2L))
+        .thenReturn(false);
+  }
+
+  @Step("Étant donné que l'acheteur 2 existe")
+  private void givenBuyerExists() {
+    User buyer = new User();
+    buyer.setId(2L);
+    when(userRepository.findById(2L)).thenReturn(Optional.of(buyer));
   }
 
   @Step("Étant donné qu'un doublon existe déjà")
   private void givenDuplicateExists() {
-    when(contactRequestRepository.existsByListingIdAndBuyerId(10L, 2L)).thenReturn(true);
+    when(contactRequestRepository.existsByListingIdAndBuyerId(10L, 2L))
+        .thenReturn(true);
   }
 
   @Step("Quand la commande de soumission est exécutée")
@@ -163,8 +180,10 @@ class ContactRequestServiceTest {
 
   @Step("Alors la demande est créée avec le statut PENDING")
   private void thenContactRequestIsPending(ContactRequest result) {
-    assertThat(result).isNotNull();
-    assertThat(result.getStatus()).isEqualTo(ContactRequestStatus.PENDING);
+    assertThat(result)
+        .isNotNull()
+        .extracting(ContactRequest::getStatus)
+        .isEqualTo(ContactRequestStatus.PENDING);
     assertThat(result.getListing().getId()).isEqualTo(10L);
   }
 

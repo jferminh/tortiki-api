@@ -3,8 +3,11 @@ package com.tortiki.api.application.service;
 import com.tortiki.api.application.port.in.SubmitContactRequestUseCase;
 import com.tortiki.api.application.port.out.ContactRequestRepository;
 import com.tortiki.api.application.port.out.ListingRepository;
+import com.tortiki.api.application.port.out.UserRepository;
 import com.tortiki.api.domain.exception.ContactRequestAlreadyExistsException;
 import com.tortiki.api.domain.exception.ListingNotFoundException;
+import com.tortiki.api.domain.exception.SelfContactException;
+import com.tortiki.api.domain.exception.UserNotFoundException;
 import com.tortiki.api.domain.model.ContactRequest;
 import com.tortiki.api.domain.model.ContactRequestStatus;
 import com.tortiki.api.domain.model.Listing;
@@ -38,6 +41,9 @@ public class ContactRequestService implements SubmitContactRequestUseCase {
   /** Port secondaire de persistance des annonces. */
   private final ListingRepository listingRepository;
 
+  /** Port secondaire de persistance des utilisateurs. */
+  private final UserRepository userRepository;
+
   /** Horloge injectable — permet le test déterministe. */
   private final Clock clock;
 
@@ -56,25 +62,33 @@ public class ContactRequestService implements SubmitContactRequestUseCase {
   public ContactRequest submit(Command command) {
     Listing listing = listingRepository.findById(command.listingId())
         .orElseThrow(() -> new ListingNotFoundException(
-            "Annonce introuvable avec l'identifiant : " + command.listingId()
+            "Annonce introuvable avec l'identifiant : "
+                + command.listingId()
         ));
 
     if (listing.getSeller().getId().equals(command.buyerId())) {
-      throw new ContactRequestAlreadyExistsException(
-          "Impossible de contacter sa propre annonce : acheteur "
-              + command.buyerId() + " est le vendeur."
+      throw new SelfContactException(
+          "L'acheteur " + command.buyerId()
+              + " est le vendeur de l'annonce "
+              + command.listingId()
       );
     }
 
     if (contactRequestRepository.existsByListingIdAndBuyerId(
         command.listingId(), command.buyerId())) {
       throw new ContactRequestAlreadyExistsException(
-          "Une demande existe déjà pour cette annonce."
+          "Une demande existe déjà pour l'annonce "
+              + command.listingId()
+              + " par l'acheteur "
+              + command.buyerId()
       );
     }
 
-    User buyer = new User();
-    buyer.setId(command.buyerId());
+    User buyer = userRepository.findById(command.buyerId())
+        .orElseThrow(() -> new UserNotFoundException(
+            "Acheteur introuvable avec l'identifiant : "
+                + command.buyerId()
+        ));
 
     ContactRequest contactRequest = new ContactRequest();
     contactRequest.setListing(listing);
