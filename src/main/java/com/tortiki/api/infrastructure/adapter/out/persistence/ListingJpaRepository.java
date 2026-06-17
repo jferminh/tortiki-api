@@ -55,8 +55,10 @@ public interface ListingJpaRepository extends JpaRepository<ListingJpaEntity, Lo
    *   <li>Type de cuisine — ignoré si {@code null}</li>
    *   <li>Prix maximum — ignoré si {@code null}</li>
    *   <li>Mot-clé titre/description — ignoré si {@code null}</li>
-   *   <li>Exclusion allergènes via {@code @ManyToMany allergens} — ignorée si {@code null}</li>
    * </ul>
+   *
+   * <p>L'exclusion des allergènes est appliquée en mémoire par
+   * {@link SearchListingRepositoryAdapter} après cet appel.</p>
    *
    * <p>Résultats triés par {@code pickupDatetime} croissant et paginés
    * via {@link Pageable}.</p>
@@ -67,7 +69,6 @@ public interface ListingJpaRepository extends JpaRepository<ListingJpaEntity, Lo
    * @param cuisineTypeId filtre type de cuisine, {@code null} = tous
    * @param maxPrice      prix maximum, {@code null} = sans limite
    * @param query         mot-clé titre/description, {@code null} = sans filtre
-   * @param allergenIds   identifiants allergènes à exclure, {@code null} = aucune exclusion
    * @param pageable      pagination (page + taille)
    * @return liste paginée des entités correspondantes
    */
@@ -83,13 +84,10 @@ public interface ListingJpaRepository extends JpaRepository<ListingJpaEntity, Lo
       AND (:cuisineTypeId IS NULL OR l.cuisineType.id = :cuisineTypeId)
       AND (:maxPrice IS NULL OR l.price <= :maxPrice)
       AND (:query IS NULL
-        OR LOWER(l.title) LIKE LOWER(CONCAT('%', :query, '%'))
-        OR LOWER(l.description) LIKE LOWER(CONCAT('%', :query, '%')))
-      AND (:allergenIds IS NULL OR l.id NOT IN (
-        SELECT l2.id FROM ListingJpaEntity l2
-        JOIN l2.allergens a
-        WHERE a.id IN :allergenIds
-      ))
+        OR LOWER(CAST(l.title AS string))
+             LIKE LOWER(CONCAT('%', CAST(:query AS string), '%'))
+        OR LOWER(CAST(l.description AS string))
+             LIKE LOWER(CONCAT('%', CAST(:query AS string), '%')))
       ORDER BY l.pickupDatetime ASC
       """)
   List<ListingJpaEntity> searchByCriteria(
@@ -99,6 +97,5 @@ public interface ListingJpaRepository extends JpaRepository<ListingJpaEntity, Lo
       @Param("cuisineTypeId") Long cuisineTypeId,
       @Param("maxPrice") BigDecimal maxPrice,
       @Param("query") String query,
-      @Param("allergenIds") List<Long> allergenIds,
       Pageable pageable);
 }

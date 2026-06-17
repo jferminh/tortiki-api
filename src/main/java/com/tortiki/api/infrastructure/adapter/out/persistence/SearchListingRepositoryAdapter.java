@@ -49,11 +49,19 @@ public class SearchListingRepositoryAdapter implements SearchListingRepository {
         criteria.cuisineTypeId(),
         criteria.maxPrice(),
         criteria.query(),
-        criteria.allergenIds().isEmpty() ? null : criteria.allergenIds(),
         pageable
     );
 
-    log.debug("{} annonce(s) trouvée(s)", entities.size());
+    // Post-filtrage allergène en mémoire — liste courte (max 50 résultats paginés)
+    List<Long> allergenIds = criteria.allergenIds();
+    if (!allergenIds.isEmpty()) {
+      entities = entities.stream()
+          .filter(l -> l.getAllergens().stream()
+              .noneMatch(a -> allergenIds.contains(a.getId())))
+          .toList();
+    }
+
+    log.debug("{} annonce(s) trouvée(s) après filtrage allergènes", entities.size());
     return entities.stream()
         .map(listingPersistenceMapper::toDomain)
         .toList();

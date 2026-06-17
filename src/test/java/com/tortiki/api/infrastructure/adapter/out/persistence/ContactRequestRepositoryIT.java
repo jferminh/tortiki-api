@@ -49,13 +49,13 @@ class ContactRequestRepositoryIT extends AbstractIntegrationTest {
   private CuisineTypeJpaRepository cuisineTypeJpaRepository;
 
   private ListingJpaEntity listing;
-  private UserEntity buyer;
+  private UserJpaEntity buyer;
 
   @BeforeEach
   void setUp() {
     CuisineTypeJpaEntity cuisineType = cuisineTypeJpaRepository.findAll().getFirst();
 
-    UserEntity seller = new UserEntity();
+    UserJpaEntity seller = new UserJpaEntity();
     seller.setEmail("sofia-it@tortiki.fr");
     seller.setPasswordHash("$2a$12$hash");
     seller.setFirstName("Sofia");
@@ -63,7 +63,7 @@ class ContactRequestRepositoryIT extends AbstractIntegrationTest {
     seller.setEnabled(true);
     seller = userJpaRepository.save(seller);
 
-    buyer = new UserEntity();
+    buyer = new UserJpaEntity();
     buyer.setEmail("theo-it@tortiki.fr");
     buyer.setPasswordHash("$2a$12$hash");
     buyer.setFirstName("Théo");

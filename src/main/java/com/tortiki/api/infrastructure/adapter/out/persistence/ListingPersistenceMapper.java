@@ -50,7 +50,7 @@ public class ListingPersistenceMapper {
     entity.setUpdatedAt(listing.getUpdatedAt());
 
     if (listing.getSeller() != null) {
-      UserEntity sellerEntity = new UserEntity();
+      UserJpaEntity sellerEntity = new UserJpaEntity();
       sellerEntity.setId(listing.getSeller().getId());
       entity.setSeller(sellerEntity);
     }
