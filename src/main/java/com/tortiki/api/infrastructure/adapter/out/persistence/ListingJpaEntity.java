@@ -21,6 +21,10 @@ import java.util.List;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcType;
+import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 /**
  * Entité JPA représentant une annonce de plat en base de données.
@@ -47,7 +51,7 @@ public class ListingJpaEntity {
   private Long id;
 
   /** Titre de l'annonce. */
-  @Column(name = "title", nullable = false, length = 255)
+  @Column(name = "title", nullable = false)
   private String title;
 
   /** Description détaillée du plat. */
@@ -67,15 +71,15 @@ public class ListingJpaEntity {
   private String photoUrl;
 
   /** Adresse de retrait saisie par le vendeur. */
-  @Column(name = "pickup_address", nullable = false, length = 255)
+  @Column(name = "pickup_address", nullable = false)
   private String pickupAddress;
 
   /** Latitude géocodée via Nominatim. */
-  @Column(name = "pickup_lat", precision = 10, scale = 7)
+  @Column(name = "pickup_lat")
   private Double pickupLat;
 
   /** Longitude géocodée via Nominatim. */
-  @Column(name = "pickup_lng", precision = 10, scale = 7)
+  @Column(name = "pickup_lng")
   private Double pickupLng;
 
   /** Date et heure du créneau de retrait. */
@@ -87,14 +91,17 @@ public class ListingJpaEntity {
    * Stocké comme chaîne de caractères via {@code EnumType.STRING}.
    */
   @Enumerated(EnumType.STRING)
-  @Column(name = "status", nullable = false, length = 20)
+  @JdbcType(PostgreSQLEnumJdbcType.class)
+  @Column(name = "status", nullable = false)
   private ListingStatus status;
 
   /** Date de création. */
+  @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
   private LocalDateTime createdAt;
 
   /** Date de dernière modification. */
+  @UpdateTimestamp
   @Column(name = "updated_at", nullable = false)
   private LocalDateTime updatedAt;
 
@@ -104,7 +111,7 @@ public class ListingJpaEntity {
    */
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "seller_id", nullable = false)
-  private UserEntity seller;
+  private UserJpaEntity seller;
 
   /**
    * Origine culinaire associée à l'annonce.

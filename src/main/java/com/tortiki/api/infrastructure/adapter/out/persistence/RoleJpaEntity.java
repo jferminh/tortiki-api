@@ -33,7 +33,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @Entity
 @Table(name = "roles")
-public class RoleEntity {
+public class RoleJpaEntity {
 
   /**
    * Identifiant technique auto-incrémenté.

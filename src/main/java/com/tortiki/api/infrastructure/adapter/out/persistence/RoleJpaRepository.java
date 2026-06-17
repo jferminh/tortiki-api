@@ -10,7 +10,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * <p>Génère automatiquement la requête
  * {@code SELECT * FROM roles WHERE name = ?} à partir du nom de méthode.</p>
  */
-public interface RoleJpaRepository extends JpaRepository<RoleEntity, Long> {
+public interface RoleJpaRepository extends JpaRepository<RoleJpaEntity, Long> {
 
   /**
    * Recherche une entité rôle par son nom.
@@ -18,5 +18,5 @@ public interface RoleJpaRepository extends JpaRepository<RoleEntity, Long> {
    * @param name le nom du rôle (enum {@link RoleName})
    * @return un {@link Optional} contenant l'entité, ou vide si absente
    */
-  Optional<RoleEntity> findByName(RoleName name);
+  Optional<RoleJpaEntity> findByName(RoleName name);
 }

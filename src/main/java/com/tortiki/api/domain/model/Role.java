@@ -6,7 +6,7 @@ import java.util.Objects;
  * Représente un rôle métier attribué à un utilisateur de la plateforme.
  *
  * <p>POJO pur du domaine : aucune annotation Spring ou JPA.
- * La persistance est déléguée à {@code RoleEntity} dans la couche
+ * La persistance est déléguée à {@code RoleJpaEntity} dans la couche
  * {@code infrastructure/adapter/out/persistence}.</p>
  */
 public class Role {

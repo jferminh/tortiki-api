@@ -9,7 +9,7 @@ import java.util.Set;
  *
  * <p>POJO pur du domaine : aucune annotation Spring ou JPA.
  * Un utilisateur peut cumuler les rôles SELLER et BUYER simultanément.
- * La persistance est déléguée à {@code UserEntity} dans la couche
+ * La persistance est déléguée à {@code UserJpaEntity} dans la couche
  * {@code infrastructure/adapter/out/persistence}.</p>
  *
  * <p>Le champ {@code passwordHash} contient le hash BCrypt (force 12)

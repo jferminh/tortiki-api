@@ -28,18 +28,18 @@ public class ContactRequestRepositoryAdapter implements ContactRequestRepository
   public ContactRequest save(ContactRequest contactRequest) {
     log.debug("Persistance demande de contact — listing {} buyer {}",
         contactRequest.getListing().getId(), contactRequest.getBuyer().getId());
-    ContactRequestEntity entity = ContactRequestMapper.toEntity(contactRequest);
-    ContactRequestEntity saved = jpaRepository.save(entity);
+    ContactRequestJpaEntity entity = ContactRequestPersistenceMapper.toEntity(contactRequest);
+    ContactRequestJpaEntity saved = jpaRepository.save(entity);
     log.info("Demande de contact {} persistée avec statut {}",
         saved.getId(), saved.getStatus());
-    return ContactRequestMapper.toDomain(saved);
+    return ContactRequestPersistenceMapper.toDomain(saved);
   }
 
   /** {@inheritDoc} */
   @Override
   public Optional<ContactRequest> findById(Long id) {
     log.debug("Recherche demande de contact par id : {}", id);
-    return jpaRepository.findById(id).map(ContactRequestMapper::toDomain);
+    return jpaRepository.findById(id).map(ContactRequestPersistenceMapper::toDomain);
   }
 
   /** {@inheritDoc} */
@@ -56,7 +56,7 @@ public class ContactRequestRepositoryAdapter implements ContactRequestRepository
     log.debug("Recherche demandes pour l'annonce : {}", listingId);
     return jpaRepository.findByListingId(listingId)
         .stream()
-        .map(ContactRequestMapper::toDomain)
+        .map(ContactRequestPersistenceMapper::toDomain)
         .toList();
   }
 
@@ -66,7 +66,7 @@ public class ContactRequestRepositoryAdapter implements ContactRequestRepository
     log.debug("Recherche demandes pour l'acheteur : {}", buyerId);
     return jpaRepository.findByBuyerId(buyerId)
         .stream()
-        .map(ContactRequestMapper::toDomain)
+        .map(ContactRequestPersistenceMapper::toDomain)
         .toList();
   }
 }

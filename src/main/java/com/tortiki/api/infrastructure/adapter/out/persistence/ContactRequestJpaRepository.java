@@ -1,16 +1,17 @@
 package com.tortiki.api.infrastructure.adapter.out.persistence;
 
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
- * Repository Spring Data JPA pour {@link ContactRequestEntity}.
+ * Repository Spring Data JPA pour {@link ContactRequestJpaEntity}.
  *
  * <p>Interface technique de la couche persistence — ne doit jamais
  * être injectée directement dans la couche application.
  * L'accès passe obligatoirement par {@link ContactRequestRepositoryAdapter}.</p>
  */
 public interface ContactRequestJpaRepository
-    extends JpaRepository<ContactRequestEntity, Long> {
+    extends JpaRepository<ContactRequestJpaEntity, Long> {
 
   /**
    * Vérifie l'existence d'une demande pour une annonce et un acheteur donnés.
@@ -27,7 +28,7 @@ public interface ContactRequestJpaRepository
    * @param listingId identifiant de l'annonce
    * @return liste des entités demandes
    */
-  java.util.List<ContactRequestEntity> findByListingId(Long listingId);
+  List<ContactRequestJpaEntity> findByListingId(Long listingId);
 
   /**
    * Récupère toutes les demandes soumises par un acheteur.
@@ -35,5 +36,5 @@ public interface ContactRequestJpaRepository
    * @param buyerId identifiant de l'acheteur
    * @return liste des entités demandes
    */
-  java.util.List<ContactRequestEntity> findByBuyerId(Long buyerId);
+  List<ContactRequestJpaEntity> findByBuyerId(Long buyerId);
 }

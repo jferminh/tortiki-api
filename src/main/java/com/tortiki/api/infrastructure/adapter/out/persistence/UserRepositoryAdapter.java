@@ -12,7 +12,7 @@ import org.springframework.stereotype.Repository;
  *
  * <p>Implémente le port {@link UserRepository} défini dans la couche
  * {@code application}. Délègue les opérations à {@link UserJpaRepository}
- * (Spring Data JPA) et traduit les entités via {@link UserMapper}.</p>
+ * (Spring Data JPA) et traduit les entités via {@link UserPersistenceMapper}.</p>
  *
  * <p>Cette classe est le seul point de contact entre la couche
  * {@code application} et JPA pour l'entité {@code User}.</p>
@@ -26,7 +26,7 @@ public class UserRepositoryAdapter implements UserRepository {
   private final UserJpaRepository userJpaRepository;
 
   /** Mapper domaine ↔ entité JPA. */
-  private final UserMapper userMapper;
+  private final UserPersistenceMapper userPersistenceMapper;
 
   /**
    * {@inheritDoc}
@@ -36,10 +36,10 @@ public class UserRepositoryAdapter implements UserRepository {
    */
   @Override
   public User save(User user) {
-    UserEntity entity = userMapper.toEntity(user);
-    UserEntity saved = userJpaRepository.save(entity);
+    UserJpaEntity entity = userPersistenceMapper.toEntity(user);
+    UserJpaEntity saved = userJpaRepository.save(entity);
     log.debug("Utilisateur persisté : id={}, email={}", saved.getId(), saved.getEmail());
-    return userMapper.toDomain(saved);
+    return userPersistenceMapper.toDomain(saved);
   }
 
   /**
@@ -51,7 +51,7 @@ public class UserRepositoryAdapter implements UserRepository {
   @Override
   public Optional<User> findByEmail(String email) {
     return userJpaRepository.findByEmail(email)
-        .map(userMapper::toDomain);
+        .map(userPersistenceMapper::toDomain);
   }
 
   /**
@@ -60,7 +60,7 @@ public class UserRepositoryAdapter implements UserRepository {
   @Override
   public Optional<User> findById(Long id) {
     return userJpaRepository.findById(id)
-        .map(userMapper::toDomain);
+        .map(userPersistenceMapper::toDomain);
   }
 
   /**
@@ -80,6 +80,6 @@ public class UserRepositoryAdapter implements UserRepository {
   @Override
   public Optional<User> findByEmailAndEnabledTrue(String email) {
     return userJpaRepository.findByEmailAndEnabledTrue(email)
-        .map(userMapper::toDomain);
+        .map(userPersistenceMapper::toDomain);
   }
 }

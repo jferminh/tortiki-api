@@ -24,5 +24,5 @@ public enum ListingStatus {
   /**
    * Annonce suspendue suite à un signalement par un administrateur.
    */
-  MODERATED
+  DELETED
 }

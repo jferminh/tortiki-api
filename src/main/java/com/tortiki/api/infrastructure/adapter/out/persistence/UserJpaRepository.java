@@ -9,7 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
  * <p>Spring Data génère automatiquement les requêtes SQL
  * à partir des noms de méthodes déclarées ici.</p>
  */
-public interface UserJpaRepository extends JpaRepository<UserEntity, Long> {
+public interface UserJpaRepository extends JpaRepository<UserJpaEntity, Long> {
 
   /**
    * Recherche un utilisateur actif par son adresse email.
@@ -19,7 +19,7 @@ public interface UserJpaRepository extends JpaRepository<UserEntity, Long> {
    * @param email adresse email
    * @return un {@link Optional} contenant l'entité si le compte est actif
    */
-  Optional<UserEntity> findByEmailAndEnabledTrue(String email);
+  Optional<UserJpaEntity> findByEmailAndEnabledTrue(String email);
 
   /**
    * Recherche un utilisateur par son adresse email (tous statuts).
@@ -29,7 +29,7 @@ public interface UserJpaRepository extends JpaRepository<UserEntity, Long> {
    * @param email adresse email
    * @return un {@link Optional} contenant l'entité, ou vide si absente
    */
-  Optional<UserEntity> findByEmail(String email);
+  Optional<UserJpaEntity> findByEmail(String email);
 
   /**
    * Vérifie si une adresse email est déjà enregistrée.

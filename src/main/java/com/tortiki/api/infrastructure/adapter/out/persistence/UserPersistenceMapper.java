@@ -7,26 +7,26 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
 /**
- * Mapper entre le modèle domaine {@link User} et l'entité JPA {@link UserEntity}.
+ * Mapper entre le modèle domaine {@link User} et l'entité JPA {@link UserJpaEntity}.
  *
- * <p>Ce composant garantit que ni {@link User} ni {@link UserEntity} ne se
+ * <p>Ce composant garantit que ni {@link User} ni {@link UserJpaEntity} ne se
  * connaissent mutuellement : seul l'adaptateur de persistance les fait
  * cohabiter.</p>
  *
- * <p>Depuis le refactoring de {@link RoleEntity}, le champ {@code name}
+ * <p>Depuis le refactoring de {@link RoleJpaEntity}, le champ {@code name}
  * est typé {@link com.tortiki.api.domain.model.RoleName} — aucune conversion
  * {@code valueOf} / {@code .name()} n'est nécessaire dans ce mapper.</p>
  */
 @Component
-public class UserMapper {
+public class UserPersistenceMapper {
 
   /**
-   * Convertit un {@link UserEntity} JPA en {@link User} domaine.
+   * Convertit un {@link UserJpaEntity} JPA en {@link User} domaine.
    *
    * @param entity l'entité JPA à convertir
    * @return le POJO domaine correspondant
    */
-  public User toDomain(UserEntity entity) {
+  public User toDomain(UserJpaEntity entity) {
     Set<Role> roles = entity.getRoles().stream()
         .map(re -> {
           Role role = new Role();
@@ -50,17 +50,17 @@ public class UserMapper {
   }
 
   /**
-   * Convertit un {@link User} domaine en {@link UserEntity} JPA.
+   * Convertit un {@link User} domaine en {@link UserJpaEntity} JPA.
    *
-   * <p>Les rôles sont reconstruits en {@link RoleEntity} à partir
+   * <p>Les rôles sont reconstruits en {@link RoleJpaEntity} à partir
    * de leur {@link com.tortiki.api.domain.model.RoleName} — le champ
-   * {@code name} de {@link RoleEntity} est directement compatible.</p>
+   * {@code name} de {@link RoleJpaEntity} est directement compatible.</p>
    *
    * @param user le POJO domaine à convertir
    * @return l'entité JPA correspondante
    */
-  public UserEntity toEntity(User user) {
-    UserEntity entity = new UserEntity();
+  public UserJpaEntity toEntity(User user) {
+    UserJpaEntity entity = new UserJpaEntity();
     entity.setId(user.getId());
     entity.setEmail(user.getEmail());
     entity.setPasswordHash(user.getPasswordHash());
@@ -68,9 +68,9 @@ public class UserMapper {
     entity.setLastName(user.getLastName());
     entity.setEnabled(user.isEnabled());
 
-    Set<RoleEntity> roleEntities = user.getRoles().stream()
+    Set<RoleJpaEntity> roleEntities = user.getRoles().stream()
         .map(role -> {
-          RoleEntity re = new RoleEntity();
+          RoleJpaEntity re = new RoleJpaEntity();
           re.setId(role.getId());
           re.setName(role.getName()); // ✅ RoleName → RoleName, pas de .name()
           return re;

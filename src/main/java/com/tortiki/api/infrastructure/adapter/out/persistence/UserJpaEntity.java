@@ -12,7 +12,6 @@ import jakarta.persistence.ManyToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.HashSet;
@@ -45,7 +44,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserEntity {
+public class UserJpaEntity {
 
   /**
    * Identifiant technique auto-incrémenté (BIGSERIAL PostgreSQL).
@@ -100,16 +99,16 @@ public class UserEntity {
 
   /**
    * Latitude géographique pour les recherches de proximité (Nominatim).
-   * Précision 7 décimales ≈ 1 cm — suffisant pour usage urbain.
+   * Précision flottante suffisante pour usage urbain (~1 cm à 7 décimales).
    */
-  @Column(name = "latitude", precision = 10, scale = 7)
-  private BigDecimal latitude;
+  @Column(name = "latitude")
+  private Double latitude;
 
   /**
    * Longitude géographique pour les recherches de proximité (Nominatim).
    */
-  @Column(name = "longitude", precision = 10, scale = 7)
-  private BigDecimal longitude;
+  @Column(name = "longitude")
+  private Double longitude;
 
   /**
    * Indique si le compte est actif.
@@ -148,7 +147,7 @@ public class UserEntity {
       inverseJoinColumns = @JoinColumn(name = "role_id")
   )
   @Builder.Default
-  private Set<RoleEntity> roles = new HashSet<>();
+  private Set<RoleJpaEntity> roles = new HashSet<>();
 
   /**
    * Initialise les horodatages avant la première persistance.

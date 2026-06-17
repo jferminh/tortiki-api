@@ -26,17 +26,17 @@ public class RoleRepositoryAdapter implements RoleRepository {
   /**
    * Mapper domaine ↔ entité JPA.
    */
-  private final RoleMapper roleMapper;
+  private final RolePersistenceMapper rolePersistenceMapper;
 
   /**
    * {@inheritDoc}
    *
    * <p>Délègue à {@link RoleJpaRepository#findByName(RoleName)}
-   * et convertit l'entité en POJO domaine via {@link RoleMapper}.</p>
+   * et convertit l'entité en POJO domaine via {@link RolePersistenceMapper}.</p>
    */
   @Override
   public Optional<Role> findByName(RoleName name) {
     return roleJpaRepository.findByName(name)
-        .map(roleMapper::toDomain);
+        .map(rolePersistenceMapper::toDomain);
   }
 }

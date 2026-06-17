@@ -18,6 +18,8 @@ import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcType;
+import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 /**
  * Entité JPA représentant la table {@code contact_requests}.
@@ -33,7 +35,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @Entity
 @Table(name = "contact_requests")
-public class ContactRequestEntity {
+public class ContactRequestJpaEntity {
 
   /** Identifiant technique auto-généré. */
   @Id
@@ -48,7 +50,7 @@ public class ContactRequestEntity {
   /** Acheteur ayant soumis la demande. */
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "buyer_id", nullable = false)
-  private UserEntity buyer;
+  private UserJpaEntity buyer;
 
   /** Nombre de portions souhaitées. */
   @Column(nullable = false)
@@ -56,7 +58,8 @@ public class ContactRequestEntity {
 
   /** Statut courant de la demande. */
   @Enumerated(EnumType.STRING)
-  @Column(nullable = false)
+  @JdbcType(PostgreSQLEnumJdbcType.class)
+  @Column(name = "status", nullable = false, columnDefinition = "contact_request_status")
   private ContactRequestStatus status;
 
   /** Message optionnel laissé par l'acheteur. */
