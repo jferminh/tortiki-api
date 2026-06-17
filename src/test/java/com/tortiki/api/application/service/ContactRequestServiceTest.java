@@ -78,12 +78,13 @@ class ContactRequestServiceTest {
 
     seller = new User();
     seller.setId(1L);
+    seller.setEmail("sofia@tortiki.fr");
 
     listing = new Listing();
     listing.setId(10L);
     listing.setSeller(seller);
 
-    command = new Command(10L, 2L, "Je suis intéressé !", 2);
+    command = new Command(10L, "theo@tortiki.fr", "Je suis intéressé !", 2);
   }
 
   // ─────────────────────────────────────────────────────────
@@ -97,8 +98,8 @@ class ContactRequestServiceTest {
   void shouldCreateContactRequestWithPendingStatus() {
     ContactRequest saved = buildSavedContactRequest();
     givenListingExists();
-    givenNoDuplicateExists();
     givenBuyerExists();
+    givenNoDuplicateExists();
     when(contactRequestRepository.save(any(ContactRequest.class))).thenReturn(saved);
 
     ContactRequest result = whenSubmitCommand();
@@ -116,8 +117,10 @@ class ContactRequestServiceTest {
   @Description("Un vendeur tente de contacter sa propre annonce — SelfContactException levée.")
   @DisplayName("Doit lever SelfContactException si acheteur == vendeur")
   void shouldThrowWhenBuyerIsTheSeller() {
-    Command selfCommand = new Command(10L, 1L, "Mon propre plat", 1);
+    Command selfCommand =
+        new Command(10L, "sofia@tortiki.fr", "Mon propre plat", 1);
     givenListingExists();
+    givenSellerAsBuyer();
 
     assertThatThrownBy(() -> contactRequestService.submit(selfCommand))
         .isInstanceOf(SelfContactException.class)
@@ -136,6 +139,7 @@ class ContactRequestServiceTest {
   @DisplayName("Doit lever ContactRequestAlreadyExistsException si doublon")
   void shouldThrowWhenDuplicateContactRequestExists() {
     givenListingExists();
+    givenBuyerExists();
     givenDuplicateExists();
 
     assertThatThrownBy(() -> contactRequestService.submit(command))
@@ -154,17 +158,25 @@ class ContactRequestServiceTest {
     when(listingRepository.findById(10L)).thenReturn(Optional.of(listing));
   }
 
+  @Step("Étant donné que l'acheteur theo@tortiki.fr existe")
+  private void givenBuyerExists() {
+    User buyer = new User();
+    buyer.setId(2L);
+    buyer.setEmail("theo@tortiki.fr");
+    when(userRepository.findByEmailAndEnabledTrue("theo@tortiki.fr"))
+        .thenReturn(Optional.of(buyer));
+  }
+
+  @Step("Étant donné que le vendeur sofia@tortiki.fr se comporte en acheteur")
+  private void givenSellerAsBuyer() {
+    when(userRepository.findByEmailAndEnabledTrue("sofia@tortiki.fr"))
+        .thenReturn(Optional.of(seller));
+  }
+
   @Step("Étant donné qu'aucun doublon n'existe")
   private void givenNoDuplicateExists() {
     when(contactRequestRepository.existsByListingIdAndBuyerId(10L, 2L))
         .thenReturn(false);
-  }
-
-  @Step("Étant donné que l'acheteur 2 existe")
-  private void givenBuyerExists() {
-    User buyer = new User();
-    buyer.setId(2L);
-    when(userRepository.findById(2L)).thenReturn(Optional.of(buyer));
   }
 
   @Step("Étant donné qu'un doublon existe déjà")
@@ -191,6 +203,7 @@ class ContactRequestServiceTest {
   private ContactRequest buildSavedContactRequest() {
     User buyer = new User();
     buyer.setId(2L);
+    buyer.setEmail("theo@tortiki.fr");
     ContactRequest saved = new ContactRequest();
     saved.setId(100L);
     saved.setListing(listing);
