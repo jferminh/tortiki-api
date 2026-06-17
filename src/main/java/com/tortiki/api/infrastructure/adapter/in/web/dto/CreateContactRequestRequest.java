@@ -3,6 +3,7 @@ package com.tortiki.api.infrastructure.adapter.in.web.dto;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 /**
@@ -11,13 +12,14 @@ import jakarta.validation.constraints.Size;
  * <p>Record immuable Java 21 — reçu depuis le body HTTP JSON.
  * Validé par Bean Validation avant transmission au service applicatif.</p>
  *
- * @param listingId identifiant de l'annonce ciblée
+ * @param listingId identifiant de l'annonce ciblée (strictement positif)
  * @param message   message optionnel laissé par l'acheteur (500 caractères max)
  * @param portions  nombre de portions souhaitées (1 à 20)
  */
 public record CreateContactRequestRequest(
 
     @NotNull(message = "L'identifiant de l'annonce est obligatoire")
+    @Positive(message = "L'identifiant de l'annonce doit être positif")
     Long listingId,
 
     @Size(max = 500, message = "Le message ne peut pas dépasser 500 caractères")

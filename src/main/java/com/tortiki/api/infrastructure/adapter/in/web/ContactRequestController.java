@@ -1,9 +1,7 @@
 package com.tortiki.api.infrastructure.adapter.in.web;
 
 import com.tortiki.api.application.port.in.SubmitContactRequestUseCase;
-import com.tortiki.api.application.port.out.UserRepository;
 import com.tortiki.api.domain.model.ContactRequest;
-import com.tortiki.api.domain.model.User;
 import com.tortiki.api.infrastructure.adapter.in.web.dto.ContactRequestResponse;
 import com.tortiki.api.infrastructure.adapter.in.web.dto.CreateContactRequestRequest;
 import io.swagger.v3.oas.annotations.Operation;
@@ -17,7 +15,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -35,24 +32,21 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/contact-requests")
 @RequiredArgsConstructor
-@Tag(name = "Contact Requests", description = "Soumission de demandes d'intérêt pour une annonce")
+@Tag(
+    name = "Contact Requests",
+    description = "Soumission de demandes d'intérêt pour une annonce"
+)
 public class ContactRequestController {
 
   /** Port primaire du cas d'usage de soumission d'une demande de contact. */
   private final SubmitContactRequestUseCase submitContactRequestUseCase;
 
   /**
-   * Port secondaire utilisé pour résoudre l'identifiant de l'acheteur
-   * depuis son email Spring Security.
-   */
-  private final UserRepository userRepository;
-
-  /**
    * Soumet une demande de contact pour une annonce.
    *
    * <p>Réservé aux acheteurs authentifiés ({@code ROLE_BUYER}).
-   * L'identifiant de l'acheteur est résolu depuis l'email de session
-   * Spring Security — jamais fourni par le client.</p>
+   * L'email de l'acheteur est résolu depuis la session Spring Security
+   * et transmis au service — jamais fourni par le client.</p>
    *
    * @param request   corps de la requête JSON validé par Bean Validation
    * @param principal utilisateur authentifié injecté par Spring Security
@@ -78,25 +72,21 @@ public class ContactRequestController {
     log.info("Soumission demande de contact — annonce {} par {}",
         request.listingId(), principal.getName());
 
-    User buyer = userRepository.findByEmailAndEnabledTrue(principal.getName())
-        .orElseThrow(() -> {
-          log.error("Acheteur introuvable en session : {}", principal.getName());
-          return new UsernameNotFoundException(
-              "Acheteur introuvable : " + principal.getName()
-          );
-        });
-
-    SubmitContactRequestUseCase.Command command = new SubmitContactRequestUseCase.Command(
-        request.listingId(),
-        buyer.getId(),
-        request.message(),
-        request.portions()
-    );
+    SubmitContactRequestUseCase.Command command =
+        new SubmitContactRequestUseCase.Command(
+            request.listingId(),
+            principal.getName(),
+            request.message(),
+            request.portions()
+        );
 
     ContactRequest contactRequest = submitContactRequestUseCase.submit(command);
 
     log.info("Demande de contact {} créée — annonce {} acheteur {}",
-        contactRequest.getId(), request.listingId(), buyer.getId());
+        contactRequest.getId(),
+        contactRequest.getListing().getId(),
+        contactRequest.getBuyer().getId()
+    );
 
     return ResponseEntity
         .status(HttpStatus.CREATED)
