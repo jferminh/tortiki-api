@@ -23,7 +23,7 @@ public interface SubmitContactRequestUseCase {
    *   <li>Un seul contact par acheteur par annonce (unicité).</li>
    * </ul>
    *
-   * @param command données de la demande (listingId, buyerId, message, portions)
+   * @param command données de la demande (listingId, buyerEmail, message, portions)
    * @return la {@link ContactRequest} créée avec son identifiant et statut {@code PENDING}
    * @throws com.tortiki.api.domain.exception.SelfContactException
    *     si l'acheteur est le vendeur de l'annonce
@@ -42,14 +42,18 @@ public interface SubmitContactRequestUseCase {
    * <p>Record immuable Java 21 — garantit qu'aucune donnée n'est modifiée
    * entre le controller et le service.</p>
    *
+   * <p>L'email de l'acheteur est transmis plutôt que son identifiant :
+   * la résolution de l'entité {@link com.tortiki.api.domain.model.User}
+   * est déléguée au service applicatif, jamais au controller.</p>
+   *
    * @param listingId  identifiant de l'annonce ciblée
-   * @param buyerId    identifiant de l'acheteur authentifié
+   * @param buyerEmail email de l'acheteur authentifié (résolu depuis Spring Security)
    * @param message    message optionnel laissé par l'acheteur
    * @param portions   nombre de portions souhaitées
    */
   record Command(
       Long listingId,
-      Long buyerId,
+      String buyerEmail,
       String message,
       Integer portions
   ) {}
