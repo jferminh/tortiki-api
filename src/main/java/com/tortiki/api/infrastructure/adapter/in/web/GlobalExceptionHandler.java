@@ -6,6 +6,7 @@ import com.tortiki.api.domain.exception.ContactRequestNotFoundException;
 import com.tortiki.api.domain.exception.CuisineTypeNotFoundException;
 import com.tortiki.api.domain.exception.ListingNotFoundException;
 import com.tortiki.api.domain.exception.RoleNotFoundException;
+import com.tortiki.api.domain.exception.SelfContactException;
 import com.tortiki.api.domain.exception.StorageException;
 import com.tortiki.api.domain.exception.UnauthorizedActionException;
 import com.tortiki.api.domain.exception.UserAlreadyExistsException;
@@ -172,6 +173,21 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ErrorResponse> handleContactRequestAlreadyExists(
       ContactRequestAlreadyExistsException ex) {
     log.warn("Demande de contact en doublon : {}", ex.getMessage());
+    return ResponseEntity
+        .status(HttpStatus.CONFLICT)
+        .body(ErrorResponse.of(409, CONFLICT, ex.getMessage()));
+  }
+
+  /**
+   * Gère les tentatives d'un vendeur de contacter sa propre annonce.
+   *
+   * @param ex exception levée par {@code ContactRequestService}
+   * @return réponse HTTP 409 Conflict
+   */
+  @ExceptionHandler(SelfContactException.class)
+  public ResponseEntity<ErrorResponse> handleSelfContact(
+      SelfContactException ex) {
+    log.warn("Tentative de contact sur sa propre annonce : {}", ex.getMessage());
     return ResponseEntity
         .status(HttpStatus.CONFLICT)
         .body(ErrorResponse.of(409, CONFLICT, ex.getMessage()));
