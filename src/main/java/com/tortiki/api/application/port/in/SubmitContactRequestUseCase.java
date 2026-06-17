@@ -25,10 +25,14 @@ public interface SubmitContactRequestUseCase {
    *
    * @param command données de la demande (listingId, buyerId, message, portions)
    * @return la {@link ContactRequest} créée avec son identifiant et statut {@code PENDING}
+   * @throws com.tortiki.api.domain.exception.SelfContactException
+   *     si l'acheteur est le vendeur de l'annonce
    * @throws com.tortiki.api.domain.exception.ContactRequestAlreadyExistsException
    *     si l'acheteur a déjà soumis une demande pour cette annonce
    * @throws com.tortiki.api.domain.exception.ListingNotFoundException
    *     si l'annonce n'existe pas
+   * @throws com.tortiki.api.domain.exception.UserNotFoundException
+   *     si l'acheteur n'existe pas
    */
   ContactRequest submit(SubmitContactRequestUseCase.Command command);
 
