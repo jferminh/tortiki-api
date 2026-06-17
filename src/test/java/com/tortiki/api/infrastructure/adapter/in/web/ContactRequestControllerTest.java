@@ -10,7 +10,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tortiki.api.application.port.in.SubmitContactRequestUseCase;
-import com.tortiki.api.application.port.out.UserRepository;
 import com.tortiki.api.config.SecurityConfig;
 import com.tortiki.api.domain.model.ContactRequest;
 import com.tortiki.api.domain.model.ContactRequestStatus;
@@ -23,7 +22,6 @@ import io.qameta.allure.Feature;
 import io.qameta.allure.Story;
 import java.time.LocalDateTime;
 import java.time.Month;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -58,9 +56,6 @@ class ContactRequestControllerTest {
 
   @MockitoBean
   private SubmitContactRequestUseCase submitContactRequestUseCase;
-
-  @MockitoBean
-  private UserRepository userRepository;
 
   private User buyer;
   private ContactRequest savedContactRequest;
@@ -99,9 +94,8 @@ class ContactRequestControllerTest {
   @Description("Un acheteur authentifié soumet une demande valide — 201 Created.")
   @DisplayName("POST /api/contact-requests → 201 pour ROLE_BUYER authentifié")
   void shouldReturn201WhenBuyerSubmitsValidRequest() throws Exception {
-    when(userRepository.findByEmailAndEnabledTrue("theo@tortiki.fr"))
-        .thenReturn(Optional.of(buyer));
-    when(submitContactRequestUseCase.submit(any(SubmitContactRequestUseCase.Command.class)))
+    when(submitContactRequestUseCase.submit(
+        any(SubmitContactRequestUseCase.Command.class)))
         .thenReturn(savedContactRequest);
 
     mockMvc.perform(post("/api/contact-requests")
