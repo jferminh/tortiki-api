@@ -25,7 +25,7 @@ public class ContactRequestRepositoryAdapter implements ContactRequestRepository
 
   /** {@inheritDoc} */
   @Override
-  public ContactRequest save(ContactRequest contactRequest) {
+  public ContactRequest save(final ContactRequest contactRequest) {
     log.debug("Persistance demande de contact — listing {} buyer {}",
         contactRequest.getListing().getId(), contactRequest.getBuyer().getId());
     ContactRequestJpaEntity entity = ContactRequestPersistenceMapper.toEntity(contactRequest);
@@ -37,14 +37,14 @@ public class ContactRequestRepositoryAdapter implements ContactRequestRepository
 
   /** {@inheritDoc} */
   @Override
-  public Optional<ContactRequest> findById(Long id) {
+  public Optional<ContactRequest> findById(final Long id) {
     log.debug("Recherche demande de contact par id : {}", id);
     return jpaRepository.findById(id).map(ContactRequestPersistenceMapper::toDomain);
   }
 
   /** {@inheritDoc} */
   @Override
-  public boolean existsByListingIdAndBuyerId(Long listingId, Long buyerId) {
+  public boolean existsByListingIdAndBuyerId(final Long listingId, final Long buyerId) {
     boolean exists = jpaRepository.existsByListingIdAndBuyerId(listingId, buyerId);
     log.debug("Vérification doublon listing {} buyer {} → {}", listingId, buyerId, exists);
     return exists;
@@ -52,7 +52,7 @@ public class ContactRequestRepositoryAdapter implements ContactRequestRepository
 
   /** {@inheritDoc} */
   @Override
-  public List<ContactRequest> findByListingId(Long listingId) {
+  public List<ContactRequest> findByListingId(final Long listingId) {
     log.debug("Recherche demandes pour l'annonce : {}", listingId);
     return jpaRepository.findByListingId(listingId)
         .stream()
@@ -62,7 +62,7 @@ public class ContactRequestRepositoryAdapter implements ContactRequestRepository
 
   /** {@inheritDoc} */
   @Override
-  public List<ContactRequest> findByBuyerId(Long buyerId) {
+  public List<ContactRequest> findByBuyerId(final Long buyerId) {
     log.debug("Recherche demandes pour l'acheteur : {}", buyerId);
     return jpaRepository.findByBuyerId(buyerId)
         .stream()
