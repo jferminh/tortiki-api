@@ -15,6 +15,7 @@ import com.tortiki.api.domain.model.User;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
@@ -32,6 +33,7 @@ import org.springframework.stereotype.Service;
  * <p>Appartient à la couche {@code application/service} —
  * dépend uniquement des ports, jamais des adaptateurs.</p>
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ContactRequestService implements SubmitContactRequestUseCase {
@@ -62,23 +64,37 @@ public class ContactRequestService implements SubmitContactRequestUseCase {
    */
   @Override
   public ContactRequest submit(final Command command) {
+    log.info("Soumission demande de contact — annonce {} par {}",
+        command.listingId(), command.buyerEmail());
 
     // Règle 1 — L'annonce doit exister (fail-fast sur la ressource principale)
     Listing listing = listingRepository.findById(command.listingId())
-        .orElseThrow(() -> new ListingNotFoundException(
-            "Annonce introuvable avec l'identifiant : "
-                + command.listingId()
-        ));
+        .orElseThrow(() -> {
+          log.warn("Annonce introuvable — id={}", command.listingId());
+          return new ListingNotFoundException(
+              "Annonce introuvable avec l'identifiant : "
+                  + command.listingId()
+          );
+        });
 
     // Règle 2 — Résolution de l'acheteur depuis son email (session Spring Security)
     User buyer = userRepository.findByEmailAndEnabledTrue(command.buyerEmail())
-        .orElseThrow(() -> new UserNotFoundException(
-            "Acheteur introuvable ou inactif : "
-                + command.buyerEmail()
-        ));
+        .orElseThrow(() -> {
+          log.warn("Acheteur introuvable ou inactif — email={}",
+              command.buyerEmail());
+          return new UserNotFoundException(
+              "Acheteur introuvable ou inactif : "
+                  + command.buyerEmail()
+          );
+        });
+
+    log.debug("Acheteur résolu — buyerId={} email={}",
+        buyer.getId(), buyer.getEmail());
 
     // Règle 3 — L'acheteur ne peut pas contacter sa propre annonce
     if (listing.getSeller().getId().equals(buyer.getId())) {
+      log.warn("Self-contact détecté — buyerId={} listingId={}",
+          buyer.getId(), command.listingId());
       throw new SelfContactException(
           "L'acheteur " + buyer.getId()
               + " est le vendeur de l'annonce "
@@ -89,6 +105,8 @@ public class ContactRequestService implements SubmitContactRequestUseCase {
     // Règle 4 — Unicité : un seul contact par acheteur par annonce
     if (contactRequestRepository.existsByListingIdAndBuyerId(
         command.listingId(), buyer.getId())) {
+      log.warn("Doublon détecté — buyerId={} listingId={}",
+          buyer.getId(), command.listingId());
       throw new ContactRequestAlreadyExistsException(
           "Une demande existe déjà pour l'annonce "
               + command.listingId()
@@ -105,6 +123,14 @@ public class ContactRequestService implements SubmitContactRequestUseCase {
     contactRequest.setStatus(ContactRequestStatus.PENDING);
     contactRequest.setCreatedAt(LocalDateTime.now(clock));
 
-    return contactRequestRepository.save(contactRequest);
+    ContactRequest saved = contactRequestRepository.save(contactRequest);
+
+    log.info("Demande de contact créée — id={} annonce={} acheteur={} statut={}",
+        saved.getId(),
+        saved.getListing().getId(),
+        saved.getBuyer().getId(),
+        saved.getStatus());
+
+    return saved;
   }
 }
