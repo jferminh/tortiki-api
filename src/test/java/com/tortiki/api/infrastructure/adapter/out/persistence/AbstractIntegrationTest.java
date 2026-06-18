@@ -1,6 +1,7 @@
 package com.tortiki.api.infrastructure.adapter.out.persistence;
 
 import com.tortiki.api.infrastructure.adapter.out.storage.MinioStorageAdapter;
+import org.junit.jupiter.api.Tag;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
