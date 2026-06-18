@@ -43,6 +43,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -61,6 +62,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @Feature("Endpoints REST listings")
 @WebMvcTest(ListingController.class)
 @Import(SecurityConfig.class)
+@ActiveProfiles("test")
 @DisplayName("ListingController — Tests unitaires WebMvcTest")
 class ListingControllerTest {
 
