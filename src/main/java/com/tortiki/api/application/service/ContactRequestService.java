@@ -21,7 +21,7 @@ import org.springframework.stereotype.Service;
  * Service applicatif pour la soumission d'une demande de contact.
  *
  * <p>Implémente {@link SubmitContactRequestUseCase} et orchestre
- * les règles métier avant persistance :</p>
+ * les règles métier avant persistance :
  * <ul>
  *   <li>L'annonce doit exister.</li>
  *   <li>L'acheteur doit exister et son compte doit être actif.</li>
@@ -51,7 +51,7 @@ public class ContactRequestService implements SubmitContactRequestUseCase {
   /**
    * {@inheritDoc}
    *
-   * <p>Ordre d'application des règles métier :</p>
+   * <p>Ordre d'application des règles métier :
    * <ol>
    *   <li>Vérification existence de l'annonce.</li>
    *   <li>Résolution et vérification de l'acheteur (compte actif).</li>
@@ -61,19 +61,23 @@ public class ContactRequestService implements SubmitContactRequestUseCase {
    * </ol>
    */
   @Override
-  public ContactRequest submit(Command command) {
+  public ContactRequest submit(final Command command) {
+
+    // Règle 1 — L'annonce doit exister (fail-fast sur la ressource principale)
     Listing listing = listingRepository.findById(command.listingId())
         .orElseThrow(() -> new ListingNotFoundException(
             "Annonce introuvable avec l'identifiant : "
                 + command.listingId()
         ));
 
+    // Règle 2 — Résolution de l'acheteur depuis son email (session Spring Security)
     User buyer = userRepository.findByEmailAndEnabledTrue(command.buyerEmail())
         .orElseThrow(() -> new UserNotFoundException(
             "Acheteur introuvable ou inactif : "
                 + command.buyerEmail()
         ));
 
+    // Règle 3 — L'acheteur ne peut pas contacter sa propre annonce
     if (listing.getSeller().getId().equals(buyer.getId())) {
       throw new SelfContactException(
           "L'acheteur " + buyer.getId()
@@ -82,6 +86,7 @@ public class ContactRequestService implements SubmitContactRequestUseCase {
       );
     }
 
+    // Règle 4 — Unicité : un seul contact par acheteur par annonce
     if (contactRequestRepository.existsByListingIdAndBuyerId(
         command.listingId(), buyer.getId())) {
       throw new ContactRequestAlreadyExistsException(
