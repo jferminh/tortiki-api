@@ -29,6 +29,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -39,14 +40,25 @@ import org.springframework.test.web.servlet.MockMvc;
  * sans démarrer le contexte Spring complet.</p>
  *
  * <p>Vérifie : soumission nominale 201, accès non authentifié 401,
- * accès sans rôle BUYER 403, et body invalide 400.</p>
+ * accès sans rôle BUYER 403, body invalide 400 (listingId absent,
+ * portions absentes).</p>
  */
 @Epic("Demande de contact")
 @Feature("Endpoint POST /api/contact-requests")
 @WebMvcTest(ContactRequestController.class)
 @Import(SecurityConfig.class)
+@ActiveProfiles("test")
 @DisplayName("ContactRequestController")
 class ContactRequestControllerTest {
+
+  private static final LocalDateTime FIXED_NOW =
+      LocalDateTime.of(2026, Month.JUNE, 15, 10, 0, 0);
+
+  private static final Long LISTING_ID = 10L;
+  private static final Long CONTACT_REQUEST_ID = 100L;
+  private static final Long BUYER_ID = 2L;
+  private static final String BUYER_EMAIL = "theo@tortiki.fr";
+  private static final String SELLER_EMAIL = "sofia@tortiki.fr";
 
   @Autowired
   private MockMvc mockMvc;
@@ -57,24 +69,20 @@ class ContactRequestControllerTest {
   @MockitoBean
   private SubmitContactRequestUseCase submitContactRequestUseCase;
 
-  private User buyer;
   private ContactRequest savedContactRequest;
   private CreateContactRequestRequest validRequest;
 
-  private static final LocalDateTime FIXED_NOW =
-      LocalDateTime.of(2026, Month.JUNE, 15, 10, 0, 0);
-
   @BeforeEach
   void setUp() {
-    buyer = new User();
-    buyer.setId(2L);
-    buyer.setEmail("theo@tortiki.fr");
+    User buyer = new User();
+    buyer.setId(BUYER_ID);
+    buyer.setEmail(BUYER_EMAIL);
 
     Listing listing = new Listing();
-    listing.setId(10L);
+    listing.setId(LISTING_ID);
 
     savedContactRequest = new ContactRequest();
-    savedContactRequest.setId(100L);
+    savedContactRequest.setId(CONTACT_REQUEST_ID);
     savedContactRequest.setListing(listing);
     savedContactRequest.setBuyer(buyer);
     savedContactRequest.setStatus(ContactRequestStatus.PENDING);
@@ -82,7 +90,8 @@ class ContactRequestControllerTest {
     savedContactRequest.setPortions(2);
     savedContactRequest.setCreatedAt(FIXED_NOW);
 
-    validRequest = new CreateContactRequestRequest(10L, "Je suis intéressé !", 2);
+    validRequest = new CreateContactRequestRequest(
+        LISTING_ID, "Je suis intéressé !", 2);
   }
 
   // ─────────────────────────────────────────────────────────
@@ -91,7 +100,7 @@ class ContactRequestControllerTest {
 
   @Test
   @Story("Soumission nominale")
-  @Description("Un acheteur authentifié soumet une demande valide — 201 Created.")
+  @Description("Un acheteur authentifié soumet une demande valide — 201 Créé.")
   @DisplayName("POST /api/contact-requests → 201 pour ROLE_BUYER authentifié")
   void shouldReturn201WhenBuyerSubmitsValidRequest() throws Exception {
     when(submitContactRequestUseCase.submit(
@@ -99,14 +108,15 @@ class ContactRequestControllerTest {
         .thenReturn(savedContactRequest);
 
     mockMvc.perform(post("/api/contact-requests")
-            .with(user("theo@tortiki.fr").roles("BUYER"))
+            .with(user(BUYER_EMAIL).roles("BUYER"))
             .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(validRequest)))
         .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.id").value(100L))
-        .andExpect(jsonPath("$.listingId").value(10L))
+        .andExpect(jsonPath("$.id").value(CONTACT_REQUEST_ID))
+        .andExpect(jsonPath("$.listingId").value(LISTING_ID))
         .andExpect(jsonPath("$.status").value("PENDING"))
+        .andExpect(jsonPath("$.message").value("Je suis intéressé !"))
         .andExpect(jsonPath("$.portions").value(2));
   }
 
@@ -116,7 +126,7 @@ class ContactRequestControllerTest {
 
   @Test
   @Story("Sécurité")
-  @Description("Un utilisateur non authentifié tente de soumettre — 401 Unauthorized.")
+  @Description("Un utilisateur non authentifié tente de soumettre — 401 Non autorisé.")
   @DisplayName("POST /api/contact-requests → 401 sans authentification")
   void shouldReturn401WhenNotAuthenticated() throws Exception {
     mockMvc.perform(post("/api/contact-requests")
@@ -132,11 +142,11 @@ class ContactRequestControllerTest {
 
   @Test
   @Story("Sécurité")
-  @Description("Un vendeur tente de soumettre une demande — 403 Forbidden.")
+  @Description("Un vendeur tente de soumettre une demande — 403 Interdit.")
   @DisplayName("POST /api/contact-requests → 403 pour ROLE_SELLER")
   void shouldReturn403WhenSellerTriesToSubmit() throws Exception {
     mockMvc.perform(post("/api/contact-requests")
-            .with(user("sofia@tortiki.fr").roles("SELLER"))
+            .with(user(SELLER_EMAIL).roles("SELLER"))
             .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(validRequest)))
@@ -144,19 +154,39 @@ class ContactRequestControllerTest {
   }
 
   // ─────────────────────────────────────────────────────────
-  // Validation — 400 body invalide
+  // Validation — 400 listingId
   // ─────────────────────────────────────────────────────────
 
   @Test
   @Story("Validation")
-  @Description("Le body ne contient pas listingId — 400 Bad Request.")
+  @Description("Le body ne contient pas listingId — 400 Requête invalide.")
   @DisplayName("POST /api/contact-requests → 400 si listingId absent")
   void shouldReturn400WhenListingIdIsNull() throws Exception {
     CreateContactRequestRequest invalidRequest =
         new CreateContactRequestRequest(null, "message", 2);
 
     mockMvc.perform(post("/api/contact-requests")
-            .with(user("theo@tortiki.fr").roles("BUYER"))
+            .with(user(BUYER_EMAIL).roles("BUYER"))
+            .with(csrf())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(invalidRequest)))
+        .andExpect(status().isBadRequest());
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // Validation — 400 portions
+  // ─────────────────────────────────────────────────────────
+
+  @Test
+  @Story("Validation")
+  @Description("Le body ne contient pas portions — 400 Requête invalide.")
+  @DisplayName("POST /api/contact-requests → 400 si portions absent")
+  void shouldReturn400WhenPortionsIsNull() throws Exception {
+    CreateContactRequestRequest invalidRequest =
+        new CreateContactRequestRequest(LISTING_ID, "message", null);
+
+    mockMvc.perform(post("/api/contact-requests")
+            .with(user(BUYER_EMAIL).roles("BUYER"))
             .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(invalidRequest)))

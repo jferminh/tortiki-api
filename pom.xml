@@ -27,7 +27,20 @@
         <allure.maven.version>2.17.0</allure.maven.version>
         <jacoco.version>0.8.13</jacoco.version>
         <lombok.version>1.18.38</lombok.version>
-        <argLine>-Xmx512m</argLine>
+        <!--
+          mockito.version : doit correspondre exactement à la version
+          transitoire de spring-boot-starter-test.
+          Vérifier avec : mvnw dependency:tree | grep mockito-core
+        -->
+        <mockito.version>5.18.0</mockito.version>
+        <!-- argLine initialisée ici — enrichie par JaCoCo prepare-agent (Surefire) -->
+        <argLine>-Xmx512m -XX:+EnableDynamicAgentLoading</argLine>
+        <!--
+          itArgLine OBLIGATOIRE ici — valeur vide par défaut.
+          Sera enrichie par jacoco:prepare-agent-integration avant Failsafe.
+          Sans cette déclaration, @{itArgLine} n'est pas résolu → JVM crash.
+        -->
+        <itArgLine/>
     </properties>
 
     <dependencies>
@@ -180,32 +193,64 @@
                 <version>${jacoco.version}</version>
                 <configuration>
                     <excludes>
-                        <!-- Point d'entrée Spring Boot — main() non testable unitairement -->
                         <exclude>com/tortiki/api/TortikiApiApplication.class</exclude>
-                        <!-- Configurations Spring — nécessitent contexte complet -->
                         <exclude>com/tortiki/api/config/**</exclude>
-                        <!-- Adaptateurs infrastructure — couverts par tests dédiés -->
                         <exclude>com/tortiki/api/infrastructure/**</exclude>
-                        <!-- POJOs domain — Lombok génère getters/setters/equals/hashCode -->
                         <exclude>com/tortiki/api/domain/model/**</exclude>
-                        <!-- Exceptions métier — pas de logique conditionnelle -->
                         <exclude>com/tortiki/api/domain/exception/**</exclude>
                     </excludes>
                 </configuration>
                 <executions>
+                    <!-- Agent pour Surefire — enrichit ${argLine} -->
                     <execution>
+                        <id>prepare-agent</id>
                         <goals><goal>prepare-agent</goal></goals>
                     </execution>
+                    <!-- Agent pour Failsafe — enrichit ${itArgLine} -->
+                    <execution>
+                        <id>prepare-agent-integration</id>
+                        <phase>pre-integration-test</phase>
+                        <goals><goal>prepare-agent-integration</goal></goals>
+                    </execution>
+                    <!-- Fusion jacoco.exec + jacoco-it.exec → jacoco-merged.exec -->
+                    <execution>
+                        <id>merge-results</id>
+                        <phase>verify</phase>
+                        <goals><goal>merge</goal></goals>
+                        <configuration>
+                            <fileSets>
+                                <fileSet>
+                                    <directory>${project.build.directory}</directory>
+                                    <includes>
+                                        <include>*.exec</include>
+                                    </includes>
+                                </fileSet>
+                            </fileSets>
+                            <destFile>
+                                ${project.build.directory}/jacoco-merged.exec
+                            </destFile>
+                        </configuration>
+                    </execution>
+                    <!-- Rapport HTML final fusionné -->
                     <execution>
                         <id>report</id>
                         <phase>verify</phase>
                         <goals><goal>report</goal></goals>
+                        <configuration>
+                            <dataFile>
+                                ${project.build.directory}/jacoco-merged.exec
+                            </dataFile>
+                        </configuration>
                     </execution>
+                    <!-- Seuil JaCoCo ≥ 70% sur rapport fusionné -->
                     <execution>
                         <id>check</id>
                         <phase>verify</phase>
                         <goals><goal>check</goal></goals>
                         <configuration>
+                            <dataFile>
+                                ${project.build.directory}/jacoco-merged.exec
+                            </dataFile>
                             <rules>
                                 <rule>
                                     <element>BUNDLE</element>
@@ -241,15 +286,55 @@
                 </executions>
             </plugin>
 
-            <!-- ===== SUREFIRE ===== -->
+            <!--
+              ===== SUREFIRE — Tests unitaires (*Test.java) =====
+              Convention : *Test.java uniquement.
+              Les fichiers *IT.java sont EXCLUS ici — gérés par Failsafe.
+              Mockito javaagent explicite : supprime le warning
+              "self-attaching" JDK 21 (bloquant à partir de JDK 25+).
+            -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <!-- Exclut les tests d'intégration du build local par défaut -->
-                    <excludedGroups>integration</excludedGroups>
-                    <argLine>@{argLine}</argLine>
+                    <excludes>
+                        <exclude>**/*IT.java</exclude>
+                    </excludes>
+                    <argLine>
+                        @{argLine}
+                        -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar
+                    </argLine>
                 </configuration>
+            </plugin>
+
+            <!--
+              ===== FAILSAFE — Tests d'intégration (*IT.java) =====
+              Détecte automatiquement **/*IT.java.
+              @{itArgLine} résolu grâce à <itArgLine/> dans <properties>.
+              JaCoCo injecte le javaagent via prepare-agent-integration
+              avant que Failsafe ne fork la JVM.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>3.5.5</version>
+                <configuration>
+                    <includes>
+                        <include>**/*IT.java</include>
+                    </includes>
+                    <argLine>
+                        @{itArgLine}
+                        -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar
+                    </argLine>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
 
             <!-- ===== ALLURE — Génération rapport HTML Maven ===== -->
@@ -259,30 +344,13 @@
                 <version>${allure.maven.version}</version>
                 <configuration>
                     <reportVersion>${allure.version}</reportVersion>
-                    <resultsDirectory>${project.build.directory}/allure-results</resultsDirectory>
+                    <resultsDirectory>
+                        ${project.build.directory}/allure-results
+                    </resultsDirectory>
                 </configuration>
             </plugin>
+
         </plugins>
     </build>
-
-    <!-- pom.xml — profil Maven qui réactive les tests d'intégration en CI -->
-    <profiles>
-        <profile>
-            <id>integration</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-surefire-plugin</artifactId>
-                        <configuration>
-                            <!-- En CI : exécuter TOUS les tests y compris @Tag("integration") -->
-                            <excludedGroups/>
-                            <argLine>@{argLine}</argLine>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
 
 </project>

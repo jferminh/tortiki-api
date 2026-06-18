@@ -1,29 +1,33 @@
-// src/test/java/com/tortiki/api/TortikiApiApplicationTests.java
 package com.tortiki.api;
 
-import org.junit.jupiter.api.Tag;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.tortiki.api.infrastructure.adapter.out.persistence.AbstractIntegrationTest;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 
 /**
  * Test de démarrage du contexte Spring Boot complet.
  *
- * <p>Nécessite une instance PostgreSQL active (profil "test").
- * Exécuté automatiquement en CI via le service Docker du pipeline.
- * En local : démarrer Docker Compose avant de lancer ce test,
- * ou utiliser le tag Maven : {@code ./mvnw test -P integration}.</p>
+ * <p>Hérite de {@link AbstractIntegrationTest} pour réutiliser
+ * le conteneur PostgreSQL 16 partagés — évite de démarrer
+ * un second conteneur dédié à ce seul test de smoke.</p>
  */
-@Tag("integration")
-@SpringBootTest
-@ActiveProfiles("test")
-class TortikiApiApplicationTests {
+class TortikiApiApplicationTests extends AbstractIntegrationTest {
+
+    @Autowired
+    private ApplicationContext applicationContext;
 
     /**
-     * Vérifie que le contexte Spring Boot démarre sans exception.
+     * Vérifie que le contexte Spring Boot démarre sans exception
+     * et contient les beans critiques de l'application.
      */
     @Test
     void contextLoads() {
-        // Contexte complet : PostgreSQL + Flyway + Security + tous les beans.
+        assertThat(applicationContext).isNotNull();
+        assertThat(applicationContext.containsBean("securityConfig")).isTrue();
+        assertThat(applicationContext.containsBean("userService")).isTrue();
+        assertThat(applicationContext.containsBean("listingService")).isTrue();
     }
 }

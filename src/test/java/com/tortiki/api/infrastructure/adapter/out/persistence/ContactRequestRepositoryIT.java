@@ -4,11 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.tortiki.api.domain.model.ContactRequest;
 import com.tortiki.api.domain.model.ContactRequestStatus;
+import com.tortiki.api.domain.model.Listing;
 import com.tortiki.api.domain.model.ListingStatus;
+import com.tortiki.api.domain.model.User;
 import io.qameta.allure.Description;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Feature;
 import io.qameta.allure.Story;
+import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.Month;
@@ -24,7 +27,9 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p>Vérifie les opérations JPA de {@link ContactRequestRepositoryAdapter}
  * contre un vrai PostgreSQL 16 — notamment la contrainte d'unicité
- * {@code UNIQUE(listing_id, buyer_id)} définie dans {@code V1__init_schema.sql}.</p>
+ * {@code UNIQUE(listing_id, buyer_id)} définie dans {@code V1__init_schema.sql}.
+ * Le contexte Spring est mutualisé via {@link AbstractIntegrationTest} :
+ * un seul conteneur PostgreSQL pour toutes les classes {@code *IT}.</p>
  */
 @Epic("Demande de contact")
 @Feature("ContactRequestRepository — intégration PostgreSQL")
@@ -32,7 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
 @DisplayName("ContactRequestRepositoryIT")
 class ContactRequestRepositoryIT extends AbstractIntegrationTest {
 
-  /** Date fixe déterministe — pas de system clock dans les tests. */
+  /** Date fixe déterministe — aucune dépendance au clock système. */
   private static final LocalDateTime PICKUP_DATETIME =
       LocalDateTime.of(2026, Month.JUNE, 20, 12, 0, 0);
 
@@ -48,12 +53,35 @@ class ContactRequestRepositoryIT extends AbstractIntegrationTest {
   @Autowired
   private CuisineTypeJpaRepository cuisineTypeJpaRepository;
 
+  /**
+   * Injecté pour forcer le flush JPA avant les assertions sur les champs
+   * générés côté base (ex : {@code created_at DEFAULT NOW()}).
+   */
+  @Autowired
+  private EntityManager entityManager;
+
+  /**
+   * Injectés pour construire des objets domain complets via la chaîne
+   * de conversion — teste le mapper, pas seulement la persistance brute.
+   */
+  @Autowired
+  private ListingPersistenceMapper listingPersistenceMapper;
+
+  @Autowired
+  private UserPersistenceMapper userPersistenceMapper;
+
   private ListingJpaEntity listing;
   private UserJpaEntity buyer;
 
   @BeforeEach
   void setUp() {
-    CuisineTypeJpaEntity cuisineType = cuisineTypeJpaRepository.findAll().getFirst();
+    CuisineTypeJpaEntity cuisineType = cuisineTypeJpaRepository
+        .findByName("Ukrainienne")
+        .orElseGet(() -> {
+          CuisineTypeJpaEntity ct = new CuisineTypeJpaEntity();
+          ct.setName("Ukrainienne");
+          return cuisineTypeJpaRepository.save(ct);
+        });
 
     UserJpaEntity seller = new UserJpaEntity();
     seller.setEmail("sofia-it@tortiki.fr");
@@ -78,7 +106,7 @@ class ContactRequestRepositoryIT extends AbstractIntegrationTest {
     listing.setPrice(new BigDecimal("8.50"));
     listing.setPortions(4);
     listing.setPickupAddress("1 rue de la Paix, Strasbourg");
-    listing.setPickupDatetime(PICKUP_DATETIME); // ← constante fixe
+    listing.setPickupDatetime(PICKUP_DATETIME);
     listing.setStatus(ListingStatus.ACTIVE);
     listing = listingJpaRepository.save(listing);
   }
@@ -92,12 +120,18 @@ class ContactRequestRepositoryIT extends AbstractIntegrationTest {
   @Description("Une demande valide est persistée et retournée avec son id généré.")
   @DisplayName("Doit persister une demande et retourner l'id généré")
   void shouldSaveContactRequestAndReturnGeneratedId() {
-    ContactRequest domain = buildContactRequest();
+    ContactRequest saved = contactRequestRepositoryAdapter.save(buildContactRequest());
 
-    ContactRequest saved = contactRequestRepositoryAdapter.save(domain);
+    // flush → force l'INSERT vers PostgreSQL (champs DEFAULT côté BDD)
+    // clear → vide le cache de 1er niveau pour lire depuis la base réelle
+    entityManager.flush();
+    entityManager.clear();
 
     assertThat(saved.getId()).isNotNull();
     assertThat(saved.getStatus()).isEqualTo(ContactRequestStatus.PENDING);
+    assertThat(saved.getCreatedAt()).isNotNull();
+    assertThat(saved.getListing().getId()).isEqualTo(listing.getId());
+    assertThat(saved.getBuyer().getId()).isEqualTo(buyer.getId());
   }
 
   // ─────────────────────────────────────────────────────────
@@ -110,11 +144,23 @@ class ContactRequestRepositoryIT extends AbstractIntegrationTest {
   @DisplayName("Doit détecter un doublon via existsByListingIdAndBuyerId")
   void shouldDetectDuplicateContactRequest() {
     contactRequestRepositoryAdapter.save(buildContactRequest());
+    entityManager.flush();
 
     boolean exists = contactRequestRepositoryAdapter
         .existsByListingIdAndBuyerId(listing.getId(), buyer.getId());
 
     assertThat(exists).isTrue();
+  }
+
+  @Test
+  @Story("Règle unicité")
+  @Description("existsByListingIdAndBuyerId retourne false si aucune demande n'existe.")
+  @DisplayName("Doit retourner false si aucune demande pour ce couple listing/buyer")
+  void shouldReturnFalseWhenNoDuplicateExists() {
+    boolean exists = contactRequestRepositoryAdapter
+        .existsByListingIdAndBuyerId(listing.getId(), buyer.getId());
+
+    assertThat(exists).isFalse();
   }
 
   // ─────────────────────────────────────────────────────────
@@ -127,6 +173,8 @@ class ContactRequestRepositoryIT extends AbstractIntegrationTest {
   @DisplayName("Doit retourner les demandes par listingId")
   void shouldFindContactRequestsByListingId() {
     contactRequestRepositoryAdapter.save(buildContactRequest());
+    entityManager.flush();
+    entityManager.clear();
 
     List<ContactRequest> results = contactRequestRepositoryAdapter
         .findByListingId(listing.getId());
@@ -135,18 +183,61 @@ class ContactRequestRepositoryIT extends AbstractIntegrationTest {
     assertThat(results.getFirst().getListing().getId()).isEqualTo(listing.getId());
   }
 
+  @Test
+  @Story("Requêtes")
+  @Description("findByListingId retourne une liste vide si aucune demande pour cette annonce.")
+  @DisplayName("Doit retourner une liste vide si aucune demande pour ce listingId")
+  void shouldReturnEmptyListWhenNoRequestsForListing() {
+    List<ContactRequest> results = contactRequestRepositoryAdapter
+        .findByListingId(listing.getId());
+
+    assertThat(results).isEmpty();
+  }
+
   // ─────────────────────────────────────────────────────────
-  // Helper
+  // Recherche par acheteur
   // ─────────────────────────────────────────────────────────
 
+  @Test
+  @Story("Requêtes")
+  @Description("findByBuyerId retourne toutes les demandes soumises par un acheteur.")
+  @DisplayName("Doit retourner les demandes par buyerId")
+  void shouldFindContactRequestsByBuyerId() {
+    contactRequestRepositoryAdapter.save(buildContactRequest());
+    entityManager.flush();
+    entityManager.clear();
+
+    List<ContactRequest> results = contactRequestRepositoryAdapter
+        .findByBuyerId(buyer.getId());
+
+    assertThat(results).hasSize(1);
+    assertThat(results.getFirst().getBuyer().getId()).isEqualTo(buyer.getId());
+  }
+
+  @Test
+  @Story("Requêtes")
+  @Description("findByBuyerId retourne une liste vide si l'acheteur n'a soumis aucune demande.")
+  @DisplayName("Doit retourner une liste vide si aucune demande pour cet acheteur")
+  void shouldReturnEmptyListWhenNoBuyerRequests() {
+    List<ContactRequest> results = contactRequestRepositoryAdapter
+        .findByBuyerId(buyer.getId());
+
+    assertThat(results).isEmpty();
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // Helper — construction via mappers injectés
+  // ─────────────────────────────────────────────────────────
+
+  /**
+   * Construit un {@link ContactRequest} domain complet via les mappers injectés.
+   * Teste ainsi toute la chaîne de conversion, pas uniquement la persistance brute.
+   */
   private ContactRequest buildContactRequest() {
-    com.tortiki.api.domain.model.Listing domainListing =
-        new com.tortiki.api.domain.model.Listing();
-    domainListing.setId(listing.getId());
-
-    com.tortiki.api.domain.model.User domainBuyer =
-        new com.tortiki.api.domain.model.User();
-    domainBuyer.setId(buyer.getId());
+    Listing domainListing =
+        listingPersistenceMapper.toDomain(listing);
+    User domainBuyer =
+        userPersistenceMapper.toDomain(buyer);
 
     ContactRequest cr = new ContactRequest();
     cr.setListing(domainListing);

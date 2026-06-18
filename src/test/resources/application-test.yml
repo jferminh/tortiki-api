@@ -1,21 +1,24 @@
 # ============================================================
-# Profil test — utilisé par GitHub Actions CI
-# PostgreSQL fourni par le service Docker du pipeline
+# Profil test — PostgreSQL éphémère fourni par Testcontainers
+# Aucun service externe requis en CI ou en local.
+# Prérequis : Docker disponible (CI : runner ubuntu-latest,
+#             local : Docker Desktop démarré).
 # ============================================================
 spring:
+  # spring.datasource.url / username / password intentionnellement absents :
+  # ils sont injectés dynamiquement par @DynamicPropertySource (Testcontainers).
+  # Ne pas les déclarer ici — toute valeur statique créerait une ambiguïté
+  # et ferait échouer Flyway si le conteneur n'est pas encore démarré.
   datasource:
-    url: jdbc:postgresql://localhost:5432/tortiki_test
-    username: tortiki
-    password: tortiki_secret
     driver-class-name: org.postgresql.Driver
     hikari:
-      connection-timeout: 5000       # échoue vite si PostgreSQL absent (vs 30s par défaut)
+      connection-timeout: 5000
       initialization-fail-timeout: 1
   jpa:
     hibernate:
       ddl-auto: validate
     show-sql: false
-    open-in-view: false              # bonne pratique — désactive l'anti-pattern OSIV
+    open-in-view: false
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -27,16 +30,14 @@ minio:
   secret-key: test-secret-key
   bucket: tortiki-test
 
-# Swagger désactivé en tests
 springdoc:
   api-docs:
     enabled: false
   swagger-ui:
     enabled: false
 
-# Logging réduit en CI — garde les erreurs visibles
 logging:
   level:
     root: WARN
     com.tortiki: INFO
-    org.flywaydb: INFO               # utile pour débugger les migrations en CI
+    org.flywaydb: INFO

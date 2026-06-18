@@ -14,7 +14,9 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -24,17 +26,24 @@ import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 /**
  * Entité JPA représentant la table {@code contact_requests}.
  *
- * <p>Classe technique de la couche {@code infrastructure/adapter/out/persistence/} —
+ * <p>Classe technique de la couche
+ * {@code infrastructure/adapter/out/persistence/} —
  * ne doit jamais remonter dans le domaine ou la couche application.</p>
  *
- * <p>Contrainte d'unicité {@code UNIQUE(listing_id, buyer_id)} gérée
- * en base via {@code V1__init_schema.sql}.</p>
+ * <p>Contrainte d'unicité {@code UNIQUE(listing_id, buyer_id)} déclarée
+ * en annotation et garantie en base via {@code V1__init_schema.sql}.</p>
  */
 @Getter
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "contact_requests")
+@Table(
+    name = "contact_requests",
+    uniqueConstraints = @UniqueConstraint(
+        name = "uk_contact_requests_listing_buyer",
+        columnNames = {"listing_id", "buyer_id"}
+    )
+)
 public class ContactRequestJpaEntity {
 
   /** Identifiant technique auto-généré. */
@@ -56,7 +65,7 @@ public class ContactRequestJpaEntity {
   @Column(nullable = false)
   private Integer portions;
 
-  /** Statut courant de la demande. */
+  /** Statut courant de la demande — type ENUM PostgreSQL natif. */
   @Enumerated(EnumType.STRING)
   @JdbcType(PostgreSQLEnumJdbcType.class)
   @Column(name = "status", nullable = false, columnDefinition = "contact_request_status")
@@ -66,7 +75,7 @@ public class ContactRequestJpaEntity {
   @Column(columnDefinition = "TEXT")
   private String message;
 
-  /** Date de création — initialisée par {@link #prePersist()}. */
+  /** Date de création — initialisée par {@link #prePersist()}, non modifiable. */
   @Column(name = "created_at", nullable = false, updatable = false)
   private LocalDateTime createdAt;
 
@@ -75,20 +84,20 @@ public class ContactRequestJpaEntity {
   private LocalDateTime updatedAt;
 
   /**
-   * Initialise les dates à la création de l'entité.
+   * Initialise {@code createdAt} et {@code updatedAt} à la création de l'entité.
    */
   @PrePersist
   void prePersist() {
-    LocalDateTime now = LocalDateTime.now(java.time.Clock.systemUTC());
+    LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
     this.createdAt = now;
     this.updatedAt = now;
   }
 
   /**
-   * Met à jour la date de modification à chaque persistance.
+   * Met à jour {@code updatedAt} à chaque modification de l'entité.
    */
   @PreUpdate
   void preUpdate() {
-    this.updatedAt = LocalDateTime.now(java.time.Clock.systemUTC());
+    this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
   }
 }

@@ -24,10 +24,14 @@ final class ContactRequestPersistenceMapper {
    * via des entités légères (id uniquement) pour éviter le chargement
    * complet des graphes d'objets.</p>
    *
+   * <p>{@code createdAt} et {@code updatedAt} sont intentionnellement
+   * omis — initialisés automatiquement par {@code @PrePersist}
+   * et {@code @PreUpdate} de {@link ContactRequestJpaEntity}.</p>
+   *
    * @param domain POJO domaine à convertir
    * @return entité JPA correspondante
    */
-  static ContactRequestJpaEntity toEntity(ContactRequest domain) {
+  static ContactRequestJpaEntity toEntity(final ContactRequest domain) {
     ContactRequestJpaEntity entity = new ContactRequestJpaEntity();
 
     ListingJpaEntity listingEntity = new ListingJpaEntity();
@@ -50,7 +54,7 @@ final class ContactRequestPersistenceMapper {
    * @param entity entité JPA à convertir
    * @return POJO domaine correspondant
    */
-  static ContactRequest toDomain(ContactRequestJpaEntity entity) {
+  static ContactRequest toDomain(final ContactRequestJpaEntity entity) {
     Listing listing = null;
     if (entity.getListing() != null) {
       listing = new Listing();

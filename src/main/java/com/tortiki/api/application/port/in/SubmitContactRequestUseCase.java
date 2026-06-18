@@ -17,7 +17,7 @@ public interface SubmitContactRequestUseCase {
   /**
    * Soumet une demande de contact pour une annonce.
    *
-   * <p>Applique les règles métier avant persistance :</p>
+   * <p>Applique les règles métier avant persistance :
    * <ul>
    *   <li>L'acheteur ne peut pas contacter sa propre annonce.</li>
    *   <li>Un seul contact par acheteur par annonce (unicité).</li>

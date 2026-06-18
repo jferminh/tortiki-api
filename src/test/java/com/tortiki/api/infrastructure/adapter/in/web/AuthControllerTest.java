@@ -38,6 +38,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -55,6 +56,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @Feature("Endpoints REST auth")
 @WebMvcTest(AuthController.class)
 @Import(SecurityConfig.class)
+@ActiveProfiles("test")
 @DisplayName("AuthController — Tests unitaires WebMvcTest")
 class AuthControllerTest {
 

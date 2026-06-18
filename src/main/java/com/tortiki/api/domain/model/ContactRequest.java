@@ -39,33 +39,13 @@ public class ContactRequest {
   /** Date et heure de dernière mise à jour de la demande. */
   private LocalDateTime updatedAt;
 
-  /** Constructeur par défaut requis pour les mappers domain ↔ entité JPA. */
-  public ContactRequest() {
-  }
-
   /**
-   * Constructeur complet.
+   * Constructeur par défaut requis pour les mappers domain ↔ entité JPA.
    *
-   * @param id        identifiant technique
-   * @param listing   annonce concernée
-   * @param buyer     acheteur ayant soumis la demande
-   * @param status    statut courant
-   * @param message   message optionnel
-   * @param portions  nombre de portions souhaitées
-   * @param createdAt date de création
-   * @param updatedAt date de mise à jour
+   * <p>Lombok non utilisé dans {@code domain/model/} — règle Architecture
+   * Hexagonale : Java pur, zéro dépendance framework dans le domaine.</p>
    */
-  public ContactRequest(Long id, Listing listing, User buyer,
-                        ContactRequestStatus status, String message, Integer portions,
-                        LocalDateTime createdAt, LocalDateTime updatedAt) {
-    this.id = id;
-    this.listing = listing;
-    this.buyer = buyer;
-    this.status = status;
-    this.message = message;
-    this.portions = portions;
-    this.createdAt = createdAt;
-    this.updatedAt = updatedAt;
+  public ContactRequest() {
   }
 
   /**
