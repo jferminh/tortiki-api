@@ -33,8 +33,14 @@
           Vérifier avec : mvnw dependency:tree | grep mockito-core
         -->
         <mockito.version>5.18.0</mockito.version>
-        <!-- argLine initialisée ici — enrichie par JaCoCo prepare-agent -->
+        <!-- argLine initialisée ici — enrichie par JaCoCo prepare-agent (Surefire) -->
         <argLine>-Xmx512m -XX:+EnableDynamicAgentLoading</argLine>
+        <!--
+          itArgLine OBLIGATOIRE ici — valeur vide par défaut.
+          Sera enrichie par jacoco:prepare-agent-integration avant Failsafe.
+          Sans cette déclaration, @{itArgLine} n'est pas résolu → JVM crash.
+        -->
+        <itArgLine/>
     </properties>
 
     <dependencies>
@@ -195,18 +201,18 @@
                     </excludes>
                 </configuration>
                 <executions>
-                    <!-- Agent pour Surefire (tests unitaires) -->
+                    <!-- Agent pour Surefire — enrichit ${argLine} -->
                     <execution>
                         <id>prepare-agent</id>
                         <goals><goal>prepare-agent</goal></goals>
                     </execution>
-                    <!-- Agent pour Failsafe (tests IT) — fichier .exec séparé -->
+                    <!-- Agent pour Failsafe — enrichit ${itArgLine} -->
                     <execution>
                         <id>prepare-agent-integration</id>
                         <phase>pre-integration-test</phase>
                         <goals><goal>prepare-agent-integration</goal></goals>
                     </execution>
-                    <!-- Fusion des deux rapports .exec en un seul -->
+                    <!-- Fusion jacoco.exec + jacoco-it.exec → jacoco-merged.exec -->
                     <execution>
                         <id>merge-results</id>
                         <phase>verify</phase>
@@ -225,7 +231,7 @@
                             </destFile>
                         </configuration>
                     </execution>
-                    <!-- Rapport final fusionné -->
+                    <!-- Rapport HTML final fusionné -->
                     <execution>
                         <id>report</id>
                         <phase>verify</phase>
@@ -304,9 +310,9 @@
             <!--
               ===== FAILSAFE — Tests d'intégration (*IT.java) =====
               Détecte automatiquement **/*IT.java.
-              Phase pre-integration-test : démarrage Testcontainers.
-              Phase post-integration-test : teardown garanti même en échec.
-              itArgLine : enrichie par prepare-agent-integration JaCoCo.
+              @{itArgLine} résolu grâce à <itArgLine/> dans <properties>.
+              JaCoCo injecte le javaagent via prepare-agent-integration
+              avant que Failsafe ne fork la JVM.
             -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
