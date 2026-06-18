@@ -8,7 +8,8 @@ import java.time.LocalDateTime;
  * DTO de réponse pour une demande de contact créée.
  *
  * <p>Expose uniquement les données nécessaires à la confirmation
- * côté acheteur — aucune donnée sensible du vendeur.</p>
+ * côté acheteur. Aucune donnée personnelle du vendeur ni identifiant
+ * interne de l'acheteur n'est exposée (conformité RGPD).</p>
  *
  * @param id        identifiant de la demande créée
  * @param listingId identifiant de l'annonce concernée
@@ -32,7 +33,7 @@ public record ContactRequestResponse(
    * @param contactRequest demande de contact domaine
    * @return DTO de réponse correspondante
    */
-  public static ContactRequestResponse from(ContactRequest contactRequest) {
+  public static ContactRequestResponse from(final ContactRequest contactRequest) {
     return new ContactRequestResponse(
         contactRequest.getId(),
         contactRequest.getListing().getId(),
