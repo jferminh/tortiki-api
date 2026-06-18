@@ -4,7 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.tortiki.api.domain.model.ContactRequest;
 import com.tortiki.api.domain.model.ContactRequestStatus;
+import com.tortiki.api.domain.model.Listing;
 import com.tortiki.api.domain.model.ListingStatus;
+import com.tortiki.api.domain.model.User;
 import io.qameta.allure.Description;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Feature;
@@ -78,7 +80,7 @@ class ContactRequestRepositoryIT extends AbstractIntegrationTest {
     listing.setPrice(new BigDecimal("8.50"));
     listing.setPortions(4);
     listing.setPickupAddress("1 rue de la Paix, Strasbourg");
-    listing.setPickupDatetime(PICKUP_DATETIME); // ← constante fixe
+    listing.setPickupDatetime(PICKUP_DATETIME);
     listing.setStatus(ListingStatus.ACTIVE);
     listing = listingJpaRepository.save(listing);
   }
@@ -92,12 +94,12 @@ class ContactRequestRepositoryIT extends AbstractIntegrationTest {
   @Description("Une demande valide est persistée et retournée avec son id généré.")
   @DisplayName("Doit persister une demande et retourner l'id généré")
   void shouldSaveContactRequestAndReturnGeneratedId() {
-    ContactRequest domain = buildContactRequest();
-
-    ContactRequest saved = contactRequestRepositoryAdapter.save(domain);
+    ContactRequest saved = contactRequestRepositoryAdapter.save(buildContactRequest());
 
     assertThat(saved.getId()).isNotNull();
     assertThat(saved.getStatus()).isEqualTo(ContactRequestStatus.PENDING);
+    assertThat(saved.getCreatedAt()).isNotNull();
+    assertThat(saved.getListing().getId()).isEqualTo(listing.getId());
   }
 
   // ─────────────────────────────────────────────────────────
@@ -136,16 +138,32 @@ class ContactRequestRepositoryIT extends AbstractIntegrationTest {
   }
 
   // ─────────────────────────────────────────────────────────
+  // Recherche par acheteur
+  // ─────────────────────────────────────────────────────────
+
+  @Test
+  @Story("Requêtes")
+  @Description("findByBuyerId retourne toutes les demandes soumises par un acheteur.")
+  @DisplayName("Doit retourner les demandes par buyerId")
+  void shouldFindContactRequestsByBuyerId() {
+    contactRequestRepositoryAdapter.save(buildContactRequest());
+
+    List<ContactRequest> results = contactRequestRepositoryAdapter
+        .findByBuyerId(buyer.getId());
+
+    assertThat(results).hasSize(1);
+    assertThat(results.getFirst().getBuyer().getId()).isEqualTo(buyer.getId());
+  }
+
+  // ─────────────────────────────────────────────────────────
   // Helper
   // ─────────────────────────────────────────────────────────
 
   private ContactRequest buildContactRequest() {
-    com.tortiki.api.domain.model.Listing domainListing =
-        new com.tortiki.api.domain.model.Listing();
+    Listing domainListing = new Listing();
     domainListing.setId(listing.getId());
 
-    com.tortiki.api.domain.model.User domainBuyer =
-        new com.tortiki.api.domain.model.User();
+    User domainBuyer = new User();
     domainBuyer.setId(buyer.getId());
 
     ContactRequest cr = new ContactRequest();
