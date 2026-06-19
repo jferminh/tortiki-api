@@ -1,0 +1,52 @@
+### [1/4] Soumettre une demande — BUYER Théo
+# Attendu : 201 Created + ContactRequestResponse status=PENDING
+# ⚠️  Connecte Théo d'abord (requête #4 de 01-auth.http)
+POST {{baseUrl}}/api/contact-requests
+Content-Type: application/json
+
+{
+  "listingId": 1,
+  "message": "Bonjour Sofia, je suis très intéressé — 2 portions svp !",
+  "portions": 2
+}
+
+###
+
+### [2/4] Doublon — même acheteur, même annonce
+# Attendu : 409 Conflict + message métier "demande déjà existante"
+POST {{baseUrl}}/api/contact-requests
+Content-Type: application/json
+
+{
+  "listingId": 1,
+  "message": "2e tentative — doit être bloquée",
+  "portions": 1
+}
+
+###
+
+### [3/4] Sans authentification — session expirée ou absente
+# Attendu : 401 Unauthorized
+# ⚠️  Exécute d'abord POST /api/auth/logout pour invalider la session
+POST {{baseUrl}}/api/contact-requests
+Content-Type: application/json
+
+{
+  "listingId": 1,
+  "message": "Test sans session",
+  "portions": 1
+}
+
+###
+
+### [4/4] Sofia (SELLER) tente de contacter sa propre annonce
+# Attendu : 403 Forbidden (rôle BUYER requis)
+# ⚠️  Connecte Sofia d'abord (requête #2 de 01-auth.http)
+POST {{baseUrl}}/api/contact-requests
+Content-Type: application/json
+
+{
+  "listingId": 1,
+  "message": "Un vendeur ne peut pas contacter sa propre annonce",
+  "portions": 1
+}
