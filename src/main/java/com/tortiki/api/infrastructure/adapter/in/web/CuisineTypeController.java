@@ -1,6 +1,7 @@
 package com.tortiki.api.infrastructure.adapter.in.web;
 
 import com.tortiki.api.application.port.in.ManageCuisineTypeUseCase;
+import com.tortiki.api.config.SecurityConstants;
 import com.tortiki.api.domain.model.CuisineType;
 import com.tortiki.api.infrastructure.adapter.in.web.dto.CreateCuisineTypeRequest;
 import com.tortiki.api.infrastructure.adapter.in.web.dto.CuisineTypeResponse;
@@ -30,7 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/cuisine-types")
+@RequestMapping(SecurityConstants.ROUTE_CUISINE_TYPES)
 @RequiredArgsConstructor
 @Tag(name = "Origines culinaires", description = "Référentiel des origines culinaires")
 public class CuisineTypeController {

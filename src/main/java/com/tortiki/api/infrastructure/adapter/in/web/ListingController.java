@@ -2,6 +2,7 @@ package com.tortiki.api.infrastructure.adapter.in.web;
 
 import com.tortiki.api.application.port.in.FindUserUseCase;
 import com.tortiki.api.application.port.in.ManageListingUseCase;
+import com.tortiki.api.config.SecurityConstants;
 import com.tortiki.api.domain.model.Listing;
 import com.tortiki.api.infrastructure.adapter.in.web.dto.CreateListingRequest;
 import com.tortiki.api.infrastructure.adapter.in.web.dto.ListingResponse;
@@ -37,7 +38,7 @@ import org.springframework.web.multipart.MultipartFile;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/listings")
+@RequestMapping(SecurityConstants.ROUTE_LISTINGS)
 @RequiredArgsConstructor
 @Tag(name = "Annonces", description = "Consultation et gestion des annonces de plats")
 public class ListingController {

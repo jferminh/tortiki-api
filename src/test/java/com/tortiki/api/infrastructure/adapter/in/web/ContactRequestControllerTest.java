@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tortiki.api.application.port.in.SubmitContactRequestUseCase;
 import com.tortiki.api.config.SecurityConfig;
+import com.tortiki.api.config.SecurityConstants;
 import com.tortiki.api.domain.model.ContactRequest;
 import com.tortiki.api.domain.model.ContactRequestStatus;
 import com.tortiki.api.domain.model.Listing;
@@ -44,7 +45,7 @@ import org.springframework.test.web.servlet.MockMvc;
  * portions absentes).</p>
  */
 @Epic("Demande de contact")
-@Feature("Endpoint POST /api/contact-requests")
+@Feature("Endpoint POST /api/v1/contact-requests")
 @WebMvcTest(ContactRequestController.class)
 @Import(SecurityConfig.class)
 @ActiveProfiles("test")
@@ -101,13 +102,13 @@ class ContactRequestControllerTest {
   @Test
   @Story("Soumission nominale")
   @Description("Un acheteur authentifié soumet une demande valide — 201 Créé.")
-  @DisplayName("POST /api/contact-requests → 201 pour ROLE_BUYER authentifié")
+  @DisplayName("POST /api/v1/contact-requests → 201 pour ROLE_BUYER authentifié")
   void shouldReturn201WhenBuyerSubmitsValidRequest() throws Exception {
     when(submitContactRequestUseCase.submit(
         any(SubmitContactRequestUseCase.Command.class)))
         .thenReturn(savedContactRequest);
 
-    mockMvc.perform(post("/api/contact-requests")
+    mockMvc.perform(post(SecurityConstants.ROUTE_CONTACT_REQUESTS) // ← corrigé
             .with(user(BUYER_EMAIL).roles("BUYER"))
             .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
@@ -127,9 +128,9 @@ class ContactRequestControllerTest {
   @Test
   @Story("Sécurité")
   @Description("Un utilisateur non authentifié tente de soumettre — 401 Non autorisé.")
-  @DisplayName("POST /api/contact-requests → 401 sans authentification")
+  @DisplayName("POST /api/v1/contact-requests → 401 sans authentification")
   void shouldReturn401WhenNotAuthenticated() throws Exception {
-    mockMvc.perform(post("/api/contact-requests")
+    mockMvc.perform(post(SecurityConstants.ROUTE_CONTACT_REQUESTS) // ← corrigé
             .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(validRequest)))
@@ -143,9 +144,9 @@ class ContactRequestControllerTest {
   @Test
   @Story("Sécurité")
   @Description("Un vendeur tente de soumettre une demande — 403 Interdit.")
-  @DisplayName("POST /api/contact-requests → 403 pour ROLE_SELLER")
+  @DisplayName("POST /api/v1/contact-requests → 403 pour ROLE_SELLER")
   void shouldReturn403WhenSellerTriesToSubmit() throws Exception {
-    mockMvc.perform(post("/api/contact-requests")
+    mockMvc.perform(post(SecurityConstants.ROUTE_CONTACT_REQUESTS) // ← corrigé
             .with(user(SELLER_EMAIL).roles("SELLER"))
             .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
@@ -160,12 +161,12 @@ class ContactRequestControllerTest {
   @Test
   @Story("Validation")
   @Description("Le body ne contient pas listingId — 400 Requête invalide.")
-  @DisplayName("POST /api/contact-requests → 400 si listingId absent")
+  @DisplayName("POST /api/v1/contact-requests → 400 si listingId absent")
   void shouldReturn400WhenListingIdIsNull() throws Exception {
     CreateContactRequestRequest invalidRequest =
         new CreateContactRequestRequest(null, "message", 2);
 
-    mockMvc.perform(post("/api/contact-requests")
+    mockMvc.perform(post(SecurityConstants.ROUTE_CONTACT_REQUESTS) // ← corrigé
             .with(user(BUYER_EMAIL).roles("BUYER"))
             .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
@@ -180,12 +181,12 @@ class ContactRequestControllerTest {
   @Test
   @Story("Validation")
   @Description("Le body ne contient pas portions — 400 Requête invalide.")
-  @DisplayName("POST /api/contact-requests → 400 si portions absent")
+  @DisplayName("POST /api/v1/contact-requests → 400 si portions absent")
   void shouldReturn400WhenPortionsIsNull() throws Exception {
     CreateContactRequestRequest invalidRequest =
         new CreateContactRequestRequest(LISTING_ID, "message", null);
 
-    mockMvc.perform(post("/api/contact-requests")
+    mockMvc.perform(post(SecurityConstants.ROUTE_CONTACT_REQUESTS) // ← corrigé
             .with(user(BUYER_EMAIL).roles("BUYER"))
             .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)

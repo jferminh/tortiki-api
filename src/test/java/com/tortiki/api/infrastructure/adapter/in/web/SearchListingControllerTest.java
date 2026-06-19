@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.tortiki.api.application.port.in.SearchCriteria;
 import com.tortiki.api.application.port.in.SearchListingsUseCase;
 import com.tortiki.api.config.SecurityConfig;
+import com.tortiki.api.config.SecurityConstants;
 import com.tortiki.api.domain.model.CuisineType;
 import com.tortiki.api.domain.model.Listing;
 import com.tortiki.api.domain.model.User;
@@ -57,7 +58,7 @@ class SearchListingControllerTest {
   @MockitoBean
   private UserDetailsServiceImpl userDetailsServiceImp;
 
-  // ── Cas nominaux ────────────────────────────────────────────────────────────
+  // ── Cas nominaux ──────────────────────────────────────────────────────────
 
   @Test
   @WithAnonymousUser
@@ -72,7 +73,7 @@ class SearchListingControllerTest {
     when(searchListingsUseCase.search(any(SearchCriteria.class)))
         .thenReturn(List.of(buildListing(1L, "Bortsch maison", "8.50")));
 
-    mockMvc.perform(get("/api/v1/listings/search")
+    mockMvc.perform(get(SecurityConstants.ROUTE_LISTINGS_SEARCH)
             .param("city", "Nancy"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].id").value(1))
@@ -96,7 +97,7 @@ class SearchListingControllerTest {
     when(searchListingsUseCase.search(any(SearchCriteria.class)))
         .thenReturn(List.of());
 
-    mockMvc.perform(get("/api/v1/listings/search"))
+    mockMvc.perform(get(SecurityConstants.ROUTE_LISTINGS_SEARCH))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$").isArray())
         .andExpect(jsonPath("$").isEmpty());
@@ -115,7 +116,7 @@ class SearchListingControllerTest {
     when(searchListingsUseCase.search(any(SearchCriteria.class)))
         .thenReturn(List.of());
 
-    mockMvc.perform(get("/api/v1/listings/search")
+    mockMvc.perform(get(SecurityConstants.ROUTE_LISTINGS_SEARCH)
             .param("query", "bortsch")
             .param("city", "Nancy")
             .param("cuisineTypeId", "1")
@@ -139,12 +140,20 @@ class SearchListingControllerTest {
     when(searchListingsUseCase.search(any(SearchCriteria.class)))
         .thenReturn(List.of());
 
-    mockMvc.perform(get("/api/v1/listings/search"))
+    mockMvc.perform(get(SecurityConstants.ROUTE_LISTINGS_SEARCH))
         .andExpect(status().isOk());
   }
 
-  // ── Helper ──────────────────────────────────────────────────────────────────
+  // ── Helper ────────────────────────────────────────────────────────────────
 
+  /**
+   * Construit une {@link Listing} domaine minimale pour les assertions de test.
+   *
+   * @param id    identifiant de l'annonce
+   * @param title titre de l'annonce
+   * @param price prix unitaire
+   * @return annonce domaine peuplée
+   */
   private Listing buildListing(Long id, String title, String price) {
     CuisineType cuisineType = new CuisineType();
     cuisineType.setId(1L);
@@ -160,9 +169,9 @@ class SearchListingControllerTest {
     listing.setTitle(title);
     listing.setDescription("Recette traditionnelle ukrainienne");
     listing.setPrice(new BigDecimal(price));
-    listing.setPickupAddress("12 rue de la Paix, 54000 Nancy"); // ← était city + postalCode
+    listing.setPickupAddress("12 rue de la Paix, 54000 Nancy");
     listing.setPickupDatetime(
-        java.time.LocalDateTime.of(2026, Month.JUNE, 21, 12, 0));       // ← était absent
+        java.time.LocalDateTime.of(2026, Month.JUNE, 21, 12, 0));
     listing.setPortions(4);
     listing.setPhotoUrl("http://localhost:9000/tortiki-photos/bortsch.jpg");
     listing.setCuisineType(cuisineType);

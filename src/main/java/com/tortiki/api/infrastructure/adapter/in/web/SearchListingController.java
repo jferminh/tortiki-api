@@ -2,6 +2,7 @@ package com.tortiki.api.infrastructure.adapter.in.web;
 
 import com.tortiki.api.application.port.in.SearchCriteria;
 import com.tortiki.api.application.port.in.SearchListingsUseCase;
+import com.tortiki.api.config.SecurityConstants;
 import com.tortiki.api.infrastructure.adapter.in.web.dto.ErrorResponse;
 import com.tortiki.api.infrastructure.adapter.in.web.dto.SearchListingResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,7 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/listings/search")
+@RequestMapping(SecurityConstants.ROUTE_LISTINGS_SEARCH)
 @Tag(name = "Recherche", description = "Recherche d'annonces de plats cuisinés")
 public class SearchListingController {
 

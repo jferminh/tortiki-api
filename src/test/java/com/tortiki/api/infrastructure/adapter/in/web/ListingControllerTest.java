@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tortiki.api.application.port.in.FindUserUseCase;
 import com.tortiki.api.application.port.in.ManageListingUseCase;
 import com.tortiki.api.config.SecurityConfig;
+import com.tortiki.api.config.SecurityConstants;
 import com.tortiki.api.domain.exception.ListingNotFoundException;
 import com.tortiki.api.domain.model.CuisineType;
 import com.tortiki.api.domain.model.Listing;
@@ -68,28 +69,24 @@ class ListingControllerTest {
 
   // ── Constantes de test ────────────────────────────────────────────────────
 
-  private static final Long   LISTING_ID       = 1L;
-  private static final Long   SELLER_ID        = 10L;
-  private static final Long   CUISINE_ID       = 2L;
-  private static final String SELLER_EMAIL     = "sofia@example.com";
-  private static final String LISTING_TITLE    = "Bortsch ukrainien";
-  private static final String LISTING_DESC     = "Soupe traditionnelle ukrainienne";
-  private static final String PICKUP_ADDRESS   = "12 rue de la Paix, 54000 Nancy";
-  private static final String CUISINE_NAME     = "Ukrainienne";
+  private static final Long   LISTING_ID     = 1L;
+  private static final Long   SELLER_ID      = 10L;
+  private static final Long   CUISINE_ID     = 2L;
+  private static final String SELLER_EMAIL   = "sofia@example.com";
+  private static final String LISTING_TITLE  = "Bortsch ukrainien";
+  private static final String LISTING_DESC   = "Soupe traditionnelle ukrainienne";
+  private static final String PICKUP_ADDRESS = "12 rue de la Paix, 54000 Nancy";
+  private static final String CUISINE_NAME   = "Ukrainienne";
   private static final LocalDateTime PICKUP_DATETIME =
       LocalDateTime.of(2026, Month.JUNE, 21, 14, 0, 0);
   private static final LocalDateTime TEST_CREATED_AT =
       LocalDateTime.of(2026, Month.JUNE, 1, 12, 0, 0);
-
-  // ── Injection MockMvc ─────────────────────────────────────────────────────
 
   @Autowired
   private MockMvc mockMvc;
 
   @Autowired
   private ObjectMapper objectMapper;
-
-  // ── Mocks des dépendances du contrôleur ───────────────────────────────────
 
   @MockitoBean
   private ManageListingUseCase manageListingUseCase;
@@ -100,18 +97,10 @@ class ListingControllerTest {
   @MockitoBean
   private ListingWebMapper listingWebMapper;
 
-  // ── Données communes ──────────────────────────────────────────────────────
-
-  /** Annonce domaine utilisée dans les mocks. */
   private Listing listing;
-
-  /** DTO de réponse retournée par le mapper web. */
   private ListingResponse listingResponse;
-
-  /** Vendeur associé à l'annonce. */
   private User sofia;
 
-  /** Initialisation des données communes avant chaque test. */
   @BeforeEach
   void setUp() {
     sofia = new User();
@@ -129,8 +118,8 @@ class ListingControllerTest {
     listing.setDescription(LISTING_DESC);
     listing.setPrice(new BigDecimal("12.50"));
     listing.setPortions(4);
-    listing.setPickupAddress(PICKUP_ADDRESS);       // ← était setCity + setPostalCode
-    listing.setPickupDatetime(PICKUP_DATETIME);     // ← était setPickupSlot
+    listing.setPickupAddress(PICKUP_ADDRESS);
+    listing.setPickupDatetime(PICKUP_DATETIME);
     listing.setCuisineType(cuisineType);
     listing.setSeller(sofia);
     listing.setStatus(ListingStatus.ACTIVE);
@@ -142,18 +131,18 @@ class ListingControllerTest {
         LISTING_DESC,
         new BigDecimal("12.50"),
         4,
-        PICKUP_ADDRESS,        // ← pickupAddress
-        PICKUP_DATETIME,       // ← pickupDatetime
-        null,                  // photoUrl
+        PICKUP_ADDRESS,
+        PICKUP_DATETIME,
+        null,
         ListingStatus.ACTIVE,
         CUISINE_NAME,
         SELLER_EMAIL,
-        List.of(),             // ← allergenNames (vide pour le test)
+        List.of(),
         TEST_CREATED_AT
     );
   }
 
-  // ── GET /api/listings ─────────────────────────────────────────────────────
+  // ── GET /api/v1/listings ──────────────────────────────────────────────────
 
   @Test
   @Story("Consultation catalogue")
@@ -164,11 +153,11 @@ class ListingControllerTest {
     when(manageListingUseCase.findAll()).thenReturn(List.of(listing));
     when(listingWebMapper.toResponse(listing)).thenReturn(listingResponse);
 
-    mockMvc.perform(get("/api/v1/listings"))
+    mockMvc.perform(get(SecurityConstants.ROUTE_LISTINGS))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].id").value(LISTING_ID))
         .andExpect(jsonPath("$[0].title").value(LISTING_TITLE))
-        .andExpect(jsonPath("$[0].pickupAddress").value(PICKUP_ADDRESS)); // ← était city
+        .andExpect(jsonPath("$[0].pickupAddress").value(PICKUP_ADDRESS));
   }
 
   @Test
@@ -179,13 +168,13 @@ class ListingControllerTest {
   void findAll_shouldReturn200_withEmptyList() throws Exception {
     when(manageListingUseCase.findAll()).thenReturn(List.of());
 
-    mockMvc.perform(get("/api/v1/listings"))
+    mockMvc.perform(get(SecurityConstants.ROUTE_LISTINGS))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$").isArray())
         .andExpect(jsonPath("$").isEmpty());
   }
 
-  // ── GET /api/listings/{id} ────────────────────────────────────────────────
+  // ── GET /api/v1/listings/{id} ─────────────────────────────────────────────
 
   @Test
   @Story("Détail annonce")
@@ -196,7 +185,7 @@ class ListingControllerTest {
     when(manageListingUseCase.findById(LISTING_ID)).thenReturn(listing);
     when(listingWebMapper.toResponse(listing)).thenReturn(listingResponse);
 
-    mockMvc.perform(get("/api/v1/listings/{id}", LISTING_ID))
+    mockMvc.perform(get(SecurityConstants.ROUTE_LISTING_BY_ID, LISTING_ID))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(LISTING_ID))
         .andExpect(jsonPath("$.title").value(LISTING_TITLE))
@@ -215,7 +204,7 @@ class ListingControllerTest {
             "Annonce introuvable pour l'identifiant : 99"
         ));
 
-    mockMvc.perform(get("/api/v1/listings/{id}", 99L))
+    mockMvc.perform(get(SecurityConstants.ROUTE_LISTING_BY_ID, 99L))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.status").value(404))
         .andExpect(jsonPath("$.error").value("Not Found"));
@@ -223,7 +212,7 @@ class ListingControllerTest {
     verify(listingWebMapper, never()).toResponse(any());
   }
 
-  // ── POST /api/listings ────────────────────────────────────────────────────
+  // ── POST /api/v1/listings ─────────────────────────────────────────────────
 
   @Test
   @Story("Création annonce")
@@ -236,7 +225,7 @@ class ListingControllerTest {
     when(listingWebMapper.toResponse(listing)).thenReturn(listingResponse);
     when(listingWebMapper.toCommand(any())).thenReturn(null);
 
-    mockMvc.perform(post("/api/v1/listings")
+    mockMvc.perform(post(SecurityConstants.ROUTE_LISTINGS)
             .contentType(MediaType.APPLICATION_JSON)
             .content(buildCreateBody())
             .with(csrf())
@@ -253,7 +242,7 @@ class ListingControllerTest {
   @Description("Corps invalide — HTTP 400 Bad Request, le use case n'est pas appelé.")
   @DisplayName("POST /listings — retourne 400 si le corps est invalide")
   void create_shouldReturn400_whenBodyIsInvalid() throws Exception {
-    mockMvc.perform(post("/api/v1/listings")
+    mockMvc.perform(post(SecurityConstants.ROUTE_LISTINGS)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(Map.of(
                 "title", "",
@@ -282,10 +271,10 @@ class ListingControllerTest {
         "description", LISTING_DESC,
         "price", "12.50",
         "portions", 4,
-        "pickupAddress", PICKUP_ADDRESS,          // ← était city + postalCode
-        "pickupDatetime", "2026-06-21T14:00:00",  // ← était pickupSlot
+        "pickupAddress", PICKUP_ADDRESS,
+        "pickupDatetime", "2026-06-21T14:00:00",
         "cuisineTypeId", CUISINE_ID,
-        "allergenIds", List.of()                  // ← nouveau champ
+        "allergenIds", List.of()
     ));
   }
 }
