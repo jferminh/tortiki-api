@@ -1,7 +1,7 @@
 ### [1/4] Soumettre une demande — BUYER Théo
 # Attendu : 201 Created + ContactRequestResponse status=PENDING
 # ⚠️  Connecte Théo d'abord (requête #4 de 01-auth.http)
-POST {{baseUrl}}/api/contact-requests
+POST {{baseUrl}}/api/v1/contact-requests
 Content-Type: application/json
 
 {
@@ -14,7 +14,7 @@ Content-Type: application/json
 
 ### [2/4] Doublon — même acheteur, même annonce
 # Attendu : 409 Conflict + message métier "demande déjà existante"
-POST {{baseUrl}}/api/contact-requests
+POST {{baseUrl}}/api/v1/contact-requests
 Content-Type: application/json
 
 {
@@ -28,7 +28,7 @@ Content-Type: application/json
 ### [3/4] Sans authentification — session expirée ou absente
 # Attendu : 401 Unauthorized
 # ⚠️  Exécute d'abord POST /api/auth/logout pour invalider la session
-POST {{baseUrl}}/api/contact-requests
+POST {{baseUrl}}/api/v1/contact-requests
 Content-Type: application/json
 
 {
@@ -42,7 +42,7 @@ Content-Type: application/json
 ### [4/4] Sofia (SELLER) tente de contacter sa propre annonce
 # Attendu : 403 Forbidden (rôle BUYER requis)
 # ⚠️  Connecte Sofia d'abord (requête #2 de 01-auth.http)
-POST {{baseUrl}}/api/contact-requests
+POST {{baseUrl}}/api/v1/contact-requests
 Content-Type: application/json
 
 {

@@ -3,6 +3,7 @@ package com.tortiki.api.infrastructure.adapter.out.persistence;
 import com.tortiki.api.domain.model.ListingStatus;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -16,6 +17,30 @@ import org.springframework.data.repository.query.Param;
  * {@code ListingRepository}.</p>
  */
 public interface ListingJpaRepository extends JpaRepository<ListingJpaEntity, Long> {
+
+  /**
+   * Recherche une annonce par identifiant avec toutes les associations
+   * nécessaires au mapping domaine chargées en eager via JOIN FETCH.
+   *
+   * <p>Initialise {@code seller}, {@code cuisineType} et {@code allergens}
+   * pour éviter toute {@code LazyInitializationException} dans
+   * {@link ListingPersistenceMapper#toDomain(ListingJpaEntity)}.</p>
+   *
+   * <p>{@code DISTINCT} évite les doublons produits par le JOIN sur
+   * la collection {@code allergens} (relation ManyToMany).</p>
+   *
+   * @param id identifiant de l'annonce
+   * @return l'annonce avec toutes les associations initialisées, vide si absente
+   */
+  @Query(
+      """
+      SELECT DISTINCT l FROM ListingJpaEntity l
+      JOIN FETCH l.seller
+      JOIN FETCH l.cuisineType
+      LEFT JOIN FETCH l.allergens
+      WHERE l.id = :id
+      """)
+  Optional<ListingJpaEntity> findByIdWithSeller(@Param("id") Long id);
 
   /**
    * Retourne les annonces d'un vendeur selon un statut donné.
@@ -67,7 +92,7 @@ public interface ListingJpaRepository extends JpaRepository<ListingJpaEntity, Lo
    * @param lng           longitude du centre de recherche
    * @param radiusKm      rayon en kilomètres
    * @param cuisineTypeId filtre type de cuisine, {@code null} = tous
-   * @param maxPrice      prix maximum, {@code null} = sans limite
+   * @param maxPrice      prix maximum, {@code null} = sans limites
    * @param query         mot-clé titre/description, {@code null} = sans filtre
    * @param pageable      pagination (page + taille)
    * @return liste paginée des entités correspondantes

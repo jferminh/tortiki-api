@@ -1,6 +1,6 @@
 ### [1/5] Inscription Sofia — SELLER
 # Attendu : 201 Created + objet User avec id
-POST {{baseUrl}}/api/auth/register
+POST {{baseUrl}}/api/v1/auth/register
 Content-Type: application/json
 
 {
@@ -8,14 +8,14 @@ Content-Type: application/json
   "password": "{{password}}",
   "firstName": "Sofia",
   "lastName": "Kova",
-  "roles": ["SELLER"]
+  "role": "SELLER"
 }
 
 ###
 
 ### [2/5] Login Sofia — récupère JSESSIONID
 # Attendu : 200 OK + cookie JSESSIONID dans l'onglet Cookies
-POST {{baseUrl}}/api/auth/login
+POST {{baseUrl}}/api/v1/auth/login
 Content-Type: application/json
 
 {
@@ -27,7 +27,7 @@ Content-Type: application/json
 
 ### [3/5] Inscription Théo — BUYER
 # Attendu : 201 Created + objet User avec id
-POST {{baseUrl}}/api/auth/register
+POST {{baseUrl}}/api/v1/auth/register
 Content-Type: application/json
 
 {
@@ -35,14 +35,14 @@ Content-Type: application/json
   "password": "{{password}}",
   "firstName": "Théo",
   "lastName": "Martin",
-  "roles": ["BUYER"]
+  "role": "BUYER"
 }
 
 ###
 
 ### [4/5] Login Théo — récupère JSESSIONID
 # Attendu : 200 OK + cookie JSESSIONID
-POST {{baseUrl}}/api/auth/login
+POST {{baseUrl}}/api/v1/auth/login
 Content-Type: application/json
 
 {
@@ -54,4 +54,4 @@ Content-Type: application/json
 
 ### [5/5] Logout
 # Attendu : 200 OK ou 204 No Content
-POST {{baseUrl}}/api/auth/logout
+POST {{baseUrl}}/api/v1/auth/logout
