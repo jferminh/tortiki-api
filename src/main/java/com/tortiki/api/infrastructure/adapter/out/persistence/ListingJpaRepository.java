@@ -3,6 +3,7 @@ package com.tortiki.api.infrastructure.adapter.out.persistence;
 import com.tortiki.api.domain.model.ListingStatus;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -16,6 +17,18 @@ import org.springframework.data.repository.query.Param;
  * {@code ListingRepository}.</p>
  */
 public interface ListingJpaRepository extends JpaRepository<ListingJpaEntity, Long> {
+
+  /**
+   * Recherche une annonce par identifiant avec le vendeur chargé en eager via JOIN FETCH.
+   *
+   * <p>Évite la {@code LazyInitializationException} lors du mapping vers le domaine
+   * quand la session JPA est fermée. Utilisé par {@link ListingJpaAdapter#findById(Long)}.</p>
+   *
+   * @param id identifiant de l'annonce
+   * @return l'annonce avec le vendeur initialisé, vide si absente
+   */
+  @Query("SELECT l FROM ListingJpaEntity l JOIN FETCH l.seller WHERE l.id = :id")
+  Optional<ListingJpaEntity> findByIdWithSeller(@Param("id") Long id);
 
   /**
    * Retourne les annonces d'un vendeur selon un statut donné.
@@ -67,7 +80,7 @@ public interface ListingJpaRepository extends JpaRepository<ListingJpaEntity, Lo
    * @param lng           longitude du centre de recherche
    * @param radiusKm      rayon en kilomètres
    * @param cuisineTypeId filtre type de cuisine, {@code null} = tous
-   * @param maxPrice      prix maximum, {@code null} = sans limite
+   * @param maxPrice      prix maximum, {@code null} = sans limites
    * @param query         mot-clé titre/description, {@code null} = sans filtre
    * @param pageable      pagination (page + taille)
    * @return liste paginée des entités correspondantes

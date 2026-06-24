@@ -1,6 +1,8 @@
 package com.tortiki.api.infrastructure.adapter.in.web;
 
+import com.tortiki.api.application.port.in.FindUserUseCase;
 import com.tortiki.api.application.port.in.RegisterUserUseCase;
+import com.tortiki.api.config.SecurityConstants;
 import com.tortiki.api.domain.model.User;
 import com.tortiki.api.infrastructure.adapter.in.web.dto.LoginRequest;
 import com.tortiki.api.infrastructure.adapter.in.web.dto.RegisterRequest;
@@ -39,7 +41,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/auth")
+@RequestMapping(SecurityConstants.API_V1 + "/auth")
 @RequiredArgsConstructor
 @Tag(name = "Authentification", description = "Inscription et connexion des utilisateurs")
 public class AuthController {
@@ -47,6 +49,7 @@ public class AuthController {
   private final RegisterUserUseCase registerUserUseCase;
   private final AuthenticationManager authenticationManager;
   private final UserWebMapper userWebMapper;
+  private final FindUserUseCase findUserUseCase;
 
   /**
    * Inscrit un nouvel utilisateur sur la plateforme.
@@ -115,9 +118,9 @@ public class AuthController {
         context
     );
 
-    UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-    log.info("Connexion réussie pour : {}", request.email());
-    return ResponseEntity.ok(userWebMapper.toResponse(userDetails));
+    User user = findUserUseCase.findByEmail(request.email());
+    log.info("Connexion réussie pour {}", request.email());
+    return ResponseEntity.ok(userWebMapper.toResponse(user));
   }
 
   /**

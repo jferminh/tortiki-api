@@ -1,37 +1,37 @@
 ### [1/5] Créer une annonce — SELLER Sofia
 # Attendu : 201 Created + Listing status=ACTIVE
 # ⚠️  Doit être connecté en Sofia (JSESSIONID Sofia actif)
-POST {{baseUrl}}/api/listings
+POST {{baseUrl}}/api/v1/listings
 Content-Type: application/json
 
 {
   "title": "Bortsch ukrainien maison",
-  "description": "Soupe traditionnelle mijotée 3h",
+  "description": "Soupe traditionnelle ukrainienne, recette de ma grand-mère",
   "price": 8.50,
   "portions": 4,
   "cuisineTypeId": 1,
-  "city": "Nancy",
-  "postalCode": "54000",
-  "pickupDatetime": "2026-06-25T12:00:00"
+  "allergenIds": [],
+  "pickupAddress": "2 Allée Lys Rouge, 54000 Nancy",
+  "pickupDatetime": "2026-06-28T12:00:00"
 }
 
 ###
 
 ### [2/5] Lister toutes les annonces actives — PUBLIC (sans auth)
 # Attendu : 200 OK + tableau JSON avec au moins 1 annonce
-GET {{baseUrl}}/api/listings
+GET {{baseUrl}}/api/v1/listings
 
 ###
 
 ### [3/5] Détail d'une annonce par ID — PUBLIC
 # Attendu : 200 OK + objet Listing complet
-GET {{baseUrl}}/api/listings/1
+GET {{baseUrl}}/api/v1/listings/1
 
 ###
 
 ### [4/5] Modifier l'annonce — SELLER Sofia propriétaire
 # Attendu : 200 OK + annonce mise à jour
-PUT {{baseUrl}}/api/listings/1
+PUT {{baseUrl}}/api/v1/listings/1
 Content-Type: application/json
 
 {
@@ -40,9 +40,9 @@ Content-Type: application/json
   "price": 9.00,
   "portions": 4,
   "cuisineTypeId": 1,
-  "city": "Nancy",
-  "postalCode": "54000",
-  "pickupDatetime": "2026-06-25T14:00:00"
+  "allergenIds": [],
+  "pickupAddress": "2 Allée Lys Rouge, 54000 Nancy",
+  "pickupDatetime": "2026-06-28T12:00:00"
 }
 
 ###
@@ -50,7 +50,7 @@ Content-Type: application/json
 ### [5/5] Tenter de modifier avec Théo — NON propriétaire
 # Attendu : 403 Forbidden
 # ⚠️  Connecte Théo d'abord (requête #4 de 01-auth.http)
-PUT {{baseUrl}}/api/listings/1
+PUT {{baseUrl}}/api/v1/listings/1
 Content-Type: application/json
 
 {
@@ -59,7 +59,7 @@ Content-Type: application/json
   "price": 5.00,
   "portions": 2,
   "cuisineTypeId": 1,
-  "city": "Nancy",
-  "postalCode": "54000",
-  "pickupDatetime": "2026-06-25T12:00:00"
+  "allergenIds": [],
+  "pickupAddress": "2 Allée Lys Rouge, 54000 Nancy",
+  "pickupDatetime": "2026-06-28T12:00:00"
 }

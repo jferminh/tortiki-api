@@ -35,7 +35,7 @@ public class ListingJpaAdapter implements ListingRepository {
   /** {@inheritDoc} */
   @Override
   public Optional<Listing> findById(Long id) {
-    return jpaRepository.findById(id).map(mapper::toDomain);
+    return jpaRepository.findByIdWithSeller(id).map(mapper::toDomain); // ← JOIN FETCH seller
   }
 
   /** {@inheritDoc} */
