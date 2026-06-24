@@ -77,10 +77,10 @@ class ListingControllerTest {
   private static final String LISTING_DESC   = "Soupe traditionnelle ukrainienne";
   private static final String PICKUP_ADDRESS = "12 rue de la Paix, 54000 Nancy";
   private static final String CUISINE_NAME   = "Ukrainienne";
-  private static final LocalDateTime PICKUP_DATETIME =
-      LocalDateTime.of(2026, Month.JUNE, 21, 14, 0, 0);
   private static final LocalDateTime TEST_CREATED_AT =
       LocalDateTime.of(2026, Month.JUNE, 1, 12, 0, 0);
+
+  private LocalDateTime pickupDatetime;
 
   @Autowired
   private MockMvc mockMvc;
@@ -103,6 +103,7 @@ class ListingControllerTest {
 
   @BeforeEach
   void setUp() {
+    pickupDatetime = LocalDateTime.now().plusDays(7);
     sofia = new User();
     sofia.setId(SELLER_ID);
     sofia.setEmail(SELLER_EMAIL);
@@ -119,7 +120,7 @@ class ListingControllerTest {
     listing.setPrice(new BigDecimal("12.50"));
     listing.setPortions(4);
     listing.setPickupAddress(PICKUP_ADDRESS);
-    listing.setPickupDatetime(PICKUP_DATETIME);
+    listing.setPickupDatetime(pickupDatetime);
     listing.setCuisineType(cuisineType);
     listing.setSeller(sofia);
     listing.setStatus(ListingStatus.ACTIVE);
@@ -132,7 +133,7 @@ class ListingControllerTest {
         new BigDecimal("12.50"),
         4,
         PICKUP_ADDRESS,
-        PICKUP_DATETIME,
+        pickupDatetime,
         null,
         ListingStatus.ACTIVE,
         CUISINE_NAME,
@@ -272,7 +273,7 @@ class ListingControllerTest {
         "price", "12.50",
         "portions", 4,
         "pickupAddress", PICKUP_ADDRESS,
-        "pickupDatetime", "2026-06-21T14:00:00",
+        "pickupDatetime", pickupDatetime.toString(),
         "cuisineTypeId", CUISINE_ID,
         "allergenIds", List.of()
     ));

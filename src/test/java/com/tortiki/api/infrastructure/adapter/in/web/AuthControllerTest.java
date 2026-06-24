@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tortiki.api.application.port.in.FindUserUseCase;
 import com.tortiki.api.application.port.in.RegisterUserUseCase;
 import com.tortiki.api.config.SecurityConfig;
 import com.tortiki.api.config.SecurityConstants;
@@ -24,7 +25,6 @@ import io.qameta.allure.Feature;
 import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
 import io.qameta.allure.Story;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,6 +42,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.List;
 
 /**
  * Tests unitaires de la couche REST {@link AuthController}.
@@ -78,6 +80,8 @@ class AuthControllerTest {
   @Autowired
   private ObjectMapper objectMapper;
 
+  // ── Mocks de tous les beans injectés dans AuthController ──────────────────
+
   @MockitoBean
   private RegisterUserUseCase registerUserUseCase;
 
@@ -86,6 +90,11 @@ class AuthControllerTest {
 
   @MockitoBean
   private UserWebMapper userWebMapper;
+
+  @MockitoBean
+  private FindUserUseCase findUserUseCase;
+
+  // ── Fixtures ──────────────────────────────────────────────────────────────
 
   /** Utilisateur domaine retourné par les mocks. */
   private User sofia;
@@ -100,14 +109,14 @@ class AuthControllerTest {
   void setUp() {
     sofia = new User();
     sofia.setId(1L);
-    sofia.setEmail("sofia@example.com");
-    sofia.setFirstName("Sofia");
-    sofia.setLastName("Kovalenko");
+    sofia.setEmail(TEST_EMAIL);
+    sofia.setFirstName(TEST_FIRST);
+    sofia.setLastName(TEST_LAST);
     sofia.setEnabled(true);
     sofia.addRole(new Role(1L, RoleName.SELLER));
 
     sofiaResponse = new UserResponse(
-        1L, "sofia@example.com", "Sofia", "Kovalenko", Set.of(RoleName.SELLER)
+        1L, TEST_EMAIL, TEST_FIRST, TEST_LAST, Set.of(RoleName.SELLER)
     );
   }
 
@@ -119,10 +128,8 @@ class AuthControllerTest {
   @Description("Sofia s'inscrit — HTTP 201 avec le profil utilisateur en réponse.")
   @DisplayName("POST /register — retourne 201 avec UserResponse si l'inscription réussit")
   void register_shouldReturn201_whenSuccessful() throws Exception {
-    when(registerUserUseCase.register(
-        new RegisterUserUseCase.Command(
-            TEST_EMAIL, TEST_PASSWORD, TEST_FIRST, TEST_LAST, RoleName.SELLER)
-    )).thenReturn(sofia);
+    when(registerUserUseCase.register(any(RegisterUserUseCase.Command.class)))
+        .thenReturn(sofia);
     when(userWebMapper.toResponse(sofia)).thenReturn(sofiaResponse);
 
     mockMvc.perform(post(SecurityConstants.ROUTE_AUTH_REGISTER)
@@ -131,9 +138,9 @@ class AuthControllerTest {
             .with(csrf()))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.id").value(1L))
-        .andExpect(jsonPath("$.email").value("sofia@example.com"))
-        .andExpect(jsonPath("$.firstName").value("Sofia"))
-        .andExpect(jsonPath("$.lastName").value("Kovalenko"));
+        .andExpect(jsonPath("$.email").value(TEST_EMAIL))
+        .andExpect(jsonPath("$.firstName").value(TEST_FIRST))
+        .andExpect(jsonPath("$.lastName").value(TEST_LAST));
   }
 
   @Test
@@ -180,7 +187,7 @@ class AuthControllerTest {
   @DisplayName("POST /login — retourne 200 avec UserResponse si les credentials sont valides")
   void login_shouldReturn200_whenCredentialsAreValid() throws Exception {
     UserDetails principalMock = new org.springframework.security.core.userdetails.User(
-        "sofia@example.com",
+        TEST_EMAIL,
         "",
         List.of(new SimpleGrantedAuthority("ROLE_SELLER"))
     );
@@ -192,15 +199,17 @@ class AuthControllerTest {
         );
 
     when(authenticationManager.authenticate(any())).thenReturn(authToken);
-    when(userWebMapper.toResponse(any(UserDetails.class))).thenReturn(sofiaResponse);
+    // AuthController récupère le User domaine via findUserUseCase, puis mappe
+    when(findUserUseCase.findByEmail(TEST_EMAIL)).thenReturn(sofia);
+    when(userWebMapper.toResponse(sofia)).thenReturn(sofiaResponse);
 
     mockMvc.perform(post(SecurityConstants.ROUTE_AUTH_LOGIN)
             .contentType(MediaType.APPLICATION_JSON)
             .content(buildLoginBody())
             .with(csrf()))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.email").value("sofia@example.com"))
-        .andExpect(jsonPath("$.firstName").value("Sofia"));
+        .andExpect(jsonPath("$.email").value(TEST_EMAIL))
+        .andExpect(jsonPath("$.firstName").value(TEST_FIRST));
   }
 
   @Test
@@ -220,7 +229,7 @@ class AuthControllerTest {
         .andExpect(jsonPath("$.status").value(401))
         .andExpect(jsonPath("$.message").value("Identifiants invalides"));
 
-    verify(userWebMapper, never()).toResponse(any(UserDetails.class));
+    verify(userWebMapper, never()).toResponse(any(User.class));
   }
 
   @Test
@@ -254,7 +263,7 @@ class AuthControllerTest {
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   /**
-   * Construit le corps JSON d'une requête d'inscription.
+   * Construit le corps JSON d'une requête d'inscription valide.
    */
   private String buildRegisterBody() throws Exception {
     return objectMapper.writeValueAsString(Map.of(
@@ -277,7 +286,7 @@ class AuthControllerTest {
   }
 
   /**
-   * Construit le corps JSON d'une requête de connexion.
+   * Construit le corps JSON d'une requête de connexion valide.
    */
   private String buildLoginBody() throws Exception {
     return objectMapper.writeValueAsString(Map.of(
