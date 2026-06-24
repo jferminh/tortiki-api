@@ -19,15 +19,27 @@ import org.springframework.data.repository.query.Param;
 public interface ListingJpaRepository extends JpaRepository<ListingJpaEntity, Long> {
 
   /**
-   * Recherche une annonce par identifiant avec le vendeur chargé en eager via JOIN FETCH.
+   * Recherche une annonce par identifiant avec toutes les associations
+   * nécessaires au mapping domaine chargées en eager via JOIN FETCH.
    *
-   * <p>Évite la {@code LazyInitializationException} lors du mapping vers le domaine
-   * quand la session JPA est fermée. Utilisé par {@link ListingJpaAdapter#findById(Long)}.</p>
+   * <p>Initialise {@code seller}, {@code cuisineType} et {@code allergens}
+   * pour éviter toute {@code LazyInitializationException} dans
+   * {@link ListingPersistenceMapper#toDomain(ListingJpaEntity)}.</p>
+   *
+   * <p>{@code DISTINCT} évite les doublons produits par le JOIN sur
+   * la collection {@code allergens} (relation ManyToMany).</p>
    *
    * @param id identifiant de l'annonce
-   * @return l'annonce avec le vendeur initialisé, vide si absente
+   * @return l'annonce avec toutes les associations initialisées, vide si absente
    */
-  @Query("SELECT l FROM ListingJpaEntity l JOIN FETCH l.seller WHERE l.id = :id")
+  @Query(
+      """
+      SELECT DISTINCT l FROM ListingJpaEntity l
+      JOIN FETCH l.seller
+      JOIN FETCH l.cuisineType
+      LEFT JOIN FETCH l.allergens
+      WHERE l.id = :id
+      """)
   Optional<ListingJpaEntity> findByIdWithSeller(@Param("id") Long id);
 
   /**
