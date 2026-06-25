@@ -1,7 +1,9 @@
 package com.tortiki.api.infrastructure.adapter.out.persistence;
 
 import com.tortiki.api.application.port.out.ContactRequestRepository;
+import com.tortiki.api.domain.exception.ContactRequestNotFoundException;
 import com.tortiki.api.domain.model.ContactRequest;
+import com.tortiki.api.domain.model.ContactRequestStatus;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +23,7 @@ import org.springframework.stereotype.Repository;
 public class ContactRequestRepositoryAdapter implements ContactRequestRepository {
 
   /** Repository Spring Data JPA — accès direct à la table contact_requests. */
-  private final ContactRequestJpaRepository jpaRepository;
+  private final ContactRequestJpaRepository contactRequestJpaRepository;
 
   /** {@inheritDoc} */
   @Override
@@ -29,7 +31,7 @@ public class ContactRequestRepositoryAdapter implements ContactRequestRepository
     log.debug("Persistance demande de contact — listing {} buyer {}",
         contactRequest.getListing().getId(), contactRequest.getBuyer().getId());
     ContactRequestJpaEntity entity = ContactRequestPersistenceMapper.toEntity(contactRequest);
-    ContactRequestJpaEntity saved = jpaRepository.save(entity);
+    ContactRequestJpaEntity saved = contactRequestJpaRepository.save(entity);
     log.info("Demande de contact {} persistée avec statut {}",
         saved.getId(), saved.getStatus());
     return ContactRequestPersistenceMapper.toDomain(saved);
@@ -39,13 +41,13 @@ public class ContactRequestRepositoryAdapter implements ContactRequestRepository
   @Override
   public Optional<ContactRequest> findById(final Long id) {
     log.debug("Recherche demande de contact par id : {}", id);
-    return jpaRepository.findById(id).map(ContactRequestPersistenceMapper::toDomain);
+    return contactRequestJpaRepository.findById(id).map(ContactRequestPersistenceMapper::toDomain);
   }
 
   /** {@inheritDoc} */
   @Override
   public boolean existsByListingIdAndBuyerId(final Long listingId, final Long buyerId) {
-    boolean exists = jpaRepository.existsByListingIdAndBuyerId(listingId, buyerId);
+    boolean exists = contactRequestJpaRepository.existsByListingIdAndBuyerId(listingId, buyerId);
     log.debug("Vérification doublon listing {} buyer {} → {}", listingId, buyerId, exists);
     return exists;
   }
@@ -54,7 +56,7 @@ public class ContactRequestRepositoryAdapter implements ContactRequestRepository
   @Override
   public List<ContactRequest> findByListingId(final Long listingId) {
     log.debug("Recherche demandes pour l'annonce : {}", listingId);
-    return jpaRepository.findByListingId(listingId)
+    return contactRequestJpaRepository.findByListingId(listingId)
         .stream()
         .map(ContactRequestPersistenceMapper::toDomain)
         .toList();
@@ -64,9 +66,49 @@ public class ContactRequestRepositoryAdapter implements ContactRequestRepository
   @Override
   public List<ContactRequest> findByBuyerId(final Long buyerId) {
     log.debug("Recherche demandes pour l'acheteur : {}", buyerId);
-    return jpaRepository.findByBuyerId(buyerId)
+    return contactRequestJpaRepository.findByBuyerId(buyerId)
         .stream()
         .map(ContactRequestPersistenceMapper::toDomain)
         .toList();
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public List<ContactRequest> findBySellerId(final Long sellerId) {
+    log.debug("Recherche des demandes pour le vendeur id={}", sellerId);
+    return contactRequestJpaRepository.findBySellerId(sellerId)
+        .stream()
+        .map(ContactRequestPersistenceMapper::toDomain)
+        .toList();
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public Optional<ContactRequest> findByIdAndSellerId(
+      final Long contactRequestId,
+      final Long sellerId) {
+    log.debug("Recherche demande #{} pour vendeur id={}", contactRequestId, sellerId);
+    return contactRequestJpaRepository.findByIdForSeller(contactRequestId, sellerId)
+        .map(ContactRequestPersistenceMapper::toDomain);
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public ContactRequest updateStatus(
+      final Long contactRequestId,
+      final ContactRequestStatus newStatus) {
+    log.debug("Mise à jour statut demande #{} → {}", contactRequestId, newStatus);
+    ContactRequestJpaEntity entity = contactRequestJpaRepository.findById(contactRequestId)
+        .orElseThrow(() -> new ContactRequestNotFoundException(contactRequestId));
+    entity.setStatus(newStatus);
+    ContactRequestJpaEntity saved = contactRequestJpaRepository.save(entity);
+    log.info("Demande #{} : statut mis à jour → {}", saved.getId(), saved.getStatus());
+    return ContactRequestPersistenceMapper.toDomain(saved);
   }
 }
