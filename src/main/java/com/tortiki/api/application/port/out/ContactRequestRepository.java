@@ -1,6 +1,7 @@
 package com.tortiki.api.application.port.out;
 
 import com.tortiki.api.domain.model.ContactRequest;
+import com.tortiki.api.domain.model.ContactRequestStatus;
 import java.util.List;
 import java.util.Optional;
 
@@ -60,4 +61,33 @@ public interface ContactRequestRepository {
    * @return liste des demandes de l'acheteur, vide si aucune
    */
   List<ContactRequest> findByBuyerId(Long buyerId);
+
+  /**
+   * Recherche les demandes de contact reçues pour un vendeur donné.
+   *
+   * @param sellerId identifiant du vendeur
+   * @return liste des demandes reçues, triées par date décroissante
+   */
+  List<ContactRequest> findBySellerId(Long sellerId);
+
+  /**
+   * Recherche une demande par son identifiant et le vendeur propriétaire.
+   *
+   * <p>Garantit qu'un vendeur ne peut accéder qu'aux demandes
+   * de ses propres annonces.</p>
+   *
+   * @param contactRequestId identifiant de la demande
+   * @param sellerId         identifiant du vendeur propriétaire
+   * @return la demande si trouvée et appartenant au vendeur
+   */
+  Optional<ContactRequest> findByIdAndSellerId(Long contactRequestId, Long sellerId);
+
+  /**
+   * Met à jour le statut d'une demande de contact.
+   *
+   * @param contactRequestId identifiant de la demande
+   * @param newStatus        nouveau statut à appliquer
+   * @return la demande mise à jour
+   */
+  ContactRequest updateStatus(Long contactRequestId, ContactRequestStatus newStatus);
 }

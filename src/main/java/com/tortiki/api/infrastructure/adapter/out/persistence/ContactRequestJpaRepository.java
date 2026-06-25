@@ -1,6 +1,7 @@
 package com.tortiki.api.infrastructure.adapter.out.persistence;
 
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -46,4 +47,34 @@ public interface ContactRequestJpaRepository
    * @return liste des entités demandes
    */
   List<ContactRequestJpaEntity> findByBuyerId(Long buyerId);
+
+  /**
+   * Recherche les demandes reçues pour les annonces d'un vendeur.
+   *
+   * <p>Requête JPQL explicite — évite les underscores de navigation
+   * interdits par Checkstyle Google Style.</p>
+   *
+   * @param sellerId identifiant du vendeur propriétaire des annonces
+   * @return liste des demandes reçues
+   */
+  @Query("SELECT cr FROM ContactRequestJpaEntity cr"
+      + " WHERE cr.listing.seller.id = :sellerId")
+  List<ContactRequestJpaEntity> findBySellerId(@Param("sellerId") Long sellerId);
+
+  /**
+   * Recherche une demande par son identifiant et le vendeur propriétaire.
+   *
+   * <p>Contrôle d'accès métier — un vendeur ne peut accéder
+   * qu'aux demandes de ses propres annonces.</p>
+   *
+   * @param contactRequestId identifiant de la demande
+   * @param sellerId         identifiant du vendeur propriétaire
+   * @return la demande si elle appartient bien au vendeur
+   */
+  @Query("SELECT cr FROM ContactRequestJpaEntity cr"
+      + " WHERE cr.id = :contactRequestId"
+      + " AND cr.listing.seller.id = :sellerId")
+  Optional<ContactRequestJpaEntity> findByIdForSeller(
+      @Param("contactRequestId") Long contactRequestId,
+      @Param("sellerId") Long sellerId);
 }
