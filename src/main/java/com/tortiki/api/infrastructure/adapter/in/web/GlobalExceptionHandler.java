@@ -4,7 +4,10 @@ import com.tortiki.api.domain.exception.AllergenNotFoundException;
 import com.tortiki.api.domain.exception.ContactRequestAlreadyExistsException;
 import com.tortiki.api.domain.exception.ContactRequestNotFoundException;
 import com.tortiki.api.domain.exception.CuisineTypeNotFoundException;
+import com.tortiki.api.domain.exception.InvalidStatusTransitionException;
 import com.tortiki.api.domain.exception.ListingNotFoundException;
+import com.tortiki.api.domain.exception.ReviewAlreadyExistsException;
+import com.tortiki.api.domain.exception.ReviewNotAllowedException;
 import com.tortiki.api.domain.exception.RoleNotFoundException;
 import com.tortiki.api.domain.exception.SelfContactException;
 import com.tortiki.api.domain.exception.StorageException;
@@ -37,41 +40,30 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-  /**
-   * Libellé HTTP pour les ressources introuvables (404).
-   */
+  /** Libellé HTTP pour les ressources introuvables (404). */
   private static final String NOT_FOUND = "Not Found";
 
-  /**
-   * Libellé HTTP pour les accès refusés (403).
-   */
+  /** Libellé HTTP pour les accès refusés (403). */
   private static final String FORBIDDEN = "Forbidden";
 
-  /**
-   * Libellé HTTP pour les conflits de données (409).
-   */
+  /** Libellé HTTP pour les conflits de données (409). */
   private static final String CONFLICT = "Conflict";
 
-  /**
-   * Libellé HTTP pour les erreurs de validation (400).
-   */
+  /** Libellé HTTP pour les erreurs de validation (400). */
   private static final String BAD_REQUEST = "Bad Request";
 
-  /**
-   * Libellé HTTP pour les entités non traitables (422).
-   */
+  /** Libellé HTTP pour les entités non traitables (422). */
   private static final String UNPROCESSABLE = "Unprocessable Entity";
 
-  /**
-   * Libellé HTTP pour les erreurs serveur inattendues (500).
-   */
+  /** Libellé HTTP pour les erreurs serveur inattendues (500). */
   private static final String INTERNAL_SERVER_ERROR = "Internal Server Error";
 
-  /**
-   * Libellé HTTP pour les erreurs de service externe (503).
-   */
+  /** Libellé HTTP pour les erreurs de service externe (503). */
   private static final String SERVICE_UNAVAILABLE = "Service Unavailable";
 
+  // ═══════════════════════════════════════════════════════
+  // Utilisateur
+  // ═══════════════════════════════════════════════════════
 
   /**
    * Gère les tentatives d'inscription avec un email déjà utilisé.
@@ -81,7 +73,7 @@ public class GlobalExceptionHandler {
    */
   @ExceptionHandler(UserAlreadyExistsException.class)
   public ResponseEntity<ErrorResponse> handleUserAlreadyExists(
-      UserAlreadyExistsException ex) {
+      final UserAlreadyExistsException ex) {
     log.warn("Tentative d'inscription avec un email existant : {}", ex.getMessage());
     return ResponseEntity
         .status(HttpStatus.CONFLICT)
@@ -96,12 +88,31 @@ public class GlobalExceptionHandler {
    */
   @ExceptionHandler(UserNotFoundException.class)
   public ResponseEntity<ErrorResponse> handleUserNotFound(
-      UserNotFoundException ex) {
+      final UserNotFoundException ex) {
     log.warn("Utilisateur introuvable : {}", ex.getMessage());
     return ResponseEntity
         .status(HttpStatus.NOT_FOUND)
         .body(ErrorResponse.of(404, NOT_FOUND, ex.getMessage()));
   }
+
+  /**
+   * Gère les rôles introuvables en base lors de l'inscription.
+   *
+   * @param ex exception levée par {@code UserService}
+   * @return réponse HTTP 422 Unprocessable Entity
+   */
+  @ExceptionHandler(RoleNotFoundException.class)
+  public ResponseEntity<ErrorResponse> handleRoleNotFound(
+      final RoleNotFoundException ex) {
+    log.error("Rôle introuvable — vérifier Flyway V1 : {}", ex.getMessage());
+    return ResponseEntity
+        .status(HttpStatus.UNPROCESSABLE_ENTITY)
+        .body(ErrorResponse.of(422, UNPROCESSABLE, ex.getMessage()));
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // Annonce
+  // ═══════════════════════════════════════════════════════
 
   /**
    * Gère les recherches d'annonce infructueuses.
@@ -111,7 +122,7 @@ public class GlobalExceptionHandler {
    */
   @ExceptionHandler(ListingNotFoundException.class)
   public ResponseEntity<ErrorResponse> handleListingNotFound(
-      ListingNotFoundException ex) {
+      final ListingNotFoundException ex) {
     log.warn("Annonce introuvable : {}", ex.getMessage());
     return ResponseEntity
         .status(HttpStatus.NOT_FOUND)
@@ -126,7 +137,7 @@ public class GlobalExceptionHandler {
    */
   @ExceptionHandler(CuisineTypeNotFoundException.class)
   public ResponseEntity<ErrorResponse> handleCuisineTypeNotFound(
-      CuisineTypeNotFoundException ex) {
+      final CuisineTypeNotFoundException ex) {
     log.warn("Origine culinaire introuvable : {}", ex.getMessage());
     return ResponseEntity
         .status(HttpStatus.NOT_FOUND)
@@ -141,22 +152,26 @@ public class GlobalExceptionHandler {
    */
   @ExceptionHandler(AllergenNotFoundException.class)
   public ResponseEntity<ErrorResponse> handleAllergenNotFound(
-      AllergenNotFoundException ex) {
+      final AllergenNotFoundException ex) {
     log.warn("Allergène introuvable : {}", ex.getMessage());
     return ResponseEntity
         .status(HttpStatus.NOT_FOUND)
         .body(ErrorResponse.of(404, NOT_FOUND, ex.getMessage()));
   }
 
+  // ═══════════════════════════════════════════════════════
+  // Demande de contact
+  // ═══════════════════════════════════════════════════════
+
   /**
    * Gère les recherches de demande de contact infructueuses.
    *
-   * @param ex exception levée par {@code ContactRequestService}
+   * @param ex exception levée par {@code ManageContactRequestService}
    * @return réponse HTTP 404 Not Found
    */
   @ExceptionHandler(ContactRequestNotFoundException.class)
   public ResponseEntity<ErrorResponse> handleContactRequestNotFound(
-      ContactRequestNotFoundException ex) {
+      final ContactRequestNotFoundException ex) {
     log.warn("Demande de contact introuvable : {}", ex.getMessage());
     return ResponseEntity
         .status(HttpStatus.NOT_FOUND)
@@ -171,7 +186,7 @@ public class GlobalExceptionHandler {
    */
   @ExceptionHandler(ContactRequestAlreadyExistsException.class)
   public ResponseEntity<ErrorResponse> handleContactRequestAlreadyExists(
-      ContactRequestAlreadyExistsException ex) {
+      final ContactRequestAlreadyExistsException ex) {
     log.warn("Demande de contact en doublon : {}", ex.getMessage());
     return ResponseEntity
         .status(HttpStatus.CONFLICT)
@@ -186,7 +201,7 @@ public class GlobalExceptionHandler {
    */
   @ExceptionHandler(SelfContactException.class)
   public ResponseEntity<ErrorResponse> handleSelfContact(
-      SelfContactException ex) {
+      final SelfContactException ex) {
     log.warn("Tentative de contact sur sa propre annonce : {}", ex.getMessage());
     return ResponseEntity
         .status(HttpStatus.CONFLICT)
@@ -194,19 +209,65 @@ public class GlobalExceptionHandler {
   }
 
   /**
-   * Gère les rôles introuvables en base lors de l'inscription.
+   * Gère les transitions de statut interdites sur une demande de contact.
    *
-   * @param ex exception levée par {@code UserService}
-   * @return réponse HTTP 422 Unprocessable Entity
+   * <p>Les statuts {@code CONFIRMED} et {@code REFUSED} sont définitifs —
+   * toute tentative de modification ultérieure lève cette exception.</p>
+   *
+   * @param ex exception levée par {@code ManageContactRequestService}
+   * @return réponse HTTP 409 Conflict
    */
-  @ExceptionHandler(RoleNotFoundException.class)
-  public ResponseEntity<ErrorResponse> handleRoleNotFound(
-      RoleNotFoundException ex) {
-    log.error("Rôle introuvable — vérifier Flyway V1 : {}", ex.getMessage());
+  @ExceptionHandler(InvalidStatusTransitionException.class)
+  public ResponseEntity<ErrorResponse> handleInvalidStatusTransition(
+      final InvalidStatusTransitionException ex) {
+    log.warn("Transition de statut interdite : {}", ex.getMessage());
     return ResponseEntity
-        .status(HttpStatus.UNPROCESSABLE_ENTITY)
-        .body(ErrorResponse.of(422, UNPROCESSABLE, ex.getMessage()));
+        .status(HttpStatus.CONFLICT)
+        .body(ErrorResponse.of(409, CONFLICT, ex.getMessage()));
   }
+
+  // ═══════════════════════════════════════════════════════
+  // Évaluation (Review)
+  // ═══════════════════════════════════════════════════════
+
+  /**
+   * Gère les tentatives de double évaluation sur une même annonce.
+   *
+   * <p>Un acheteur ne peut laisser qu'une seule évaluation par annonce.</p>
+   *
+   * @param ex exception levée par {@code SubmitReviewUseCase}
+   * @return réponse HTTP 409 Conflict
+   */
+  @ExceptionHandler(ReviewAlreadyExistsException.class)
+  public ResponseEntity<ErrorResponse> handleReviewAlreadyExists(
+      final ReviewAlreadyExistsException ex) {
+    log.warn("Évaluation en doublon : {}", ex.getMessage());
+    return ResponseEntity
+        .status(HttpStatus.CONFLICT)
+        .body(ErrorResponse.of(409, CONFLICT, ex.getMessage()));
+  }
+
+  /**
+   * Gère les tentatives de notation sans demande confirmée préalable.
+   *
+   * <p>Un acheteur ne peut évaluer une annonce que si sa demande
+   * de contact est au statut {@code CONFIRMED}.</p>
+   *
+   * @param ex exception levée par {@code SubmitReviewUseCase}
+   * @return réponse HTTP 403 Forbidden
+   */
+  @ExceptionHandler(ReviewNotAllowedException.class)
+  public ResponseEntity<ErrorResponse> handleReviewNotAllowed(
+      final ReviewNotAllowedException ex) {
+    log.warn("Évaluation non autorisée : {}", ex.getMessage());
+    return ResponseEntity
+        .status(HttpStatus.FORBIDDEN)
+        .body(ErrorResponse.of(403, FORBIDDEN, ex.getMessage()));
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // Sécurité & autorisation
+  // ═══════════════════════════════════════════════════════
 
   /**
    * Gère les tentatives d'action non autorisée sur une ressource.
@@ -216,32 +277,11 @@ public class GlobalExceptionHandler {
    */
   @ExceptionHandler(UnauthorizedActionException.class)
   public ResponseEntity<ErrorResponse> handleUnauthorizedAction(
-      UnauthorizedActionException ex) {
+      final UnauthorizedActionException ex) {
     log.warn("Action non autorisée : {}", ex.getMessage());
     return ResponseEntity
         .status(HttpStatus.FORBIDDEN)
         .body(ErrorResponse.of(403, FORBIDDEN, ex.getMessage()));
-  }
-
-  /**
-   * Gère les erreurs de validation Bean Validation ({@code @Valid}).
-   *
-   * @param ex exception levée par Spring Validation
-   * @return réponse HTTP 400 Bad Request avec le détail des champs invalides
-   */
-  @ExceptionHandler(MethodArgumentNotValidException.class)
-  public ResponseEntity<ErrorResponse> handleValidation(
-      MethodArgumentNotValidException ex) {
-
-    String message = ex.getBindingResult()
-        .getFieldErrors()
-        .stream()
-        .map(fe -> fe.getField() + " : " + fe.getDefaultMessage())
-        .collect(java.util.stream.Collectors.joining(" | "));
-    log.warn("Erreur de validation : {}", message);
-    return ResponseEntity
-        .status(HttpStatus.BAD_REQUEST)
-        .body(ErrorResponse.of(400, BAD_REQUEST, message));
   }
 
   /**
@@ -255,7 +295,7 @@ public class GlobalExceptionHandler {
    * @throws AccessDeniedException relancée vers Spring Security
    */
   @ExceptionHandler(AccessDeniedException.class)
-  public void handleAccessDenied(AccessDeniedException ex)
+  public void handleAccessDenied(final AccessDeniedException ex)
       throws AccessDeniedException {
     throw ex;
   }
@@ -271,7 +311,7 @@ public class GlobalExceptionHandler {
    * @throws AuthorizationDeniedException relancée vers Spring Security
    */
   @ExceptionHandler(AuthorizationDeniedException.class)
-  public void handleAuthorizationDenied(AuthorizationDeniedException ex)
+  public void handleAuthorizationDenied(final AuthorizationDeniedException ex)
       throws AuthorizationDeniedException {
     throw ex;
   }
@@ -284,11 +324,35 @@ public class GlobalExceptionHandler {
    */
   @ExceptionHandler(BadCredentialsException.class)
   public ResponseEntity<ErrorResponse> handleBadCredentials(
-      BadCredentialsException ex) {
+      final BadCredentialsException ex) {
     log.warn("Tentative de connexion échouée : {}", ex.getMessage());
     return ResponseEntity
         .status(HttpStatus.UNAUTHORIZED)
         .body(ErrorResponse.of(401, "Unauthorized", "Identifiants invalides"));
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // Validation & technique
+  // ═══════════════════════════════════════════════════════
+
+  /**
+   * Gère les erreurs de validation Bean Validation ({@code @Valid}).
+   *
+   * @param ex exception levée par Spring Validation
+   * @return réponse HTTP 400 Bad Request avec le détail des champs invalides
+   */
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity<ErrorResponse> handleValidation(
+      final MethodArgumentNotValidException ex) {
+    String message = ex.getBindingResult()
+        .getFieldErrors()
+        .stream()
+        .map(fe -> fe.getField() + " : " + fe.getDefaultMessage())
+        .collect(java.util.stream.Collectors.joining(" | "));
+    log.warn("Erreur de validation : {}", message);
+    return ResponseEntity
+        .status(HttpStatus.BAD_REQUEST)
+        .body(ErrorResponse.of(400, BAD_REQUEST, message));
   }
 
   /**
@@ -301,7 +365,7 @@ public class GlobalExceptionHandler {
    * @return réponse HTTP 503 Service Unavailable
    */
   @ExceptionHandler(StorageException.class)
-  public ResponseEntity<ErrorResponse> handleStorage(StorageException ex) {
+  public ResponseEntity<ErrorResponse> handleStorage(final StorageException ex) {
     log.error("Échec du stockage fichier : {}", ex.getMessage());
     return ResponseEntity
         .status(HttpStatus.SERVICE_UNAVAILABLE)
@@ -316,7 +380,7 @@ public class GlobalExceptionHandler {
    * @return réponse HTTP 500 Internal Server Error
    */
   @ExceptionHandler(Exception.class)
-  public ResponseEntity<ErrorResponse> handleGeneric(Exception ex) {
+  public ResponseEntity<ErrorResponse> handleGeneric(final Exception ex) {
     log.error("Erreur inattendue : {}", ex.getMessage(), ex);
     return ResponseEntity
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
