@@ -24,12 +24,12 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Contrôleur REST du tableau de bord vendeur.
  *
- * <p>Exposer les endpoints de gestion des demandes de contact reçues
+ * <p>Expose les endpoints de gestion des demandes de contact reçues
  * par le vendeur authentifié.</p>
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/seller/dashboard")
+@RequestMapping("/api/v1/seller-dashboard")
 @RequiredArgsConstructor
 @Tag(name = "Tableau de bord vendeur", description = "Gestion des demandes reçues")
 public class SellerDashboardController {
@@ -53,7 +53,7 @@ public class SellerDashboardController {
   @ApiResponse(responseCode = "403", description = "Accès réservé aux vendeurs")
   public ResponseEntity<List<ContactRequestSummaryResponse>> getDashboard(
       final Principal principal) {
-    String sellerEmail = principal.getName();
+    final String sellerEmail = principal.getName();
     log.info("Dashboard vendeur {} : consultation des demandes", sellerEmail);
 
     List<ContactRequestSummaryResponse> response =
@@ -64,7 +64,6 @@ public class SellerDashboardController {
 
     log.info("Dashboard vendeur {} : {} demande(s) retournée(s)",
         sellerEmail, response.size());
-
     return ResponseEntity.ok(response);
   }
 
@@ -95,7 +94,7 @@ public class SellerDashboardController {
       @PathVariable final Long id,
       @Valid @RequestBody final UpdateContactRequestStatusRequest request,
       final Principal principal) {
-    String sellerEmail = principal.getName();
+    final String sellerEmail = principal.getName();
     log.info("Vendeur {} : mise à jour statut demande #{} → {}",
         sellerEmail, id, request.newStatus());
 

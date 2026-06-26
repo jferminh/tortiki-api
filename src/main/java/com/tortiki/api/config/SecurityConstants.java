@@ -41,13 +41,13 @@ public final class SecurityConstants {
   // ── Annonces ───────────────────────────────────────────────────────────────
 
   /** Route de la collection d'annonces. */
-  public static final String ROUTE_LISTINGS         = API_V1 + "/listings";
+  public static final String ROUTE_LISTINGS        = API_V1 + "/listings";
 
   /** Route d'une annonce par identifiant. */
-  public static final String ROUTE_LISTING_BY_ID    = API_V1 + "/listings/{id}";
+  public static final String ROUTE_LISTING_BY_ID   = API_V1 + "/listings/{id}";
 
   /** Route de recherche géolocalisée des annonces. */
-  public static final String ROUTE_LISTINGS_SEARCH  = API_V1 + "/listings/search";
+  public static final String ROUTE_LISTINGS_SEARCH = API_V1 + "/listings/search";
 
   // ── Origines culinaires ────────────────────────────────────────────────────
 
@@ -71,16 +71,20 @@ public final class SecurityConstants {
   public static final String ROUTE_CONTACT_REQUESTS = API_V1 + "/contact-requests";
 
   /** Route de consultation des demandes de l'acheteur connecté. */
-  public static final String ROUTE_CONTACT_MY       = API_V1 + "/contact-requests/my";
+  public static final String ROUTE_CONTACT_MY = API_V1 + "/contact-requests/my";
+
+  // ── Tableau de bord vendeur ────────────────────────────────────────────────
+
+  /** Route racine du tableau de bord vendeur. */
+  public static final String ROUTE_SELLER_DASHBOARD = API_V1 + "/seller-dashboard";
 
   /** Route de consultation des demandes reçues par le vendeur. */
-  public static final String ROUTE_CONTACT_SELLER   = API_V1 + "/contact-requests/seller";
+  public static final String ROUTE_SELLER_DASHBOARD_CONTACT_REQUESTS =
+      API_V1 + "/seller-dashboard/contact-requests";
 
-  /** Route de confirmation d'une demande de contact. */
-  public static final String ROUTE_CONTACT_CONFIRM  = API_V1 + "/contact-requests/{id}/confirm";
-
-  /** Route de refus d'une demande de contact. */
-  public static final String ROUTE_CONTACT_REFUSE   = API_V1 + "/contact-requests/{id}/refuse";
+  /** Route de mise à jour du statut d'une demande (confirmer / refuser). */
+  public static final String ROUTE_SELLER_DASHBOARD_CONTACT_STATUS =
+      API_V1 + "/seller-dashboard/contact-requests/{id}/status";
 
   // ── Notations ──────────────────────────────────────────────────────────────
 
@@ -90,7 +94,7 @@ public final class SecurityConstants {
   // ── Administration ─────────────────────────────────────────────────────────
 
   /** Route générique de l'espace d'administration. */
-  public static final String ROUTE_ADMIN_ALL          = API_V1 + "/admin/**";
+  public static final String ROUTE_ADMIN_ALL = API_V1 + "/admin/**";
 
   /** Route de modération des annonces signalées (Sprint 3). */
   public static final String ROUTE_ADMIN_LISTINGS_ALL = API_V1 + "/admin/listings/**";

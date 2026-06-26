@@ -48,7 +48,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @DisplayName("SellerDashboardController")
 class SellerDashboardControllerTest {
 
-  private static final String DASHBOARD_URL = "/api/v1/seller/dashboard/contact-requests";
+  private static final String DASHBOARD_URL = "/api/v1/seller-dashboard/contact-requests";
   private static final String SELLER_EMAIL = "sofia@tortiki.fr";
   private static final String BUYER_EMAIL = "theo@tortiki.fr";
   private static final Long REQUEST_ID = 1L;
