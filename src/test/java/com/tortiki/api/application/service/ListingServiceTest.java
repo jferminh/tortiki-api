@@ -3,12 +3,14 @@ package com.tortiki.api.application.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.tortiki.api.application.port.in.ManageListingUseCase;
 import com.tortiki.api.application.port.out.AllergenRepository;
 import com.tortiki.api.application.port.out.CuisineTypeRepository;
+import com.tortiki.api.application.port.out.GeolocationPort;
 import com.tortiki.api.application.port.out.ListingRepository;
 import com.tortiki.api.application.port.out.StoragePort;
 import com.tortiki.api.application.port.out.UserRepository;
@@ -69,6 +71,9 @@ class ListingServiceTest {
   @Mock
   private StoragePort storagePort;
 
+  @Mock
+  private GeolocationPort geolocationPort;
+
   @InjectMocks
   private ListingService listingService;
 
@@ -77,9 +82,7 @@ class ListingServiceTest {
   private Listing listing;
   private ManageListingUseCase.Command command;
 
-  /**
-   * Initialiser les fixtures partagées entre les tests.
-   */
+  /** Initialiser les fixtures partagées entre les tests. */
   @BeforeEach
   void setUp() {
     sofia = new User();
@@ -95,6 +98,7 @@ class ListingServiceTest {
     listing.setSeller(sofia);
     listing.setTitle("Bortsch maison");
     listing.setStatus(ListingStatus.ACTIVE);
+    listing.setPickupAddress("12 rue des Acacias, 67000 Strasbourg");
 
     command = new ManageListingUseCase.Command(
         "Bortsch maison",
@@ -119,12 +123,32 @@ class ListingServiceTest {
     when(userRepository.findById(1L)).thenReturn(Optional.of(sofia));
     when(cuisineTypeRepository.findById(10L)).thenReturn(Optional.of(ukrainienne));
     when(allergenRepository.findAllByIdIn(List.of())).thenReturn(List.of());
+    when(geolocationPort.geocode(anyString()))
+        .thenReturn(Optional.of(new GeolocationPort.Coordinates(48.57, 7.75)));
     when(listingRepository.save(any(Listing.class))).thenReturn(listing);
 
     Listing result = listingService.create(1L, command);
 
     assertThat(result.getId()).isEqualTo(100L);
     assertThat(result.getStatus()).isEqualTo(ListingStatus.ACTIVE);
+    verify(listingRepository).save(any(Listing.class));
+  }
+
+  @Test
+  @Story("Création d'une annonce")
+  @Severity(SeverityLevel.NORMAL)
+  @Description("Nominatim indisponible — annonce créée sans coordonnées, pas d'exception.")
+  @DisplayName("create — crée l'annonce sans coordonnées si Nominatim échoue")
+  void create_shouldSaveListing_whenGeolocationReturnsEmpty() {
+    when(userRepository.findById(1L)).thenReturn(Optional.of(sofia));
+    when(cuisineTypeRepository.findById(10L)).thenReturn(Optional.of(ukrainienne));
+    when(allergenRepository.findAllByIdIn(List.of())).thenReturn(List.of());
+    when(geolocationPort.geocode(anyString())).thenReturn(Optional.empty());
+    when(listingRepository.save(any(Listing.class))).thenReturn(listing);
+
+    Listing result = listingService.create(1L, command);
+
+    assertThat(result).isNotNull();
     verify(listingRepository).save(any(Listing.class));
   }
 
@@ -160,9 +184,38 @@ class ListingServiceTest {
   @Test
   @Story("Modification d'une annonce")
   @Severity(SeverityLevel.NORMAL)
-  @Description("Sofia modifie son annonce — elle est propriétaire, la mise à jour est acceptée.")
-  @DisplayName("update — met à jour une annonce appartenant au vendeur")
+  @Description("Sofia modifie son annonce avec une nouvelle adresse — Nominatim appelé.")
+  @DisplayName("update — met à jour une annonce et re-géocode si l'adresse change")
   void update_shouldUpdateListing_whenSellerIsOwner() {
+    final ManageListingUseCase.Command updatedCommand = new ManageListingUseCase.Command(
+        "Bortsch maison — édition été",
+        "Recette estivale",
+        new BigDecimal("9.50"),
+        4,
+        "2 Allée Lys Rouge, 54000 Nancy",
+        LocalDateTime.of(2026, Month.JULY, 15, 12, 0),
+        10L,
+        List.of()
+    );
+    when(listingRepository.findById(100L)).thenReturn(Optional.of(listing));
+    when(allergenRepository.findAllByIdIn(List.of())).thenReturn(List.of());
+    when(geolocationPort.geocode(anyString()))
+        .thenReturn(Optional.of(new GeolocationPort.Coordinates(48.69, 6.18)));
+    when(listingRepository.save(any(Listing.class))).thenReturn(listing);
+
+    Listing result = listingService.update(100L, 1L, updatedCommand);
+
+    assertThat(result).isNotNull();
+    verify(geolocationPort).geocode("2 Allée Lys Rouge, 54000 Nancy");
+    verify(listingRepository).save(any(Listing.class));
+  }
+
+  @Test
+  @Story("Modification d'une annonce")
+  @Severity(SeverityLevel.NORMAL)
+  @Description("Sofia modifie son annonce sans changer l'adresse — Nominatim non appelé.")
+  @DisplayName("update — ne re-géocode pas si l'adresse est identique")
+  void update_shouldNotCallGeolocation_whenAddressUnchanged() {
     when(listingRepository.findById(100L)).thenReturn(Optional.of(listing));
     when(allergenRepository.findAllByIdIn(List.of())).thenReturn(List.of());
     when(listingRepository.save(any(Listing.class))).thenReturn(listing);
@@ -170,6 +223,7 @@ class ListingServiceTest {
     Listing result = listingService.update(100L, 1L, command);
 
     assertThat(result).isNotNull();
+    verify(geolocationPort, org.mockito.Mockito.never()).geocode(anyString());
     verify(listingRepository).save(any(Listing.class));
   }
 
@@ -207,9 +261,9 @@ class ListingServiceTest {
   @Description("Sofia upload la photo de son annonce — StoragePort appelé, URL persistée.")
   @DisplayName("updatePhoto — upload la photo via StoragePort et persiste l'URL")
   void updatePhoto_shouldUploadAndPersistPhotoUrl_whenSellerIsOwner() {
-    byte[] photoBytes = "photo".getBytes();
-    String photoUrl = "http://localhost:9000/tortiki-photos/uuid-listing-100.jpg";
-    ManageListingUseCase.PhotoCommand photoCommand =
+    final byte[] photoBytes = "photo".getBytes();
+    final String photoUrl = "http://localhost:9000/tortiki-photos/uuid-listing-100.jpg";
+    final ManageListingUseCase.PhotoCommand photoCommand =
         new ManageListingUseCase.PhotoCommand(photoBytes, "image/jpeg", "uuid-listing-100.jpg");
 
     when(listingRepository.findById(100L)).thenReturn(Optional.of(listing));

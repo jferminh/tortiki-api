@@ -1,0 +1,146 @@
+### =============================================================
+### TORTIKI — Administration (Sprint 3 — Issue 47)
+### PATCH /api/v1/listings/{id}/status
+###   ROLE_ADMIN  → 200 (INACTIVE / ACTIVE)
+###   ROLE_SELLER → 403 Forbidden
+###   ROLE_BUYER  → 403 Forbidden
+###   sans auth   → 401 Unauthorized
+###   inexistant  → 404 Not Found
+### ⚠️  Pré-requis : listingId sauvegardé (02-listings.http)
+### =============================================================
+
+### [1] Login Admin
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{password}}"
+}
+
+> {%
+    client.test("Login Admin → 200 OK", function() {
+        client.assert(response.status === 200, "Expected 200, got " + response.status);
+        client.assert(response.body.roles.includes("ADMIN"), "Role ADMIN attendu");
+    });
+%}
+
+###
+
+### [2] Admin désactive l'annonce → 200 INACTIVE
+PATCH {{baseUrl}}/api/v1/listings/{{listingId}}/status
+Content-Type: application/json
+
+{
+  "newStatus": "INACTIVE"
+}
+
+> {%
+    client.test("Admin désactive → 200 INACTIVE", function() {
+        client.assert(response.status === 200, "Expected 200, got " + response.status);
+        client.assert(response.body.status === "INACTIVE", "Statut attendu : INACTIVE");
+    });
+%}
+
+###
+
+### [3] Admin réactive l'annonce → 200 ACTIVE
+PATCH {{baseUrl}}/api/v1/listings/{{listingId}}/status
+Content-Type: application/json
+
+{
+  "newStatus": "ACTIVE"
+}
+
+> {%
+    client.test("Admin réactive → 200 ACTIVE", function() {
+        client.assert(response.status === 200, "Expected 200, got " + response.status);
+        client.assert(response.body.status === "ACTIVE", "Statut attendu : ACTIVE");
+    });
+%}
+
+###
+
+### [4] Annonce inexistante → 404 Not Found
+PATCH {{baseUrl}}/api/v1/listings/999999/status
+Content-Type: application/json
+
+{
+  "newStatus": "INACTIVE"
+}
+
+> {%
+    client.test("Annonce inexistante → 404", function() {
+        client.assert(response.status === 404, "Expected 404, got " + response.status);
+    });
+%}
+
+###
+
+### [5] Login Sofia — SELLER
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{sofiaEmail}}",
+  "password": "{{password}}"
+}
+
+###
+
+### [6] SELLER désactive → 403 Forbidden
+PATCH {{baseUrl}}/api/v1/listings/{{listingId}}/status
+Content-Type: application/json
+
+{
+  "newStatus": "INACTIVE"
+}
+
+> {%
+    client.test("SELLER désactive → 403 Forbidden", function() {
+        client.assert(response.status === 403, "Expected 403, got " + response.status);
+    });
+%}
+
+###
+
+### [7] Login Théo — BUYER
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{theoEmail}}",
+  "password": "{{password}}"
+}
+
+###
+
+### [8] BUYER désactive → 403 Forbidden
+PATCH {{baseUrl}}/api/v1/listings/{{listingId}}/status
+Content-Type: application/json
+
+{
+  "newStatus": "INACTIVE"
+}
+
+> {%
+    client.test("BUYER désactive → 403 Forbidden", function() {
+        client.assert(response.status === 403, "Expected 403, got " + response.status);
+    });
+%}
+
+###
+
+### [9] Sans authentification → 401 Unauthorized
+PATCH {{baseUrl}}/api/v1/listings/{{listingId}}/status
+Content-Type: application/json
+
+{
+  "newStatus": "INACTIVE"
+}
+
+> {%
+    client.test("PATCH statut sans auth → 401 Unauthorized", function() {
+        client.assert(response.status === 401, "Expected 401, got " + response.status);
+    });
+%}

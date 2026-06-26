@@ -1,0 +1,282 @@
+### =============================================================
+### TORTIKI — SellerDashboard (Sprint 3 — Issues 43 & 44)
+###
+### Issue 43 : GET  /api/v1/seller-dashboard/contact-requests
+### Issue 44 : PATCH /api/v1/seller-dashboard/contact-requests/{id}/status
+###
+### ⚠️  Pré-requis :
+###   - listingId sauvegardé (02-listings.http)
+###   - contactRequestId sauvegardé (03-contact-requests.http)
+### =============================================================
+
+### ── ISSUE 43 — Dashboard vendeur ──────────────────────────────
+
+### [1] Login Sofia — SELLER
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{sofiaEmail}}",
+  "password": "{{password}}"
+}
+
+###
+
+### [2] Sofia consulte son dashboard → 200 OK (liste PENDING)
+GET {{baseUrl}}/api/v1/seller-dashboard/contact-requests
+
+> {%
+    client.test("Dashboard vendeur → 200 OK", function() {
+        client.assert(response.status === 200, "Expected 200, got " + response.status);
+        client.assert(Array.isArray(response.body), "Réponse doit être un tableau");
+        client.assert(response.body.length > 0, "Au moins 1 demande attendue");
+        client.assert(response.body[0].status === "PENDING", "Statut attendu : PENDING");
+    });
+%}
+
+###
+
+### [3] Login Théo — BUYER
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{theoEmail}}",
+  "password": "{{password}}"
+}
+
+###
+
+### [4] BUYER accède au dashboard vendeur → 403 Forbidden
+GET {{baseUrl}}/api/v1/seller-dashboard/contact-requests
+
+> {%
+    client.test("BUYER dashboard vendeur → 403 Forbidden", function() {
+        client.assert(response.status === 403, "Expected 403, got " + response.status);
+    });
+%}
+
+###
+
+### [5] Sans authentification → 401 Unauthorized
+GET {{baseUrl}}/api/v1/seller-dashboard/contact-requests
+
+> {%
+    client.test("Dashboard sans auth → 401 Unauthorized", function() {
+        client.assert(response.status === 401, "Expected 401, got " + response.status);
+    });
+%}
+
+###
+
+### ── ISSUE 44 — PATCH statut ────────────────────────────────────
+
+### [6] Login Sofia — SELLER
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{sofiaEmail}}",
+  "password": "{{password}}"
+}
+
+###
+
+### [7] Sofia CONFIRME la demande → 200 OK — CONFIRMED
+PATCH {{baseUrl}}/api/v1/seller-dashboard/contact-requests/{{contactRequestId}}/status
+Content-Type: application/json
+
+{
+  "newStatus": "CONFIRMED"
+}
+
+> {%
+    client.test("Confirmer demande → 200 CONFIRMED", function() {
+        client.assert(response.status === 200, "Expected 200, got " + response.status);
+        client.assert(response.body.status === "CONFIRMED", "Statut attendu : CONFIRMED");
+    });
+%}
+
+###
+
+### [8] Sofia re-confirme → 409 Conflict (statut final irrversible)
+PATCH {{baseUrl}}/api/v1/seller-dashboard/contact-requests/{{contactRequestId}}/status
+Content-Type: application/json
+
+{
+  "newStatus": "CONFIRMED"
+}
+
+> {%
+    client.test("Statut final irrversible → 409 Conflict", function() {
+        client.assert(response.status === 409, "Expected 409, got " + response.status);
+    });
+%}
+
+###
+
+### [9] newStatus null → 400 Bad Request (@NotNull)
+PATCH {{baseUrl}}/api/v1/seller-dashboard/contact-requests/{{contactRequestId}}/status
+Content-Type: application/json
+
+{
+  "newStatus": null
+}
+
+> {%
+    client.test("newStatus null → 400 Bad Request", function() {
+        client.assert(response.status === 400, "Expected 400, got " + response.status);
+    });
+%}
+
+###
+
+### [10] Demande inexistante → 404 Not Found
+PATCH {{baseUrl}}/api/v1/seller-dashboard/contact-requests/999999/status
+Content-Type: application/json
+
+{
+  "newStatus": "CONFIRMED"
+}
+
+> {%
+    client.test("Demande inexistante → 404 Not Found", function() {
+        client.assert(response.status === 404, "Expected 404, got " + response.status);
+    });
+%}
+
+###
+
+### [11] Login Théo — BUYER
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{theoEmail}}",
+  "password": "{{password}}"
+}
+
+###
+
+### [12] BUYER modifie statut → 403 Forbidden (RBAC)
+PATCH {{baseUrl}}/api/v1/seller-dashboard/contact-requests/{{contactRequestId}}/status
+Content-Type: application/json
+
+{
+  "newStatus": "REFUSED"
+}
+
+> {%
+    client.test("BUYER modifie statut → 403 Forbidden", function() {
+        client.assert(response.status === 403, "Expected 403, got " + response.status);
+    });
+%}
+
+###
+
+### [13] Sans authentification → 401 Unauthorized
+PATCH {{baseUrl}}/api/v1/seller-dashboard/contact-requests/{{contactRequestId}}/status
+Content-Type: application/json
+
+{
+  "newStatus": "REFUSED"
+}
+
+> {%
+    client.test("PATCH sans auth → 401 Unauthorized", function() {
+        client.assert(response.status === 401, "Expected 401, got " + response.status);
+    });
+%}
+
+###
+
+### ── Scénario REFUSED : 2e annonce ──────────────────────────────
+
+### [14] Login Sofia — créer une 2e annonce
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{sofiaEmail}}",
+  "password": "{{password}}"
+}
+
+###
+
+POST {{baseUrl}}/api/v1/listings
+Content-Type: application/json
+
+{
+  "title": "Vareniký au fromage blanc",
+  "description": "Raviolis ukrainiens farcis au fromage frais.",
+  "price": 7.00,
+  "portions": 6,
+  "cuisineTypeId": 1,
+  "city": "Nancy",
+  "postalCode": "54000",
+  "pickupAddress": "12 rue de la Paix, Nancy",
+  "pickupDatetime": "2026-07-12T12:00:00"
+}
+
+> {%
+    client.test("2e annonce Sofia → 201", function() {
+        client.assert(response.status === 201, "Expected 201, got " + response.status);
+        client.global.set("listing2Id", response.body.id);
+    });
+%}
+
+###
+
+### [15] Login Théo — soumettre demande sur 2e annonce
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{theoEmail}}",
+  "password": "{{password}}"
+}
+
+###
+
+POST {{baseUrl}}/api/v1/contact-requests
+Content-Type: application/json
+
+{
+  "listingId": {{listing2Id}},
+  "message": "3 portions de vareniký svp !",
+  "portions": 3
+}
+
+> {%
+    client.test("Demande sur 2e annonce → 201 PENDING", function() {
+        client.assert(response.status === 201, "Expected 201, got " + response.status);
+        client.global.set("contactRequest2Id", response.body.id);
+    });
+%}
+
+###
+
+### [16] Login Sofia — REFUSE la 2e demande
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{sofiaEmail}}",
+  "password": "{{password}}"
+}
+
+###
+
+PATCH {{baseUrl}}/api/v1/seller-dashboard/contact-requests/{{contactRequest2Id}}/status
+Content-Type: application/json
+
+{
+  "newStatus": "REFUSED"
+}
+
+> {%
+    client.test("Refuser demande → 200 REFUSED", function() {
+        client.assert(response.status === 200, "Expected 200, got " + response.status);
+        client.assert(response.body.status === "REFUSED", "Statut attendu : REFUSED");
+    });
+%}

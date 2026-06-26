@@ -164,11 +164,10 @@ public class SecurityConfig {
                 SecurityConstants.ROUTE_LISTING_BY_ID
             ).hasRole(SecurityConstants.ROLE_SELLER)
             .requestMatchers(HttpMethod.GET,
-                SecurityConstants.ROUTE_CONTACT_SELLER
+                SecurityConstants.ROUTE_SELLER_DASHBOARD_CONTACT_REQUESTS
             ).hasRole(SecurityConstants.ROLE_SELLER)
             .requestMatchers(HttpMethod.PATCH,
-                SecurityConstants.ROUTE_CONTACT_CONFIRM,
-                SecurityConstants.ROUTE_CONTACT_REFUSE
+                SecurityConstants.ROUTE_SELLER_DASHBOARD_CONTACT_STATUS
             ).hasRole(SecurityConstants.ROLE_SELLER)
 
             // ── Administration — ROLE_ADMIN requis ────────────────────────

@@ -1,5 +1,11 @@
-### [1/5] Inscription Sofia — SELLER
-# Attendu : 201 Created + objet User avec id
+### =============================================================
+### TORTIKI — Auth
+### POST /api/v1/auth/register  → 201
+### POST /api/v1/auth/login     → 200
+### POST /api/v1/auth/logout    → 200
+### =============================================================
+
+### [1] Inscription Sofia — SELLER
 POST {{baseUrl}}/api/v1/auth/register
 Content-Type: application/json
 
@@ -7,26 +13,21 @@ Content-Type: application/json
   "email": "{{sofiaEmail}}",
   "password": "{{password}}",
   "firstName": "Sofia",
-  "lastName": "Kova",
+  "lastName": "Koval",
   "role": "SELLER"
 }
 
-###
-
-### [2/5] Login Sofia — récupère JSESSIONID
-# Attendu : 200 OK + cookie JSESSIONID dans l'onglet Cookies
-POST {{baseUrl}}/api/v1/auth/login
-Content-Type: application/json
-
-{
-  "email": "{{sofiaEmail}}",
-  "password": "{{password}}"
-}
+> {%
+    client.test("Register Sofia → 201 Created", function() {
+        client.assert(response.status === 201, "Expected 201, got " + response.status);
+        client.assert(response.body.roles.includes("SELLER"), "Role SELLER attendu");
+        client.global.set("sofiaId", response.body.id);
+    });
+%}
 
 ###
 
-### [3/5] Inscription Théo — BUYER
-# Attendu : 201 Created + objet User avec id
+### [2] Inscription Théo — BUYER
 POST {{baseUrl}}/api/v1/auth/register
 Content-Type: application/json
 
@@ -38,10 +39,36 @@ Content-Type: application/json
   "role": "BUYER"
 }
 
+> {%
+    client.test("Register Théo → 201 Created", function() {
+        client.assert(response.status === 201, "Expected 201, got " + response.status);
+        client.assert(response.body.roles.includes("BUYER"), "Role BUYER attendu");
+        client.global.set("theoId", response.body.id);
+    });
+%}
+
 ###
 
-### [4/5] Login Théo — récupère JSESSIONID
-# Attendu : 200 OK + cookie JSESSIONID
+### [3] Login Sofia — SELLER (cookie JSESSIONID sauvegardé)
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{sofiaEmail}}",
+  "password": "{{password}}"
+}
+
+> {%
+    client.test("Login Sofia → 200 OK", function() {
+        client.assert(response.status === 200, "Expected 200, got " + response.status);
+        client.assert(response.body.firstName === "Sofia", "firstName attendu : Sofia");
+        client.assert(response.body.roles.includes("SELLER"), "Role SELLER attendu");
+    });
+%}
+
+###
+
+### [4] Login Théo — BUYER
 POST {{baseUrl}}/api/v1/auth/login
 Content-Type: application/json
 
@@ -50,8 +77,37 @@ Content-Type: application/json
   "password": "{{password}}"
 }
 
+> {%
+    client.test("Login Théo → 200 OK", function() {
+        client.assert(response.status === 200, "Expected 200, got " + response.status);
+        client.assert(response.body.roles.includes("BUYER"), "Role BUYER attendu");
+    });
+%}
+
 ###
 
-### [5/5] Logout
-# Attendu : 200 OK ou 204 No Content
+### [5] Mauvais mot de passe → 401 Unauthorized
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{sofiaEmail}}",
+  "password": "MauvaisMotDePasse99!"
+}
+
+> {%
+    client.test("Login mauvais mot de passe → 401", function() {
+        client.assert(response.status === 401, "Expected 401, got " + response.status);
+    });
+%}
+
+###
+
+### [6] Logout Sofia → 204 No Content
 POST {{baseUrl}}/api/v1/auth/logout
+
+> {%
+    client.test("Logout → 204 No Content", function() {
+        client.assert(response.status === 204, "Expected 204, got " + response.status);
+    });
+%}
