@@ -24,19 +24,19 @@ public class ReviewRepositoryAdapter implements ReviewRepository {
   /** {@inheritDoc} */
   @Override
   public Review save(final Review review) {
+    final Long listingId = review.getListing().getId();
+    final Long buyerId = review.getReviewer().getId();
+
     ContactRequestJpaEntity contactRequestRef =
-        contactRequestJpaRepository.findConfirmedByListingIdAndBuyerId(
-                review.getListing().getId(), review.getReviewer().getId())
+        contactRequestJpaRepository.findConfirmedByListingIdAndBuyerId(listingId, buyerId)
             .orElseThrow(() -> new IllegalStateException(
                 "Aucune demande confirmée trouvée pour la sauvegarde de l'évaluation"));
 
-    ListingJpaEntity listingRef =
-        listingJpaRepository.getReferenceById(review.getListing().getId());
-    UserJpaEntity reviewerRef =
-        userJpaRepository.getReferenceById(review.getReviewer().getId());
-    UserJpaEntity sellerRef =
-        userJpaRepository.getReferenceById(
-            contactRequestRef.getListing().getSeller().getId());
+    ListingJpaEntity listingRef = listingJpaRepository.getReferenceById(listingId);
+    UserJpaEntity reviewerRef = userJpaRepository.getReferenceById(buyerId);
+
+    UserJpaEntity sellerRef = userJpaRepository.getReferenceById(
+        contactRequestRef.getListing().getSeller().getId());
 
     ReviewJpaEntity entity = ReviewPersistenceMapper.toEntity(
         review, contactRequestRef, listingRef, reviewerRef, sellerRef);

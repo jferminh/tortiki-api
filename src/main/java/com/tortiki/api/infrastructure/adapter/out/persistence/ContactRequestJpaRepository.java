@@ -103,10 +103,15 @@ public interface ContactRequestJpaRepository
    * @param buyerId   identifiant de l'acheteur
    * @return demande confirmée si elle existe
    */
-  @Query("SELECT cr FROM ContactRequestJpaEntity cr "
-      + "WHERE cr.listing.id = :listingId "
-      + "AND cr.buyer.id = :buyerId "
-      + "AND cr.status = 'CONFIRMED'")
+  @Query(
+        """
+        SELECT cr FROM ContactRequestJpaEntity cr
+        JOIN FETCH cr.listing l
+        JOIN FETCH l.seller
+        WHERE cr.listing.id = :listingId
+            AND cr.buyer.id = :buyerId
+            AND cr.status = 'CONFIRMED'
+        """)
   Optional<ContactRequestJpaEntity> findConfirmedByListingIdAndBuyerId(
       @Param("listingId") Long listingId,
       @Param("buyerId") Long buyerId);
