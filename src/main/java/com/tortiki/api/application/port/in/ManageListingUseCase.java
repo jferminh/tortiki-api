@@ -120,7 +120,7 @@ public interface ManageListingUseCase {
   /**
    * Commande d'entrée pour la création et la modification d'une annonce.
    *
-   * <p>Record immuable Java 21. Remplace l'ancien {@code ListingCommand}
+   * <p>Record immuable Java 21. Remplace l'ancien ListingCommand
    * fichier séparé — le Command appartient sémantiquement à ce port.</p>
    *
    * @param title          titre de l'annonce

@@ -1,0 +1,171 @@
+### =============================================================
+### TORTIKI — Reviews (Sprint 3 — Issues 45 & 46)
+### POST /api/v1/reviews  → 201 (ROLE_BUYER + demande CONFIRMED)
+### Règles :
+###   doublon acheteur/annonce         → 409
+###   acheteur sans demande CONFIRMED  → 403 (ReviewNotAllowedException)
+###   ROLE_SELLER                      → 403
+###   rating hors [1-5]                → 400
+###   sans authentification            → 401
+### ⚠️  Pré-requis :
+###   - contactRequestId CONFIRMED (04-seller-dashboard.http étapes [6][7])
+### =============================================================
+
+### [1] Login Théo — BUYER
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{theoEmail}}",
+  "password": "{{password}}"
+}
+
+###
+
+### [2] Théo note l'annonce de Sofia → 201 Created
+POST {{baseUrl}}/api/v1/reviews
+Content-Type: application/json
+
+{
+  "listingId": {{listingId}},
+  "rating": 4,
+  "comment": "Excellent bortsch, très savoureux ! Je recommande vivement Sofia."
+}
+
+> {%
+    client.test("Notation → 201 Created, rating 4", function() {
+        client.assert(response.status === 201, "Expected 201, got " + response.status);
+        client.assert(response.body.rating === 4, "Note attendue : 4");
+        client.global.set("reviewId", response.body.id);
+    });
+%}
+
+###
+
+### [3] Doublon notation → 409 Conflict (ReviewAlreadyExistsException)
+POST {{baseUrl}}/api/v1/reviews
+Content-Type: application/json
+
+{
+  "listingId": {{listingId}},
+  "rating": 5,
+  "comment": "2e tentative — doit être bloquée"
+}
+
+> {%
+    client.test("Doublon notation → 409 Conflict", function() {
+        client.assert(response.status === 409, "Expected 409, got " + response.status);
+    });
+%}
+
+###
+
+### [4] Rating invalide — note 6 → 400 Bad Request (@Max(5))
+POST {{baseUrl}}/api/v1/reviews
+Content-Type: application/json
+
+{
+  "listingId": {{listingId}},
+  "rating": 6,
+  "comment": "Note hors plage"
+}
+
+> {%
+    client.test("Rating 6 → 400 Bad Request", function() {
+        client.assert(response.status === 400, "Expected 400, got " + response.status);
+    });
+%}
+
+###
+
+### [5] Rating invalide — note 0 → 400 Bad Request (@Min(1))
+POST {{baseUrl}}/api/v1/reviews
+Content-Type: application/json
+
+{
+  "listingId": {{listingId}},
+  "rating": 0,
+  "comment": "Note à zéro"
+}
+
+> {%
+    client.test("Rating 0 → 400 Bad Request", function() {
+        client.assert(response.status === 400, "Expected 400, got " + response.status);
+    });
+%}
+
+###
+
+### [6] Login Sofia — SELLER
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{sofiaEmail}}",
+  "password": "{{password}}"
+}
+
+###
+
+### [7] SELLER tente de noter → 403 Forbidden (RBAC)
+POST {{baseUrl}}/api/v1/reviews
+Content-Type: application/json
+
+{
+  "listingId": {{listingId}},
+  "rating": 5,
+  "comment": "Test vendeur — doit être bloqué"
+}
+
+> {%
+    client.test("SELLER note → 403 Forbidden", function() {
+        client.assert(response.status === 403, "Expected 403, got " + response.status);
+    });
+%}
+
+###
+
+### [8] Sans authentification → 401 Unauthorized
+POST {{baseUrl}}/api/v1/reviews
+Content-Type: application/json
+
+{
+  "listingId": {{listingId}},
+  "rating": 3,
+  "comment": "Sans cookie"
+}
+
+> {%
+    client.test("Notation sans auth → 401 Unauthorized", function() {
+        client.assert(response.status === 401, "Expected 401, got " + response.status);
+    });
+%}
+
+###
+
+### [9] Login Théo — notation sur annonce dont demande est REFUSED → 403
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{theoEmail}}",
+  "password": "{{password}}"
+}
+
+###
+
+### Théo tente de noter listing2Id (demande REFUSED → aucune CONFIRMED)
+POST {{baseUrl}}/api/v1/reviews
+Content-Type: application/json
+
+{
+  "listingId": {{listing2Id}},
+  "rating": 5,
+  "comment": "Demande refusée — notation interdite"
+}
+
+> {%
+    client.test("Sans demande CONFIRMED → 403 (ReviewNotAllowedException)", function() {
+        client.assert(response.status === 403, "Expected 403, got " + response.status);
+    });
+%}

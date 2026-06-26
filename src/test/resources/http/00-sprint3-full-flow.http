@@ -1,0 +1,237 @@
+### =============================================================
+### TORTIKI — Flux complet Sprint 3 de bout en bout
+###
+###  1.  Login Sofia
+###  2.  Sofia crée une annonce
+###  3.  Login Théo
+###  4.  Théo soumet une demande de contact → PENDING
+###  5.  Login Sofia — consulte son dashboard
+###  6.  Sofia CONFIRME → CONFIRMED
+###  7.  Sofia re-confirme → 409
+###  8.  Login Théo — note l'annonce → 201
+###  9.  Théo re-note → 409
+### 10.  Login Admin — désactive l'annonce → INACTIVE
+### 11.  Login Sofia — tente de désactiver → 403
+### =============================================================
+
+### ─── 1. Login Sofia ───────────────────────────────────────────
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{sofiaEmail}}",
+  "password": "{{password}}"
+}
+
+###
+
+### ─── 2. Sofia crée une annonce ────────────────────────────────
+POST {{baseUrl}}/api/v1/listings
+Content-Type: application/json
+
+{
+  "title": "Bortsch ukrainien maison",
+  "description": "Soupe traditionnelle aux betteraves.",
+  "price": 8.50,
+  "portions": 4,
+  "cuisineTypeId": 1,
+  "city": "Nancy",
+  "postalCode": "54000",
+  "pickupAddress": "12 rue de la Paix, Nancy",
+  "pickupDatetime": "2026-07-10T12:00:00"
+}
+
+> {%
+    client.test("Annonce créée → 201 ACTIVE", function() {
+        client.assert(response.status === 201, "Expected 201, got " + response.status);
+        client.assert(response.body.status === "ACTIVE", "Statut attendu : ACTIVE");
+        client.global.set("listingId", response.body.id);
+    });
+%}
+
+###
+
+### ─── 3. Login Théo ────────────────────────────────────────────
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{theoEmail}}",
+  "password": "{{password}}"
+}
+
+###
+
+### ─── 4. Théo soumet une demande → PENDING ─────────────────────
+POST {{baseUrl}}/api/v1/contact-requests
+Content-Type: application/json
+
+{
+  "listingId": {{listingId}},
+  "message": "Je suis intéressé, 2 portions svp !",
+  "portions": 2
+}
+
+> {%
+    client.test("Demande de contact → 201 PENDING", function() {
+        client.assert(response.status === 201, "Expected 201, got " + response.status);
+        client.assert(response.body.status === "PENDING", "Statut attendu : PENDING");
+        client.global.set("contactRequestId", response.body.id);
+    });
+%}
+
+###
+
+### ─── 5. Login Sofia — dashboard ──────────────────────────────
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{sofiaEmail}}",
+  "password": "{{password}}"
+}
+
+###
+
+GET {{baseUrl}}/api/v1/seller-dashboard/contact-requests
+
+> {%
+    client.test("Dashboard vendeur → 200 OK (1 demande PENDING)", function() {
+        client.assert(response.status === 200, "Expected 200, got " + response.status);
+        client.assert(response.body.length > 0, "Au moins 1 demande attendue");
+    });
+%}
+
+###
+
+### ─── 6. Sofia CONFIRME ─────────────────────────────────────────
+PATCH {{baseUrl}}/api/v1/seller-dashboard/contact-requests/{{contactRequestId}}/status
+Content-Type: application/json
+
+{
+  "newStatus": "CONFIRMED"
+}
+
+> {%
+    client.test("Confirmer → 200 CONFIRMED", function() {
+        client.assert(response.status === 200, "Expected 200, got " + response.status);
+        client.assert(response.body.status === "CONFIRMED", "Statut attendu : CONFIRMED");
+    });
+%}
+
+###
+
+### ─── 7. Sofia re-confirme → 409 ───────────────────────────────
+PATCH {{baseUrl}}/api/v1/seller-dashboard/contact-requests/{{contactRequestId}}/status
+Content-Type: application/json
+
+{
+  "newStatus": "CONFIRMED"
+}
+
+> {%
+    client.test("Statut final irrversible → 409 Conflict", function() {
+        client.assert(response.status === 409, "Expected 409, got " + response.status);
+    });
+%}
+
+###
+
+### ─── 8. Login Théo — note l'annonce ──────────────────────────
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{theoEmail}}",
+  "password": "{{password}}"
+}
+
+###
+
+POST {{baseUrl}}/api/v1/reviews
+Content-Type: application/json
+
+{
+  "listingId": {{listingId}},
+  "rating": 4,
+  "comment": "Excellent bortsch ! Je recommande vivement Sofia."
+}
+
+> {%
+    client.test("Notation → 201 Created, rating 4", function() {
+        client.assert(response.status === 201, "Expected 201, got " + response.status);
+        client.assert(response.body.rating === 4, "Note attendue : 4");
+        client.global.set("reviewId", response.body.id);
+    });
+%}
+
+###
+
+### ─── 9. Théo re-note → 409 ────────────────────────────────────
+POST {{baseUrl}}/api/v1/reviews
+Content-Type: application/json
+
+{
+  "listingId": {{listingId}},
+  "rating": 5,
+  "comment": "2e tentative"
+}
+
+> {%
+    client.test("Doublon notation → 409 Conflict", function() {
+        client.assert(response.status === 409, "Expected 409, got " + response.status);
+    });
+%}
+
+###
+
+### ─── 10. Login Admin — désactive ──────────────────────────────
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{password}}"
+}
+
+###
+
+PATCH {{baseUrl}}/api/v1/listings/{{listingId}}/status
+Content-Type: application/json
+
+{
+  "newStatus": "INACTIVE"
+}
+
+> {%
+    client.test("Admin désactive → 200 INACTIVE", function() {
+        client.assert(response.status === 200, "Expected 200, got " + response.status);
+        client.assert(response.body.status === "INACTIVE", "Statut attendu : INACTIVE");
+    });
+%}
+
+###
+
+### ─── 11. Login Sofia — tente de désactiver → 403 ─────────────
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{sofiaEmail}}",
+  "password": "{{password}}"
+}
+
+###
+
+PATCH {{baseUrl}}/api/v1/listings/{{listingId}}/status
+Content-Type: application/json
+
+{
+  "newStatus": "INACTIVE"
+}
+
+> {%
+    client.test("SELLER désactive → 403 Forbidden (RBAC)", function() {
+        client.assert(response.status === 403, "Expected 403, got " + response.status);
+    });
+%}

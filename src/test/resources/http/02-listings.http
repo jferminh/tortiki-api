@@ -1,6 +1,23 @@
-### [1/5] Créer une annonce — SELLER Sofia
-# Attendu : 201 Created + Listing status=ACTIVE
-# ⚠️  Doit être connecté en Sofia (JSESSIONID Sofia actif)
+### =============================================================
+### TORTIKI — Listings (Sprint 1)
+### POST   /api/v1/listings        → 201 (ROLE_SELLER)
+### GET    /api/v1/listings/search → 200 (public)
+### GET    /api/v1/listings/{id}   → 200 (public)
+### PUT    /api/v1/listings/{id}   → 200 (ROLE_SELLER)
+### =============================================================
+
+### [1] Login Sofia — SELLER
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{sofiaEmail}}",
+  "password": "{{password}}"
+}
+
+###
+
+### [2] Sofia crée une annonce — Bortsch (201 Created)
 POST {{baseUrl}}/api/v1/listings
 Content-Type: application/json
 
@@ -15,47 +32,68 @@ Content-Type: application/json
   "pickupDatetime": "2026-06-28T12:00:00"
 }
 
-###
-
-### [2/5] Lister toutes les annonces actives — PUBLIC (sans auth)
-# Attendu : 200 OK + tableau JSON avec au moins 1 annonce
-GET {{baseUrl}}/api/v1/listings
-
-###
-
-### [3/5] Détail d'une annonce par ID — PUBLIC
-# Attendu : 200 OK + objet Listing complet
-GET {{baseUrl}}/api/v1/listings/1
+> {%
+    client.test("Créer annonce → 201 ACTIVE", function() {
+        client.assert(response.status === 201, "Expected 201, got " + response.status);
+        const body = response.body;
+        client.assert(body["status"] === "ACTIVE", "Statut attendu : ACTIVE");
+        client.global.set("listingId", String(body["id"]));
+    });
+%}
 
 ###
 
-### [4/5] Modifier l'annonce — SELLER Sofia propriétaire
-# Attendu : 200 OK + annonce mise à jour
-PUT {{baseUrl}}/api/v1/listings/1
+### [3] Recherche publique — sans auth (200 OK)
+GET {{baseUrl}}/api/v1/listings/search?city=Nancy&page=0&size=10
+
+> {%
+    client.test("Recherche publique → 200 OK", function() {
+        client.assert(response.status === 200, "Expected 200, got " + response.status);
+    });
+%}
+
+###
+
+### [4] Détail annonce par ID — public
+GET {{baseUrl}}/api/v1/listings/{{listingId}}
+
+> {%
+    client.test("Détail annonce → 200 OK", function() {
+        client.assert(response.status === 200, "Expected 200, got " + response.status);
+    });
+%}
+
+###
+
+### [5] Annonce inexistante → 404
+GET {{baseUrl}}/api/v1/listings/999999
+
+> {%
+    client.test("Annonce inexistante → 404", function() {
+        client.assert(response.status === 404, "Expected 404, got " + response.status);
+    });
+%}
+
+###
+
+### [6] Login Théo — BUYER
+POST {{baseUrl}}/api/v1/auth/login
 Content-Type: application/json
 
 {
-  "title": "Bortsch ukrainien — édition spéciale",
-  "description": "Recette de la grand-mère de Sofia",
-  "price": 9.00,
-  "portions": 4,
-  "cuisineTypeId": 1,
-  "allergenIds": [],
-  "pickupAddress": "2 Allée Lys Rouge, 54000 Nancy",
-  "pickupDatetime": "2026-06-28T12:00:00"
+  "email": "{{theoEmail}}",
+  "password": "{{password}}"
 }
 
 ###
 
-### [5/5] Tenter de modifier avec Théo — NON propriétaire
-# Attendu : 403 Forbidden
-# ⚠️  Connecte Théo d'abord (requête #4 de 01-auth.http)
-PUT {{baseUrl}}/api/v1/listings/1
+### [7] BUYER tente de créer une annonce → 403
+POST {{baseUrl}}/api/v1/listings
 Content-Type: application/json
 
 {
-  "title": "Tentative de modification par Théo",
-  "description": "Ne doit pas passer",
+  "title": "Tentative BUYER",
+  "description": "Ne doit pas passer.",
   "price": 5.00,
   "portions": 2,
   "cuisineTypeId": 1,
@@ -63,3 +101,45 @@ Content-Type: application/json
   "pickupAddress": "2 Allée Lys Rouge, 54000 Nancy",
   "pickupDatetime": "2026-06-28T12:00:00"
 }
+
+> {%
+    client.test("BUYER crée annonce → 403 Forbidden", function() {
+        client.assert(response.status === 403, "Expected 403, got " + response.status);
+    });
+%}
+
+###
+
+### [8] Login Sofia
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{sofiaEmail}}",
+  "password": "{{password}}"
+}
+
+###
+
+### [9] Sofia modifie son annonce → 200 OK
+PUT {{baseUrl}}/api/v1/listings/{{listingId}}
+Content-Type: application/json
+
+{
+  "title": "Bortsch ukrainien maison — édition été",
+  "description": "Recette estivale avec ingrédients frais du marché.",
+  "price": 9.50,
+  "portions": 4,
+  "cuisineTypeId": 1,
+  "allergenIds": [],
+  "pickupAddress": "2 Allée Lys Rouge, 54000 Nancy",
+  "pickupDatetime": "2026-07-15T12:00:00"
+}
+
+> {%
+    client.test("Modifier annonce → 200 OK", function() {
+        client.assert(response.status === 200, "Expected 200, got " + response.status);
+        const body = response.body;
+        client.assert(body["price"] === 9.50, "Prix attendu : 9.50");
+    });
+%}

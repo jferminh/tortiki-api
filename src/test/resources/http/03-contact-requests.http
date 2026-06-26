@@ -1,0 +1,103 @@
+### =============================================================
+### TORTIKI — ContactRequest (Sprint 2)
+### POST /api/v1/contact-requests  → 201 (ROLE_BUYER)
+### Règles :
+###   doublon acheteur/annonce     → 409
+###   sans authentification        → 401
+###   ROLE_SELLER                  → 403
+### ⚠️  Pré-requis : listingId sauvegardé (02-listings.http)
+### =============================================================
+
+### [1] Login Théo — BUYER
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{theoEmail}}",
+  "password": "{{password}}"
+}
+
+###
+
+### [2] Théo soumet une demande de contact → 201 PENDING
+POST {{baseUrl}}/api/v1/contact-requests
+Content-Type: application/json
+
+{
+  "listingId": {{listingId}},
+  "message": "Je suis intéressé, je voudrais 2 portions svp !",
+  "portions": 2
+}
+
+> {%
+    client.test("Demande de contact → 201 PENDING", function() {
+        client.assert(response.status === 201, "Expected 201, got " + response.status);
+        client.assert(response.body.status === "PENDING", "Statut attendu : PENDING");
+        client.global.set("contactRequestId", response.body.id);
+    });
+%}
+
+###
+
+### [3] Doublon → 409 Conflict
+POST {{baseUrl}}/api/v1/contact-requests
+Content-Type: application/json
+
+{
+  "listingId": {{listingId}},
+  "message": "2e tentative — doit être bloquée",
+  "portions": 1
+}
+
+> {%
+    client.test("Doublon demande → 409 Conflict", function() {
+        client.assert(response.status === 409, "Expected 409, got " + response.status);
+    });
+%}
+
+###
+
+### [4] Sans authentification → 401
+POST {{baseUrl}}/api/v1/contact-requests
+Content-Type: application/json
+
+{
+  "listingId": {{listingId}},
+  "message": "Sans cookie",
+  "portions": 1
+}
+
+> {%
+    client.test("Sans auth → 401 Unauthorized", function() {
+        client.assert(response.status === 401, "Expected 401, got " + response.status);
+    });
+%}
+
+###
+
+### [5] Login Sofia — SELLER
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{sofiaEmail}}",
+  "password": "{{password}}"
+}
+
+###
+
+### [6] SELLER tente de contacter → 403
+POST {{baseUrl}}/api/v1/contact-requests
+Content-Type: application/json
+
+{
+  "listingId": {{listingId}},
+  "message": "Test vendeur — doit être bloqué",
+  "portions": 1
+}
+
+> {%
+    client.test("SELLER contacte → 403 Forbidden", function() {
+        client.assert(response.status === 403, "Expected 403, got " + response.status);
+    });
+%}

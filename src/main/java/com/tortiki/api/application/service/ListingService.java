@@ -3,6 +3,7 @@ package com.tortiki.api.application.service;
 import com.tortiki.api.application.port.in.ManageListingUseCase;
 import com.tortiki.api.application.port.out.AllergenRepository;
 import com.tortiki.api.application.port.out.CuisineTypeRepository;
+import com.tortiki.api.application.port.out.GeolocationPort;
 import com.tortiki.api.application.port.out.ListingRepository;
 import com.tortiki.api.application.port.out.StoragePort;
 import com.tortiki.api.application.port.out.UserRepository;
@@ -19,6 +20,7 @@ import com.tortiki.api.domain.model.User;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +37,8 @@ import org.springframework.transaction.annotation.Transactional;
  * <ul>
  *   <li>Seul le vendeur propriétaire peut modifier ou supprimer son annonce.</li>
  *   <li>La suppression est logique (statut {@code INACTIVE}).</li>
+ *   <li>Les coordonnées GPS sont résolues via {@link GeolocationPort} à la création
+ *       et à la mise à jour si l'adresse change.</li>
  *   <li>Les allergènes sont chargés depuis {@link AllergenRepository}.</li>
  * </ul>
  */
@@ -52,6 +56,7 @@ public class ListingService implements ManageListingUseCase {
   private final CuisineTypeRepository cuisineTypeRepository;
   private final AllergenRepository allergenRepository;
   private final StoragePort storagePort;
+  private final GeolocationPort geolocationPort;
 
   /** {@inheritDoc} */
   @Override
@@ -66,7 +71,10 @@ public class ListingService implements ManageListingUseCase {
         .orElseThrow(() -> new CuisineTypeNotFoundException(
             CUISINE_TYPE_NOT_FOUND + command.cuisineTypeId()));
 
-    List<Allergen> allergens = allergenRepository.findAllByIdIn(command.allergenIds());
+    Optional<GeolocationPort.Coordinates> coords =
+        geolocationPort.geocode(command.pickupAddress());
+
+    final List<Allergen> allergens = allergenRepository.findAllByIdIn(command.allergenIds());
 
     Listing listing = new Listing();
     listing.setSeller(seller);
@@ -78,12 +86,16 @@ public class ListingService implements ManageListingUseCase {
     listing.setPickupDatetime(command.pickupDatetime());
     listing.setCuisineType(cuisineType);
     listing.setAllergens(allergens);
+    listing.setPickupLat(coords.map(GeolocationPort.Coordinates::latitude).orElse(null));
+    listing.setPickupLng(coords.map(GeolocationPort.Coordinates::longitude).orElse(null));
     listing.setStatus(ListingStatus.ACTIVE);
     listing.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
     listing.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
 
     Listing saved = listingRepository.save(listing);
-    log.info("Annonce créée id={} vendeur={}", saved.getId(), sellerId);
+    log.info("Annonce créée id={} vendeur={} lat={} lng={}",
+        saved.getId(), sellerId,
+        saved.getPickupLat(), saved.getPickupLng());
     return saved;
   }
 
@@ -94,7 +106,17 @@ public class ListingService implements ManageListingUseCase {
     log.debug("Mise à jour annonce id={} vendeur id={}", listingId, sellerId);
 
     Listing existing = getListingOwnedBySeller(listingId, sellerId);
-    List<Allergen> allergens = allergenRepository.findAllByIdIn(command.allergenIds());
+
+    if (!command.pickupAddress().equals(existing.getPickupAddress())) {
+      Optional<GeolocationPort.Coordinates> coords =
+          geolocationPort.geocode(command.pickupAddress());
+      existing.setPickupLat(coords.map(GeolocationPort.Coordinates::latitude).orElse(null));
+      existing.setPickupLng(coords.map(GeolocationPort.Coordinates::longitude).orElse(null));
+      log.debug("Adresse modifiée annonce id={} → lat={} lng={}",
+          listingId, existing.getPickupLat(), existing.getPickupLng());
+    }
+
+    final List<Allergen> allergens = allergenRepository.findAllByIdIn(command.allergenIds());
 
     existing.setTitle(command.title());
     existing.setDescription(command.description());
@@ -131,7 +153,7 @@ public class ListingService implements ManageListingUseCase {
     try {
       final String photoUrl = storagePort.upload(
           fileName,
-          command.photoBytes(),       // ← byte[] directement, plus de ByteArrayInputStream
+          command.photoBytes(),
           command.contentType()
       );
       existing.setPhotoUrl(photoUrl);
