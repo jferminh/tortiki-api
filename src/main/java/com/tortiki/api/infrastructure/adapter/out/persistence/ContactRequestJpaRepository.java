@@ -77,4 +77,37 @@ public interface ContactRequestJpaRepository
   Optional<ContactRequestJpaEntity> findByIdForSeller(
       @Param("contactRequestId") Long contactRequestId,
       @Param("sellerId") Long sellerId);
+
+  /**
+   * Vérifie qu'une demande confirmée existe entre un acheteur et une annonce.
+   *
+   * @param listingId identifiant de l'annonce
+   * @param buyerId   identifiant de l'acheteur
+   * @return {@code true} si une demande CONFIRMED existe
+   */
+  @Query("SELECT COUNT(cr) > 0 FROM ContactRequestJpaEntity cr "
+      + "WHERE cr.listing.id = :listingId "
+      + "AND cr.buyer.id = :buyerId "
+      + "AND cr.status = 'CONFIRMED'")
+  boolean existsConfirmedByListingIdAndBuyerId(
+      @Param("listingId") Long listingId,
+      @Param("buyerId") Long buyerId);
+
+  /**
+   * Récupère la demande confirmée d'un acheteur pour une annonce donnée.
+   *
+   * <p>Utilisé par {@code ReviewRepositoryAdapter} pour résoudre
+   * la FK {@code contact_request_id} lors de la persistance d'une évaluation.</p>
+   *
+   * @param listingId identifiant de l'annonce
+   * @param buyerId   identifiant de l'acheteur
+   * @return demande confirmée si elle existe
+   */
+  @Query("SELECT cr FROM ContactRequestJpaEntity cr "
+      + "WHERE cr.listing.id = :listingId "
+      + "AND cr.buyer.id = :buyerId "
+      + "AND cr.status = 'CONFIRMED'")
+  Optional<ContactRequestJpaEntity> findConfirmedByListingIdAndBuyerId(
+      @Param("listingId") Long listingId,
+      @Param("buyerId") Long buyerId);
 }

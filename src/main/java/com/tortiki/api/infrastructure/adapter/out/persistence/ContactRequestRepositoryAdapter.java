@@ -111,4 +111,15 @@ public class ContactRequestRepositoryAdapter implements ContactRequestRepository
     log.info("Demande #{} : statut mis à jour → {}", saved.getId(), saved.getStatus());
     return ContactRequestPersistenceMapper.toDomain(saved);
   }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public boolean existsConfirmedByListingIdAndBuyerId(
+      final Long listingId,
+      final Long buyerId) {
+    return contactRequestJpaRepository
+        .existsConfirmedByListingIdAndBuyerId(listingId, buyerId);
+  }
 }
