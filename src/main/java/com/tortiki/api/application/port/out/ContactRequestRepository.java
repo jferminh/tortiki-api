@@ -90,4 +90,16 @@ public interface ContactRequestRepository {
    * @return la demande mise à jour
    */
   ContactRequest updateStatus(Long contactRequestId, ContactRequestStatus newStatus);
+
+  /**
+   * Vérifie qu'une demande confirmée existe entre un acheteur et une annonce.
+   *
+   * <p>Utilisé par {@code SubmitReviewService} pour garantir qu'un acheteur
+   * ne peut évaluer que les annonces pour lesquelles sa demande est {@code CONFIRMED}.</p>
+   *
+   * @param listingId identifiant de l'annonce
+   * @param buyerId   identifiant de l'acheteur
+   * @return {@code true} si une demande au statut CONFIRMED existe
+   */
+  boolean existsConfirmedByListingIdAndBuyerId(Long listingId, Long buyerId);
 }
