@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tortiki.api.application.port.in.SubmitReviewUseCase;
 import com.tortiki.api.config.SecurityConfig;
+import com.tortiki.api.config.SecurityConstants;
 import com.tortiki.api.domain.exception.ListingNotFoundException;
 import com.tortiki.api.domain.exception.ReviewAlreadyExistsException;
 import com.tortiki.api.domain.exception.ReviewNotAllowedException;
@@ -24,8 +25,10 @@ import io.qameta.allure.Feature;
 import io.qameta.allure.Owner;
 import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
+import io.qameta.allure.Step;
 import io.qameta.allure.Story;
 import java.time.LocalDateTime;
+import java.time.Month;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -52,7 +55,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @DisplayName("ReviewController — Tests unitaires")
 class ReviewControllerTest {
 
-  private static final String REVIEWS_URL  = "/api/v1/reviews";
+  private static final String REVIEWS_URL  = SecurityConstants.ROUTE_REVIEWS;
   private static final String BUYER_EMAIL  = "theo@tortiki.fr";
   private static final String SELLER_EMAIL = "sofia@tortiki.fr";
   private static final Long   LISTING_ID   = 4L;
@@ -72,15 +75,16 @@ class ReviewControllerTest {
 
   /** Initialise les fixtures partagées. */
   @BeforeEach
+  @Step("Initialisation des fixtures ReviewControllerTest")
   void setUp() {
     validRequest = new SubmitReviewRequest(LISTING_ID, 5, "Excellent bortsch !");
 
-    User reviewer = new User();
+    final User reviewer = new User();
     reviewer.setId(2L);
     reviewer.setFirstName("Théo");
     reviewer.setEmail(BUYER_EMAIL);
 
-    Listing listing = new Listing();
+    final Listing listing = new Listing();
     listing.setId(LISTING_ID);
     listing.setTitle("Bortsch ukrainien maison");
 
@@ -90,7 +94,7 @@ class ReviewControllerTest {
         reviewer,
         5,
         "Excellent bortsch !",
-        LocalDateTime.of(2026, 6, 28, 12, 0)
+        LocalDateTime.of(2026, Month.JUNE, 28, 12, 0)
     );
   }
 
@@ -114,7 +118,8 @@ class ReviewControllerTest {
         .andExpect(jsonPath("$.id").value(REVIEW_ID))
         .andExpect(jsonPath("$.rating").value(5))
         .andExpect(jsonPath("$.comment").value("Excellent bortsch !"))
-        .andExpect(jsonPath("$.listingId").value(LISTING_ID));
+        .andExpect(jsonPath("$.listingId").value(LISTING_ID))
+        .andExpect(jsonPath("$.createdAt").value("2026-06-28T12:00:00"));
   }
 
   // ── VALIDATION ────────────────────────────────────────────────────────────
@@ -125,7 +130,7 @@ class ReviewControllerTest {
   @Description("listingId absent — 400 Bad Request retourné par Bean Validation.")
   @DisplayName("POST /reviews — 400 si listingId est null")
   void shouldReturn400WhenListingIdIsNull() throws Exception {
-    SubmitReviewRequest invalid = new SubmitReviewRequest(null, 5, "Bon plat");
+    final SubmitReviewRequest invalid = new SubmitReviewRequest(null, 5, "Bon plat");
 
     mockMvc.perform(post(REVIEWS_URL)
             .with(user(BUYER_EMAIL).roles("BUYER"))
@@ -141,7 +146,7 @@ class ReviewControllerTest {
   @Description("Note inférieure à 1 — 400 Bad Request retourné par @Min(1).")
   @DisplayName("POST /reviews — 400 si rating < 1")
   void shouldReturn400WhenRatingIsBelowMinimum() throws Exception {
-    SubmitReviewRequest invalid = new SubmitReviewRequest(LISTING_ID, 0, "Mauvais");
+    final SubmitReviewRequest invalid = new SubmitReviewRequest(LISTING_ID, 0, "Mauvais");
 
     mockMvc.perform(post(REVIEWS_URL)
             .with(user(BUYER_EMAIL).roles("BUYER"))
@@ -157,7 +162,7 @@ class ReviewControllerTest {
   @Description("Note supérieure à 5 — 400 Bad Request retourné par @Max(5).")
   @DisplayName("POST /reviews — 400 si rating > 5")
   void shouldReturn400WhenRatingExceedsMaximum() throws Exception {
-    SubmitReviewRequest invalid = new SubmitReviewRequest(LISTING_ID, 6, "Trop bien");
+    final SubmitReviewRequest invalid = new SubmitReviewRequest(LISTING_ID, 6, "Trop bien");
 
     mockMvc.perform(post(REVIEWS_URL)
             .with(user(BUYER_EMAIL).roles("BUYER"))
@@ -173,7 +178,7 @@ class ReviewControllerTest {
   @Description("Note absente — 400 Bad Request retourné par @NotNull.")
   @DisplayName("POST /reviews — 400 si rating est null")
   void shouldReturn400WhenRatingIsNull() throws Exception {
-    SubmitReviewRequest invalid = new SubmitReviewRequest(LISTING_ID, null, "Commentaire");
+    final SubmitReviewRequest invalid = new SubmitReviewRequest(LISTING_ID, null, "Commentaire");
 
     mockMvc.perform(post(REVIEWS_URL)
             .with(user(BUYER_EMAIL).roles("BUYER"))
@@ -192,7 +197,8 @@ class ReviewControllerTest {
   @DisplayName("POST /reviews — 409 si l'acheteur a déjà évalué cette annonce")
   void shouldReturn409WhenReviewAlreadyExists() throws Exception {
     when(submitReviewUseCase.submit(any(SubmitReviewUseCase.Command.class)))
-        .thenThrow(new ReviewAlreadyExistsException(BUYER_EMAIL, LISTING_ID));
+        .thenThrow(new ReviewAlreadyExistsException(
+            "Évaluation déjà soumise", LISTING_ID));
 
     mockMvc.perform(post(REVIEWS_URL)
             .with(user(BUYER_EMAIL).roles("BUYER"))
@@ -209,7 +215,8 @@ class ReviewControllerTest {
   @DisplayName("POST /reviews — 403 si aucune demande CONFIRMED pour cette annonce")
   void shouldReturn403WhenNoConfirmedContactRequest() throws Exception {
     when(submitReviewUseCase.submit(any(SubmitReviewUseCase.Command.class)))
-        .thenThrow(new ReviewNotAllowedException(BUYER_EMAIL, LISTING_ID));
+        .thenThrow(new ReviewNotAllowedException(
+            "Évaluation non autorisée", LISTING_ID));
 
     mockMvc.perform(post(REVIEWS_URL)
             .with(user(BUYER_EMAIL).roles("BUYER"))
@@ -226,7 +233,8 @@ class ReviewControllerTest {
   @DisplayName("POST /reviews — 404 si l'annonce est introuvable")
   void shouldReturn404WhenListingNotFound() throws Exception {
     when(submitReviewUseCase.submit(any(SubmitReviewUseCase.Command.class)))
-        .thenThrow(new ListingNotFoundException("Annonce introuvable : " + LISTING_ID));
+        .thenThrow(new ListingNotFoundException(
+            "Annonce introuvable : " + LISTING_ID));
 
     mockMvc.perform(post(REVIEWS_URL)
             .with(user(BUYER_EMAIL).roles("BUYER"))
@@ -273,15 +281,15 @@ class ReviewControllerTest {
   @Description("Évaluation sans commentaire — champ optionnel, 201 Created retourné.")
   @DisplayName("POST /reviews — 201 si comment est null (champ optionnel)")
   void shouldReturn201WhenCommentIsNull() throws Exception {
-    SubmitReviewRequest noComment = new SubmitReviewRequest(LISTING_ID, 4, null);
+    final SubmitReviewRequest noComment = new SubmitReviewRequest(LISTING_ID, 4, null);
 
-    Review reviewNoComment = new Review(
+    final Review reviewNoComment = new Review(
         2L,
         savedReview.getListing(),
         savedReview.getReviewer(),
         4,
         null,
-        LocalDateTime.of(2026, 6, 28, 14, 0)
+        LocalDateTime.of(2026, Month.JUNE, 28, 14, 0)
     );
 
     when(submitReviewUseCase.submit(any(SubmitReviewUseCase.Command.class)))
@@ -293,6 +301,7 @@ class ReviewControllerTest {
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(noComment)))
         .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.rating").value(4));
+        .andExpect(jsonPath("$.rating").value(4))
+        .andExpect(jsonPath("$.comment").doesNotExist());
   }
 }
