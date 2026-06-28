@@ -55,21 +55,19 @@ public class ReviewController {
   public ResponseEntity<ReviewResponse> submitReview(
       @Valid @RequestBody final SubmitReviewRequest request,
       final Principal principal) {
-    String reviewerEmail = principal.getName();
-    log.info("Soumission évaluation annonce {} par {}",
-        request.listingId(), reviewerEmail);
 
-    SubmitReviewUseCase.Command command = new SubmitReviewUseCase.Command(
+    final String reviewerEmail = principal.getName();
+    log.debug("POST /api/v1/reviews — annonce={} acheteur={}",
+        request.listingId(), reviewerEmail);  // ← debug, pas info
+
+    final SubmitReviewUseCase.Command command = new SubmitReviewUseCase.Command(
         request.listingId(),
         reviewerEmail,
         request.rating(),
         request.comment()
     );
 
-    Review review = submitReviewUseCase.submit(command);
-    log.info("Évaluation {} créée — annonce {} acheteur {}",
-        review.getId(), request.listingId(), reviewerEmail);
-
+    final Review review = submitReviewUseCase.submit(command);
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(ReviewResponse.from(review));
   }
