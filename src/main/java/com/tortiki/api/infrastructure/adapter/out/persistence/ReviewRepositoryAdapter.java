@@ -4,13 +4,15 @@ import com.tortiki.api.application.port.out.ReviewRepository;
 import com.tortiki.api.domain.model.Review;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Adaptateur secondaire — implémentation JPA du port {@link ReviewRepository}.
  *
  * <p>La contrainte d'unicité est portée par {@code contact_request_id UNIQUE}
- * en base (V1). L'existence d'un doublon est vérifiée via la demande
- * de contact confirmée associée à l'annonce et à l'acheteur.</p>
+ * en base (V5). L'accès au vendeur est sécurisé par un {@code JOIN FETCH}
+ * dans {@code ContactRequestJpaRepository.findConfirmedByListingIdAndBuyerId()}
+ * — évite toute {@code LazyInitializationException} sur {@code listing.seller}.</p>
  */
 @Component
 @RequiredArgsConstructor
@@ -23,24 +25,30 @@ public class ReviewRepositoryAdapter implements ReviewRepository {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional
   public Review save(final Review review) {
     final Long listingId = review.getListing().getId();
     final Long buyerId = review.getReviewer().getId();
 
-    ContactRequestJpaEntity contactRequestRef =
+    // JOIN FETCH listing + seller dans la requête — pas de proxy lazy
+    final ContactRequestJpaEntity contactRequestRef =
         contactRequestJpaRepository.findConfirmedByListingIdAndBuyerId(listingId, buyerId)
             .orElseThrow(() -> new IllegalStateException(
                 "Aucune demande confirmée trouvée pour la sauvegarde de l'évaluation"));
 
-    ListingJpaEntity listingRef = listingJpaRepository.getReferenceById(listingId);
-    UserJpaEntity reviewerRef = userJpaRepository.getReferenceById(buyerId);
+    final ListingJpaEntity listingRef =
+        listingJpaRepository.getReferenceById(listingId);
+    final UserJpaEntity reviewerRef =
+        userJpaRepository.getReferenceById(buyerId);
 
-    UserJpaEntity sellerRef = userJpaRepository.getReferenceById(
-        contactRequestRef.getListing().getSeller().getId());
+    // getSeller() initialisé par JOIN FETCH — zéro SELECT supplémentaire
+    final UserJpaEntity sellerRef =
+        userJpaRepository.getReferenceById(
+            contactRequestRef.getListing().getSeller().getId());
 
-    ReviewJpaEntity entity = ReviewPersistenceMapper.toEntity(
+    final ReviewJpaEntity entity = ReviewPersistenceMapper.toEntity(
         review, contactRequestRef, listingRef, reviewerRef, sellerRef);
-    ReviewJpaEntity saved = reviewJpaRepository.save(entity);
+    final ReviewJpaEntity saved = reviewJpaRepository.save(entity);
     return ReviewPersistenceMapper.toDomain(saved);
   }
 

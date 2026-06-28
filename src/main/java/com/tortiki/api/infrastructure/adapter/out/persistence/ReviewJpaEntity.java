@@ -9,6 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -19,14 +20,20 @@ import lombok.Setter;
  *
  * <p>Séparée du POJO domaine {@code Review} — aucune annotation JPA
  * ne doit apparaître dans {@code domain/model/}.
- * La contrainte d'unicité est portée par {@code contact_request_id UNIQUE}
- * définie dans V1 — garantit 1 avis par transaction confirmée.</p>
+ * La contrainte d'unicité {@code uq_review_contact_request} garantit
+ * qu'une demande confirmée ne peut générer qu'une seule évaluation.</p>
  */
 @Getter
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "reviews")
+@Table(
+    name = "reviews",
+    uniqueConstraints = @UniqueConstraint(
+        name = "uq_review_contact_request",
+        columnNames = "contact_request_id"
+    )
+)
 public class ReviewJpaEntity {
 
   /** Identifiant technique généré par la séquence PostgreSQL. */
@@ -36,10 +43,10 @@ public class ReviewJpaEntity {
 
   /**
    * Demande de contact confirmée à l'origine de l'évaluation.
-   * Contrainte UNIQUE en base — garantit 1 avis par demande.
+   * Contrainte UNIQUE portée par {@code uq_review_contact_request}.
    */
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "contact_request_id", nullable = false, unique = true)
+  @JoinColumn(name = "contact_request_id", nullable = false)
   private ContactRequestJpaEntity contactRequest;
 
   /** Acheteur auteur de l'évaluation. */
@@ -66,6 +73,6 @@ public class ReviewJpaEntity {
   private String comment;
 
   /** Date et heure de création. */
-  @Column(nullable = false)
+  @Column(name = "created_at", nullable = false)
   private LocalDateTime createdAt;
 }
