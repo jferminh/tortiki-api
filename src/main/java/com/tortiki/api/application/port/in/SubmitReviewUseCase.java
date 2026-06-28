@@ -32,5 +32,22 @@ public interface SubmitReviewUseCase {
       String reviewerEmail,
       Integer rating,
       String comment
-  ) {}
+  ) {
+    /**
+     * Valide les invariants de la commande à la construction.
+     * Protège le domaine quel que soit l'adaptateur appelant.
+     */
+    public Command {
+      if (rating == null || rating < 1 || rating > 5) {
+        throw new IllegalArgumentException(
+            "La note doit être comprise entre 1 et 5, valeur reçue : " + rating);
+      }
+      if (listingId == null) {
+        throw new IllegalArgumentException("L'identifiant de l'annonce est obligatoire");
+      }
+      if (reviewerEmail == null || reviewerEmail.isBlank()) {
+        throw new IllegalArgumentException("L'email de l'acheteur est obligatoire");
+      }
+    }
+  }
 }

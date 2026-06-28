@@ -26,10 +26,12 @@ import io.qameta.allure.Step;
 import io.qameta.allure.Story;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -39,12 +41,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
  * Tests unitaires du service {@link SubmitReviewService}.
  *
  * <p>Vérifie les quatre règles métier : soumission nominale,
- * annonce introuvable, demande non confirmée et doublon d'évaluation.</p>
+ * annonce introuvable, demande non confirmée et doublon d'évaluation.
+ * La couverture transactionnelle (@Transactional) est déléguée
+ * à un test d'intégration Testcontainers (tag {@code requires-integration-test}).</p>
  */
 @Epic("Évaluation")
 @Feature("Soumission d'une évaluation")
+@Tag("requires-integration-test")
 @ExtendWith(MockitoExtension.class)
-@DisplayName("SubmitReviewService")
+@DisplayName("SubmitReviewService — Tests unitaires")
 class SubmitReviewServiceTest {
 
   private static final Instant FIXED_INSTANT = Instant.parse("2026-06-25T20:00:00Z");
@@ -57,18 +62,14 @@ class SubmitReviewServiceTest {
 
   @Mock
   private ReviewRepository reviewRepository;
-
   @Mock
   private ListingRepository listingRepository;
-
   @Mock
   private UserRepository userRepository;
-
   @Mock
   private ContactRequestRepository contactRequestRepository;
 
   private SubmitReviewService service;
-
   private Listing listing;
   private User reviewer;
   private Command command;
@@ -83,7 +84,7 @@ class SubmitReviewServiceTest {
         FIXED_CLOCK
     );
 
-    User seller = new User();
+    final User seller = new User();
     seller.setId(SELLER_ID);
 
     listing = new Listing();
@@ -95,6 +96,32 @@ class SubmitReviewServiceTest {
     reviewer.setEmail(REVIEWER_EMAIL);
 
     command = new Command(LISTING_ID, REVIEWER_EMAIL, 5, "Délicieux !");
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // Invariants Command (Bloc 1 — constructeur compact)
+  // ─────────────────────────────────────────────────────────
+
+  @Test
+  @Story("Invariants Command")
+  @Description("Note invalide (0) — IllegalArgumentException levée dès la construction.")
+  @DisplayName("Command doit lever IllegalArgumentException si rating < 1")
+  void shouldThrowWhenCommandRatingIsInvalid() {
+    assertThatThrownBy(() ->
+        new Command(LISTING_ID, REVIEWER_EMAIL, 0, null))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("note");
+  }
+
+  @Test
+  @Story("Invariants Command")
+  @Description("listingId null — IllegalArgumentException levée dès la construction.")
+  @DisplayName("Command doit lever IllegalArgumentException si listingId est null")
+  void shouldThrowWhenCommandListingIdIsNull() {
+    assertThatThrownBy(() ->
+        new Command(null, REVIEWER_EMAIL, 5, null))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("annonce");
   }
 
   // ─────────────────────────────────────────────────────────
@@ -112,7 +139,7 @@ class SubmitReviewServiceTest {
     givenNoDuplicateReview();
     when(reviewRepository.save(any(Review.class))).thenReturn(buildSavedReview());
 
-    Review result = whenSubmitCommand();
+    final Review result = whenSubmitCommand();
 
     thenReviewIsCreated(result);
     verify(reviewRepository).save(any(Review.class));
@@ -160,7 +187,7 @@ class SubmitReviewServiceTest {
 
   @Test
   @Story("Règle métier : demande non confirmée")
-  @Description("Aucune demande CONFIRMED n'existe pour cet acheteur — ReviewNotAllowedException levée.")
+  @Description("Aucune demande CONFIRMED — ReviewNotAllowedException levée.")
   @DisplayName("Doit lever ReviewNotAllowedException si pas de demande confirmée")
   void shouldThrowWhenNoConfirmedRequest() {
     givenListingExists();
@@ -227,12 +254,13 @@ class SubmitReviewServiceTest {
     return service.submit(command);
   }
 
-  @Step("Alors l'évaluation est créée avec la note 5")
+  @Step("Alors l'évaluation est créée avec la note 5 et la date fixe")
   private void thenReviewIsCreated(final Review result) {
     assertThat(result).isNotNull();
     assertThat(result.getId()).isEqualTo(100L);
     assertThat(result.getRating()).isEqualTo(5);
     assertThat(result.getListing().getId()).isEqualTo(LISTING_ID);
+    assertThat(result.getCreatedAt()).isEqualTo(LocalDateTime.now(FIXED_CLOCK));
   }
 
   // ─────────────────────────────────────────────────────────
@@ -246,7 +274,7 @@ class SubmitReviewServiceTest {
         reviewer,
         5,
         "Délicieux !",
-        java.time.LocalDateTime.now(FIXED_CLOCK)
+        LocalDateTime.now(FIXED_CLOCK)
     );
   }
 }
