@@ -46,14 +46,17 @@ public final class ReviewPersistenceMapper {
   /**
    * Convertit une entité JPA {@link ReviewJpaEntity} en POJO domaine {@link Review}.
    *
+   * <p>Utilise uniquement les identifiants pour reconstruire les références domaine —
+   * évite tout accès aux proxies Hibernate lazy hors session.</p>
+   *
    * @param entity entité JPA chargée depuis la base
    * @return POJO domaine immuable
    */
   public static Review toDomain(final ReviewJpaEntity entity) {
-    Listing listing = new Listing();
+    final Listing listing = new Listing();
     listing.setId(entity.getListing().getId());
 
-    User reviewer = new User();
+    final User reviewer = new User();
     reviewer.setId(entity.getReviewer().getId());
 
     return new Review(
