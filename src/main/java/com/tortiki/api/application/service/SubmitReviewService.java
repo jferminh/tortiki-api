@@ -12,6 +12,7 @@ import com.tortiki.api.domain.exception.UserNotFoundException;
 import com.tortiki.api.domain.model.Listing;
 import com.tortiki.api.domain.model.Review;
 import com.tortiki.api.domain.model.User;
+import jakarta.transaction.Transactional;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
@@ -49,22 +50,16 @@ public class SubmitReviewService implements SubmitReviewUseCase {
    * @throws ReviewAlreadyExistsException si une évaluation existe déjà
    */
   @Override
+  @Transactional
   public Review submit(final Command command) {
     log.info("Soumission évaluation annonce {} par {}",
         command.listingId(), command.reviewerEmail());
 
-    Listing listing = listingRepository.findById(command.listingId())
-        .orElseThrow(() -> {
-          log.warn("Annonce introuvable : id={}", command.listingId());
-          return new ListingNotFoundException(
-              "Annonce introuvable pour l'identifiant : " + command.listingId());
-        });
+    final Listing listing = listingRepository.findById(command.listingId())
+        .orElseThrow(() -> notFoundListing(command.listingId()));
 
-    User reviewer = userRepository.findByEmailAndEnabledTrue(command.reviewerEmail())
-        .orElseThrow(() -> {
-          log.warn("Acheteur introuvable ou inactif : email={}", command.reviewerEmail());
-          return new UserNotFoundException(command.reviewerEmail());
-        });
+    final User reviewer = userRepository.findByEmailAndEnabledTrue(command.reviewerEmail())
+        .orElseThrow(() -> notFoundReviewer(command.reviewerEmail()));
 
     if (!contactRequestRepository.existsConfirmedByListingIdAndBuyerId(
         listing.getId(), reviewer.getId())) {
@@ -82,7 +77,7 @@ public class SubmitReviewService implements SubmitReviewUseCase {
           "Évaluation déjà soumise pour ce vendeur", listing.getId());
     }
 
-    Review review = new Review(
+    final Review review = new Review(
         null,
         listing,
         reviewer,
@@ -91,9 +86,32 @@ public class SubmitReviewService implements SubmitReviewUseCase {
         LocalDateTime.now(clock)
     );
 
-    Review saved = reviewRepository.save(review);
+    final Review saved = reviewRepository.save(review);
     log.info("Évaluation créée : id={} annonce={} acheteur={} note={}",
         saved.getId(), listing.getId(), reviewer.getId(), command.rating());
     return saved;
+  }
+
+  /**
+   * Construit l'exception métier pour une annonce introuvable avec log.
+   *
+   * @param listingId identifiant recherché
+   * @return exception prête à lever
+   */
+  private ListingNotFoundException notFoundListing(final Long listingId) {
+    log.warn("Annonce introuvable : id={}", listingId);
+    return new ListingNotFoundException(
+        "Annonce introuvable pour l'identifiant : " + listingId);
+  }
+
+  /**
+   * Construit l'exception métier pour un acheteur introuvable avec log.
+   *
+   * @param email email recherché
+   * @return exception prête à lever
+   */
+  private UserNotFoundException notFoundReviewer(final String email) {
+    log.warn("Acheteur introuvable ou inactif : email={}", email);
+    return new UserNotFoundException(email);
   }
 }
