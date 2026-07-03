@@ -62,7 +62,10 @@ public final class SecurityConstants {
   /** Route de la collection des allergènes. */
   public static final String ROUTE_ALLERGENS     = API_V1 + "/allergens";
 
-  /** Route générique pour un allergène. */
+  /** Route d'un allergène par identifiant. */
+  public static final String ROUTE_ALLERGEN_BY_ID = API_V1 + "/allergens/{id}";
+
+  /** Route générique pour un allergène — utilisée uniquement par SecurityConfig. */
   public static final String ROUTE_ALLERGENS_ALL = API_V1 + "/allergens/**";
 
   // ── Demandes de contact ────────────────────────────────────────────────────

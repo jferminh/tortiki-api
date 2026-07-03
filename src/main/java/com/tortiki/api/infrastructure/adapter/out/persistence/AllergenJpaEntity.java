@@ -16,6 +16,11 @@ import lombok.Setter;
  * <p>Référentiel des 14 allergènes définis par le règlement
  * INCO EU n°1169/2011. Administrable via {@code ROLE_ADMIN}.</p>
  *
+ * <p>Le champ {@code enabled} permet une désactivation logique
+ * (voir migration {@code V6__add_allergen_enabled.sql}) sans
+ * jamais supprimer physiquement la ligne, afin de préserver
+ * l'intégrité référentielle de {@code listing_allergens}.</p>
+ *
  * <p>Appartient exclusivement à la couche
  * {@code infrastructure/adapter/out/persistence/}.</p>
  */
@@ -34,4 +39,8 @@ public class AllergenJpaEntity {
   /** Nom de l'allergène (ex. {@code Gluten}, {@code Lait}). */
   @Column(name = "name", nullable = false, unique = true, length = 100)
   private String name;
+
+  /** Indique si l'allergène est actif et proposé dans les formulaires. */
+  @Column(name = "enabled", nullable = false)
+  private boolean enabled;
 }
