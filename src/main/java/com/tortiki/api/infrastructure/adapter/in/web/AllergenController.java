@@ -1,6 +1,7 @@
 package com.tortiki.api.infrastructure.adapter.in.web;
 
 import com.tortiki.api.application.port.in.ManageAllergenUseCase;
+import com.tortiki.api.config.SecurityConstants;
 import com.tortiki.api.infrastructure.adapter.in.web.dto.AllergenResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -24,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/allergens")
+@RequestMapping(SecurityConstants.ROUTE_ALLERGENS)
 @RequiredArgsConstructor
 @Tag(name = "Allergènes", description = "Consultation du référentiel des allergènes")
 public class AllergenController {
