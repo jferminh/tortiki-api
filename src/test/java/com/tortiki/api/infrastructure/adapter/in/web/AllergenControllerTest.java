@@ -36,7 +36,10 @@ import org.springframework.test.web.servlet.MockMvc;
  * Tests unitaires du contrôleur {@link AllergenController}.
  *
  * <p>Utilise {@code @WebMvcTest} pour charger uniquement la couche web.
- * {@link ManageAllergenUseCase} est mocké — aucune base de données sollicitée.</p>
+ * {@link ManageAllergenUseCase} est mocké — aucune base de données sollicitée.
+ * {@link AllergenWebMapper} est importé réellement (pas mocké) : c'est une
+ * classe utilitaire pure sans dépendance, l'instancier fidèlement est plus
+ * représentatif que de la simuler.</p>
  *
  * <p>Vérifie la lecture publique et le CRUD réservé à {@code ROLE_ADMIN},
  * conformément au pattern déjà appliqué sur {@code CuisineTypeControllerTest}.</p>
@@ -44,7 +47,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @Epic("Allergènes")
 @Feature("Endpoints REST allergens")
 @WebMvcTest(AllergenController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, AllergenWebMapper.class})
 @ActiveProfiles("test")
 @DisplayName("AllergenController — Tests unitaires")
 class AllergenControllerTest {
