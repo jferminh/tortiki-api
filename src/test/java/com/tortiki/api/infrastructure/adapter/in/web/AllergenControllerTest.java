@@ -17,6 +17,7 @@ import com.tortiki.api.application.port.in.ManageAllergenUseCase;
 import com.tortiki.api.config.SecurityConfig;
 import com.tortiki.api.config.SecurityConstants;
 import com.tortiki.api.domain.model.Allergen;
+import com.tortiki.api.infrastructure.adapter.in.web.dto.CreateAllergenRequest;
 import io.qameta.allure.Description;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Feature;
@@ -92,13 +93,13 @@ class AllergenControllerTest {
   @Description("Un administrateur authentifié peut créer un nouvel allergène.")
   @DisplayName("POST /api/v1/allergens — retourne 201 pour ROLE_ADMIN")
   void shouldReturn201WhenAdminCreatesAllergen() throws Exception {
-    when(manageAllergenUseCase.create(any())).thenReturn(buildAllergen());
+    when(manageAllergenUseCase.create(ALLERGEN_NAME)).thenReturn(buildAllergen());
 
     mockMvc.perform(post(SecurityConstants.ROUTE_ALLERGENS)
             .with(user(ADMIN_EMAIL).roles("ADMIN"))
             .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(buildAllergen())))
+            .content(objectMapper.writeValueAsString(new CreateAllergenRequest(ALLERGEN_NAME))))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.name").value(ALLERGEN_NAME));
   }
@@ -112,7 +113,7 @@ class AllergenControllerTest {
             .with(user(SELLER_EMAIL).roles("SELLER"))
             .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(buildAllergen())))
+            .content(objectMapper.writeValueAsString(new CreateAllergenRequest(ALLERGEN_NAME))))
         .andExpect(status().isForbidden());
 
     verify(manageAllergenUseCase, never()).create(any());
@@ -126,7 +127,7 @@ class AllergenControllerTest {
     mockMvc.perform(post(SecurityConstants.ROUTE_ALLERGENS)
             .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(buildAllergen())))
+            .content(objectMapper.writeValueAsString(new CreateAllergenRequest(ALLERGEN_NAME))))
         .andExpect(status().isUnauthorized());
 
     verify(manageAllergenUseCase, never()).create(any());
@@ -134,10 +135,10 @@ class AllergenControllerTest {
 
   @Test
   @Story("Suppression")
-  @Description("Un administrateur peut supprimer un allergène existant.")
+  @Description("Un administrateur peut désactiver un allergène existant.")
   @DisplayName("DELETE /api/v1/allergens/{id} — retourne 204 pour ROLE_ADMIN")
   void shouldReturn204WhenAdminDeletesAllergen() throws Exception {
-    mockMvc.perform(delete(SecurityConstants.ROUTE_ALLERGENS_ALL, ALLERGEN_ID)
+    mockMvc.perform(delete(SecurityConstants.ROUTE_ALLERGEN_BY_ID, ALLERGEN_ID)
             .with(user(ADMIN_EMAIL).roles("ADMIN"))
             .with(csrf()))
         .andExpect(status().isNoContent());
