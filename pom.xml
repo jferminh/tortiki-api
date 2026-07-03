@@ -291,7 +291,7 @@
               Convention : *Test.java uniquement.
               Les fichiers *IT.java sont EXCLUS ici — gérés par Failsafe.
               Mockito javaagent explicite : supprime le warning
-              "self-attaching" JDK 21 (bloquant à partir de JDK 25+).
+              "self attaching" JDK 21 (bloquant à partir de JDK 25+).
             -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
