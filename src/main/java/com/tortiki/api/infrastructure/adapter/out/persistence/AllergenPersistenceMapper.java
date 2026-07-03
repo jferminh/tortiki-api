@@ -23,6 +23,7 @@ public class AllergenPersistenceMapper {
     Allergen allergen = new Allergen();
     allergen.setId(entity.getId());
     allergen.setName(entity.getName());
+    allergen.setEnabled(entity.isEnabled());
     return allergen;
   }
 
@@ -36,6 +37,7 @@ public class AllergenPersistenceMapper {
     AllergenJpaEntity entity = new AllergenJpaEntity();
     entity.setId(allergen.getId());
     entity.setName(allergen.getName());
+    entity.setEnabled(allergen.isEnabled());
     return entity;
   }
 }
