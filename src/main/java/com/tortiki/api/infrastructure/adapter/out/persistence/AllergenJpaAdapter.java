@@ -5,6 +5,7 @@ import com.tortiki.api.domain.model.Allergen;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Component;
  * <p>Implémente {@link AllergenRepository} (port out) en déléguant
  * à {@link AllergenJpaRepository} (Spring Data JPA).</p>
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class AllergenJpaAdapter implements AllergenRepository {
@@ -45,5 +47,15 @@ public class AllergenJpaAdapter implements AllergenRepository {
   @Override
   public Optional<Allergen> findById(Long id) {
     return jpaRepository.findById(id).map(mapper::toDomain);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public Allergen save(Allergen allergen) {
+    log.debug("Persistance de l'allergène id={} name={}", allergen.getId(), allergen.getName());
+    final AllergenJpaEntity entity = mapper.toEntity(allergen);
+    final AllergenJpaEntity saved = jpaRepository.save(entity);
+    log.debug("Allergène persisté avec l'id {}", saved.getId());
+    return mapper.toDomain(saved);
   }
 }
