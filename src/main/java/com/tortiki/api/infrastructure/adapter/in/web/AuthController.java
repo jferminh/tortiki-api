@@ -22,7 +22,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -101,10 +100,10 @@ public class AuthController {
   @ApiResponse(responseCode = "400", description = "Données invalides")
   @ApiResponse(responseCode = "401", description = "Credentials invalides")
   public ResponseEntity<UserResponse> login(
-      @Valid @RequestBody LoginRequest request,
-      HttpServletRequest servletRequest) {
+      @Valid @RequestBody final LoginRequest request,
+      final HttpServletRequest servletRequest) {
 
-    log.debug("Requête de connexion reçue pour : {}", request.email());
+    log.debug("Requête de connexion reçue.");
     Authentication authentication = authenticationManager.authenticate(
         new UsernamePasswordAuthenticationToken(request.email(), request.password())
     );
@@ -119,7 +118,7 @@ public class AuthController {
     );
 
     User user = findUserUseCase.findByEmail(request.email());
-    log.info("Connexion réussie pour {}", request.email());
+    log.info("Connexion réussie pour l'utilisateur id={}", user.getId());
     return ResponseEntity.ok(userWebMapper.toResponse(user));
   }
 
@@ -138,15 +137,14 @@ public class AuthController {
   @Operation(summary = "Déconnexion de l'utilisateur")
   @ApiResponse(responseCode = "204", description = "Déconnexion réussie")
   public ResponseEntity<Void> logout(
-      HttpServletRequest servletRequest,
-      HttpServletResponse servletResponse) {
+      final HttpServletRequest servletRequest,
+      final HttpServletResponse servletResponse) {
 
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-    String email = (authentication != null) ? authentication.getName() : "anonyme";
 
     new SecurityContextLogoutHandler().logout(servletRequest, servletResponse, authentication);
 
-    log.info("Déconnexion de : {}", email);
+    log.info("Déconnexion effectuée.");
     return ResponseEntity.noContent().build();
   }
 }
