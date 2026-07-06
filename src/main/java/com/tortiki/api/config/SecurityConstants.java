@@ -89,6 +89,9 @@ public final class SecurityConstants {
   public static final String ROUTE_SELLER_DASHBOARD_CONTACT_STATUS =
       API_V1 + "/seller-dashboard/contact-requests/{id}/status";
 
+  /** Route du tableau de bord vendeur : liste toutes ses annonces, tous statuts. */
+  public static final String ROUTE_SELLER_LISTINGS = "/api/v1/seller-listings";
+
   // ── Notations ──────────────────────────────────────────────────────────────
 
   /** Route de soumission d'une notation (Sprint 3). */
