@@ -46,4 +46,13 @@ public interface ListingRepository {
    * @return liste des annonces correspondantes, vide si aucune
    */
   List<Listing> findByStatus(ListingStatus status);
+
+  /**
+   * Recherche toutes les annonces appartenant à un vendeur donné,
+   * quel que soit leur statut, triées par date de création décroissante.
+   *
+   * @param sellerId identifiant du vendeur
+   * @return liste des annonces du vendeur
+   */
+  List<Listing> findBySellerId(Long sellerId);
 }

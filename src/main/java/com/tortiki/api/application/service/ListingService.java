@@ -203,6 +203,14 @@ public class ListingService implements ManageListingUseCase {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(readOnly = true)
+  public List<Listing> findAllForSeller(Long sellerId) {
+    log.debug("Recherche de toutes les annonces (tous statuts) du vendeur id={}", sellerId);
+    return listingRepository.findBySellerId(sellerId);
+  }
+
+  /** {@inheritDoc} */
+  @Override
   @Transactional
   public Listing changeStatus(Long listingId, ListingStatus status) {
     log.debug("Changement statut annonce id={} vers {}", listingId, status);

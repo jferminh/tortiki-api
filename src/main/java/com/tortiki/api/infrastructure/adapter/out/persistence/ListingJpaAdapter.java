@@ -55,4 +55,15 @@ public class ListingJpaAdapter implements ListingRepository {
         .map(mapper::toDomain)
         .toList();
   }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public List<Listing> findBySellerId(final Long sellerId) {
+    return jpaRepository.findBySellerIdOrderByCreatedAtDesc(sellerId)
+        .stream()
+        .map(mapper::toDomain)
+        .toList();
+  }
 }

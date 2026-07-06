@@ -4,7 +4,10 @@ import com.tortiki.api.domain.model.Listing;
 import com.tortiki.api.domain.model.ListingStatus;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Port primaire — cas d'usage : gestion des annonces de plats.
@@ -85,10 +88,15 @@ public interface ManageListingUseCase {
   List<Listing> findAll();
 
   /**
-   * Retourne toutes les annonces actives d'un vendeur.
+   * Retourne toutes les annonces appartenant à un vendeur donné,
+   * quel que soit leur statut (actif, inactif, épuisé).
    *
-   * @param sellerId identifiant du vendeur
-   * @return liste des annonces actives, vide si aucune
+   * <p>Contrairement à {@link #findAll()} qui ne retourne que les annonces
+   * actives et publiques, cette méthode sert le tableau de bord vendeur :
+   * Sofia doit pouvoir voir et gérer ses annonces désactivées.</p>
+   *
+   * @param sellerId identifiant du vendeur, résolu depuis l'authentification
+   * @return liste des annonces du vendeur, triées par date de création
    */
   List<Listing> findBySeller(Long sellerId);
 
@@ -101,6 +109,20 @@ public interface ManageListingUseCase {
    *         si l'annonce est introuvable
    */
   Listing findById(Long listingId);
+
+  /**
+   * Retourne toutes les annonces d'un vendeur pour son tableau de bord privé,
+   * quel que soit leur statut (active, inactive, épuisée).
+   *
+   * <p>À distinguer de {@link #findBySeller(Long)}, qui ne retourne que les
+   * annonces {@code ACTIVE} et sert un usage public (ex. profil vendeur
+   * consultable par les acheteurs). Cette méthode-ci est réservée au vendeur
+   * authentifié consultant ses propres annonces.</p>
+   *
+   * @param sellerId identifiant du vendeur, résolu depuis l'authentification
+   * @return liste des annonces du vendeur, triées par date de création décroissante
+   */
+  List<Listing> findAllForSeller(Long sellerId);
 
   /**
    * Change le statut d'une annonce.
@@ -149,6 +171,13 @@ public interface ManageListingUseCase {
    * <p>Encapsule le contenu binaire afin que le port primaire reste
    * agnostique de {@code MultipartFile} (couche HTTP).</p>
    *
+   * <p>{@code equals}, {@code hashCode} et {@code toString} sont surchargés
+   * explicitement : les implémentations générées par défaut pour un
+   * {@code record} comparent {@code photoBytes} par référence mémoire
+   * (identité du tableau), jamais par contenu binaire. Sans cette
+   * surcharge, deux commandes portant une photo strictement identique
+   * en octets seraient jugées différentes.</p>
+   *
    * @param photoBytes  contenu binaire de la photo
    * @param contentType type MIME (ex. {@code image/jpeg})
    * @param fileName    nom du fichier cible dans le bucket MinIO
@@ -157,5 +186,59 @@ public interface ManageListingUseCase {
       byte[] photoBytes,
       String contentType,
       String fileName
-  ) {}
+  ) {
+
+    /**
+     * Compare deux commandes photo par contenu binaire réel du tableau,
+     * et non par référence mémoire.
+     *
+     * <p>Utilise la déconstruction de record (Java 21 record pattern)
+     * pour extraire directement les composants de {@code other} sans
+     * variable intermédiaire.</p>
+     *
+     * @param other objet à comparer
+     * @return {@code true} si tous les champs, y compris le contenu
+     *         binaire de {@code photoBytes}, sont égaux
+     */
+    @Override
+    public boolean equals(final Object other) {
+      if (this == other) {
+        return true;
+      }
+      if (!(other instanceof PhotoCommand(
+          byte[] otherBytes, String otherContentType, String otherFileName))) {
+        return false;
+      }
+      return Arrays.equals(photoBytes, otherBytes)
+          && Objects.equals(contentType, otherContentType)
+          && Objects.equals(fileName, otherFileName);
+    }
+
+    /**
+     * Calcule le hash à partir du contenu binaire réel du tableau,
+     * et non de sa référence mémoire.
+     *
+     * @return le code de hachage cohérent avec {@link #equals(Object)}
+     */
+    @Override
+    public int hashCode() {
+      int result = Objects.hash(contentType, fileName);
+      result = 31 * result + Arrays.hashCode(photoBytes);
+      return result;
+    }
+
+    /**
+     * Représentation textuelle lisible, affichant la taille du tableau
+     * plutôt que son adresse mémoire.
+     *
+     * @return une représentation textuelle de la commande photo
+     */
+    @Override
+    @NotNull
+    public String toString() {
+      return "PhotoCommand[photoBytes.length=" + photoBytes.length
+          + ", contentType=" + contentType
+          + ", fileName=" + fileName + "]";
+    }
+  }
 }

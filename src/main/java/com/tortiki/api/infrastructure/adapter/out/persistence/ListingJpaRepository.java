@@ -72,6 +72,33 @@ public interface ListingJpaRepository extends JpaRepository<ListingJpaEntity, Lo
   boolean existsByCuisineTypeIdAndStatus(Long cuisineTypeId, ListingStatus status);
 
   /**
+   * Recherche les entités annonce d'un vendeur, toutes statuts confondus,
+   * avec les associations {@code cuisineType} et {@code allergens} chargées
+   * en eager via JOIN FETCH.
+   *
+   * <p>Évite le problème N+1 : sans cette jointure explicite, chaque annonce
+   * de la liste déclencherait une requête supplémentaire pour charger son
+   * type de cuisine et ses allergènes lors du mapping vers le domaine
+   * (voir {@link ListingPersistenceMapper#toDomain(ListingJpaEntity)}).</p>
+   *
+   * <p>{@code DISTINCT} évite les doublons produits par le LEFT JOIN sur
+   * la collection {@code allergens} (relation ManyToMany), comme pour
+   * {@link #findByIdWithSeller(Long)}.</p>
+   *
+   * @param sellerId identifiant du vendeur
+   * @return liste des entités annonce du vendeur, triées par date de création décroissante
+   */
+  @Query(
+      """
+      SELECT DISTINCT l FROM ListingJpaEntity l
+      JOIN FETCH l.cuisineType
+      LEFT JOIN FETCH l.allergens
+      WHERE l.seller.id = :sellerId
+      ORDER BY l.createdAt DESC
+      """)
+  List<ListingJpaEntity> findBySellerIdOrderByCreatedAtDesc(@Param("sellerId") Long sellerId);
+
+  /**
    * Recherche unifiée des annonces actives selon tous les critères optionnels.
    *
    * <p>Filtres appliqués côté base PostgreSQL :</p>
