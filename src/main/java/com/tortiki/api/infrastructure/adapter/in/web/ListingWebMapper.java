@@ -20,6 +20,11 @@ public class ListingWebMapper {
   /**
    * Convertit un {@link Listing} domaine en {@link ListingResponse} HTTP.
    *
+   * <p>Expose à la fois les libellés ({@code cuisineTypeName},
+   * {@code allergenNames}, pour l'affichage public) et les identifiants
+   * ({@code cuisineTypeId}, {@code allergenIds}, pour le préremplissage
+   * du formulaire d'édition vendeur).</p>
+   *
    * @param listing l'annonce domaine à convertir
    * @return le DTO de réponse HTTP
    */
@@ -27,6 +32,11 @@ public class ListingWebMapper {
     List<String> allergenNames = listing.getAllergens()
         .stream()
         .map(Allergen::getName)
+        .toList();
+
+    List<Long> allergenIds = listing.getAllergens()
+        .stream()
+        .map(Allergen::getId)
         .toList();
 
     return new ListingResponse(
@@ -42,7 +52,9 @@ public class ListingWebMapper {
         listing.getCuisineType() != null ? listing.getCuisineType().getName() : null,
         listing.getSeller() != null ? listing.getSeller().getEmail() : null,
         allergenNames,
-        listing.getCreatedAt()
+        listing.getCreatedAt(),
+        listing.getCuisineType() != null ? listing.getCuisineType().getId() : null,
+        allergenIds
     );
   }
 
