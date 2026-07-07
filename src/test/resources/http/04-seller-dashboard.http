@@ -99,7 +99,7 @@ Content-Type: application/json
 
 ###
 
-### [8] Sofia re-confirme → 409 Conflict (statut final irrversible)
+### [8] Sofia re-confirme → 409 Conflict (statut final irréversible)
 PATCH {{baseUrl}}/api/v1/seller-dashboard/contact-requests/{{contactRequestId}}/status
 Content-Type: application/json
 
@@ -108,7 +108,7 @@ Content-Type: application/json
 }
 
 > {%
-    client.test("Statut final irrversible → 409 Conflict", function() {
+    client.test("Statut final irréversible → 409 Conflict", function() {
         client.assert(response.status === 409, "Expected 409, got " + response.status);
     });
 %}
@@ -203,6 +203,7 @@ Content-Type: application/json
 
 ###
 
+### [14bis] 2e annonce Sofia → 201 Created
 POST {{baseUrl}}/api/v1/listings
 Content-Type: application/json
 
@@ -212,16 +213,15 @@ Content-Type: application/json
   "price": 7.00,
   "portions": 6,
   "cuisineTypeId": 1,
-  "city": "Nancy",
-  "postalCode": "54000",
-  "pickupAddress": "12 rue de la Paix, Nancy",
+  "allergenIds": [],
+  "pickupAddress": "12 rue de la Paix, 54000 Nancy",
   "pickupDatetime": "2026-07-12T12:00:00"
 }
 
 > {%
     client.test("2e annonce Sofia → 201", function() {
         client.assert(response.status === 201, "Expected 201, got " + response.status);
-        client.global.set("listing2Id", response.body.id);
+        client.global.set("listing2Id", String(response.body.id));
     });
 %}
 
@@ -238,6 +238,7 @@ Content-Type: application/json
 
 ###
 
+### [15bis] Demande de Théo sur la 2e annonce → 201 PENDING
 POST {{baseUrl}}/api/v1/contact-requests
 Content-Type: application/json
 
@@ -250,7 +251,7 @@ Content-Type: application/json
 > {%
     client.test("Demande sur 2e annonce → 201 PENDING", function() {
         client.assert(response.status === 201, "Expected 201, got " + response.status);
-        client.global.set("contactRequest2Id", response.body.id);
+        client.global.set("contactRequest2Id", String(response.body.id));
     });
 %}
 
@@ -267,6 +268,7 @@ Content-Type: application/json
 
 ###
 
+### [16bis] Sofia refuse la demande → 200 REFUSED
 PATCH {{baseUrl}}/api/v1/seller-dashboard/contact-requests/{{contactRequest2Id}}/status
 Content-Type: application/json
 

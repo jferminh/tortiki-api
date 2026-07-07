@@ -1,9 +1,11 @@
 ### =============================================================
 ### TORTIKI — Listings (Sprint 1)
-### POST   /api/v1/listings        → 201 (ROLE_SELLER)
-### GET    /api/v1/listings/search → 200 (public)
-### GET    /api/v1/listings/{id}   → 200 (public)
-### PUT    /api/v1/listings/{id}   → 200 (ROLE_SELLER)
+### POST   /api/v1/listings         → 201 (ROLE_SELLER)
+### GET    /api/v1/listings/search  → 200 (public)
+### GET    /api/v1/listings/{id}    → 200 (public)
+### PUT    /api/v1/listings/{id}    → 200 (ROLE_SELLER)
+### GET    /api/v1/seller-listings  → 200 (ROLE_SELLER, dashboard privé)
+### DELETE /api/v1/listings/{id}    → 204 (ROLE_SELLER, soft delete)
 ### =============================================================
 
 ### [1] Login Sofia — SELLER
@@ -110,7 +112,18 @@ Content-Type: application/json
 
 ###
 
-### [8] Login Sofia
+### [8] BUYER tente d'accéder au dashboard vendeur → 403
+GET {{baseUrl}}/api/v1/seller-listings
+
+> {%
+    client.test("BUYER accède seller-listings → 403 Forbidden", function() {
+        client.assert(response.status === 403, "Expected 403, got " + response.status);
+    });
+%}
+
+###
+
+### [9] Login Sofia
 POST {{baseUrl}}/api/v1/auth/login
 Content-Type: application/json
 
@@ -121,7 +134,7 @@ Content-Type: application/json
 
 ###
 
-### [9] Sofia modifie son annonce → 200 OK
+### [10] Sofia modifie son annonce → 200 OK
 PUT {{baseUrl}}/api/v1/listings/{{listingId}}
 Content-Type: application/json
 
@@ -141,5 +154,90 @@ Content-Type: application/json
         client.assert(response.status === 200, "Expected 200, got " + response.status);
         const body = response.body;
         client.assert(body["price"] === 9.50, "Prix attendu : 9.50");
+    });
+%}
+
+###
+
+### [11] Sofia consulte son dashboard — l'annonce ACTIVE apparaît (200 OK)
+GET {{baseUrl}}/api/v1/seller-listings
+
+> {%
+    client.test("Dashboard vendeur → 200 OK", function() {
+        client.assert(response.status === 200, "Expected 200, got " + response.status);
+    });
+    client.test("Annonce présente dans le dashboard", function() {
+        const body = response.body;
+        const found = body.some(l => String(l["id"]) === client.global.get("listingId"));
+        client.assert(found, "L'annonce créée doit apparaître dans le dashboard");
+    });
+%}
+
+###
+
+### [12] Sofia désactive son annonce → 204 No Content
+DELETE {{baseUrl}}/api/v1/listings/{{listingId}}
+
+> {%
+    client.test("Désactiver annonce → 204 No Content", function() {
+        client.assert(response.status === 204, "Expected 204, got " + response.status);
+    });
+%}
+
+###
+
+### [13] Annonce désactivée disparaît de la recherche publique
+GET {{baseUrl}}/api/v1/listings/search?city=Nancy&page=0&size=10
+
+> {%
+    client.test("Annonce INACTIVE absente de la recherche publique", function() {
+        const body = response.body;
+        const results = body["content"] || body;
+        const found = results.some(l => String(l["id"]) === client.global.get("listingId"));
+        client.assert(!found, "L'annonce désactivée ne doit plus apparaître en recherche publique");
+    });
+%}
+
+###
+
+### [14] Sofia consulte son dashboard — l'annonce INACTIVE reste visible (200 OK)
+GET {{baseUrl}}/api/v1/seller-listings
+
+> {%
+    client.test("Dashboard vendeur → 200 OK", function() {
+        client.assert(response.status === 200, "Expected 200, got " + response.status);
+    });
+    client.test("Annonce INACTIVE toujours visible dans le dashboard", function() {
+        const body = response.body;
+        const listing = body.find(l => String(l["id"]) === client.global.get("listingId"));
+        client.assert(listing !== undefined, "L'annonce doit rester dans le dashboard après désactivation");
+        client.assert(listing["status"] === "INACTIVE", "Statut attendu : INACTIVE");
+    });
+%}
+
+###
+
+### [15] Login second vendeur — Nadia (test IDOR)
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{nadiaEmail}}",
+  "password": "{{password}}"
+}
+
+###
+
+### [16] Nadia consulte son dashboard — ne doit voir aucune annonce de Sofia (200 OK)
+GET {{baseUrl}}/api/v1/seller-listings
+
+> {%
+    client.test("Dashboard vendeur → 200 OK", function() {
+        client.assert(response.status === 200, "Expected 200, got " + response.status);
+    });
+    client.test("IDOR — aucune annonce de Sofia visible", function() {
+        const body = response.body;
+        const leaked = body.some(l => String(l["id"]) === client.global.get("listingId"));
+        client.assert(!leaked, "Nadia ne doit jamais voir l'annonce de Sofia (IDOR)");
     });
 %}
