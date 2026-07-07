@@ -16,6 +16,13 @@ import java.util.List;
  * Les coordonnées téléphoniques ne sont transmises qu'après
  * {@code CONFIRMED} (Sprint 3).</p>
  *
+ * <p>Les champs {@code cuisineTypeId} et {@code allergenIds} ont été
+ * ajoutés pour corriger un mismatch de contrat avec le frontend
+ * ({@code ListingDetailResponse}) : le formulaire d'édition vendeur
+ * a besoin des identifiants, pas seulement des libellés, pour
+ * pré-sélectionner les champs du formulaire (Issue de veille détectée
+ * pendant l'Issue #53).</p>
+ *
  * @param id              identifiant technique de l'annonce
  * @param title           titre de l'annonce
  * @param description     description détaillée du plat
@@ -29,6 +36,8 @@ import java.util.List;
  * @param sellerEmail     email du vendeur (identifiant public)
  * @param allergenNames   noms des allergènes présents (liste vide si aucun)
  * @param createdAt       date de création
+ * @param cuisineTypeId   identifiant de l'origine culinaire, pour préremplissage formulaire
+ * @param allergenIds     identifiants des allergènes présents, pour préremplissage formulaire
  */
 @Schema(description = "Représentation d'une annonce de plat")
 public record ListingResponse(
@@ -82,6 +91,12 @@ public record ListingResponse(
     List<String> allergenNames,
 
     @Schema(description = "Date de création", example = "2026-06-12T10:00:00")
-    LocalDateTime createdAt
+    LocalDateTime createdAt,
+
+    @Schema(description = "Identifiant de l'origine culinaire", example = "1")
+    Long cuisineTypeId,
+
+    @Schema(description = "Identifiants des allergènes présents", example = "[3, 7]")
+    List<Long> allergenIds
 
 ) {}

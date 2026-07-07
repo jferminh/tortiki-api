@@ -139,7 +139,9 @@ class ListingControllerTest {
         CUISINE_NAME,
         SELLER_EMAIL,
         List.of(),
-        TEST_CREATED_AT
+        TEST_CREATED_AT,
+        CUISINE_ID,
+        List.of()
     );
   }
 

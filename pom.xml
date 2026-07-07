@@ -21,18 +21,40 @@
     <properties>
         <java.version>21</java.version>
         <springdoc.version>2.8.9</springdoc.version>
-        <minio.version>8.5.11</minio.version>
+        <minio.version>8.6.0</minio.version>
         <testcontainers.version>1.19.8</testcontainers.version>
         <allure.version>2.27.0</allure.version>
         <allure.maven.version>2.17.0</allure.maven.version>
         <jacoco.version>0.8.13</jacoco.version>
         <lombok.version>1.18.38</lombok.version>
         <!--
+          checkstyle.version : moteur d'analyse Checkstyle core, distinct
+          de maven-checkstyle-plugin. Épinglé explicitement car la version
+          transitive par défaut (< 10.14.0) ne parse pas les record patterns
+          Java 21 (instanceof Type(...)), utilisés dans ManageListingUseCase.
+        -->
+        <checkstyle.version>10.21.2</checkstyle.version>
+        <!--
+            okhttp.version : déclaré explicitement car minio:8.6.0 publie un POM
+            Maven avec une dépendance transitive okhttp cassée (bug connu upstream,
+            voir minio/minio-java#1670 et #1680 sur GitHub). Sans cette déclaration
+            explicite, okhttp3.HttpUrl est introuvable au moment de la compilation.
+        -->
+        <okhttp.version>4.12.0</okhttp.version>
+        <!--
           mockito.version : doit correspondre exactement à la version
           transitoire de spring-boot-starter-test.
           Vérifier avec : mvnw dependency:tree | grep mockito-core
         -->
         <mockito.version>5.18.0</mockito.version>
+        <!--
+          Chemin du javaagent Mockito, factorisé une seule fois et réutilisé
+          par Surefire et Failsafe — évite une désynchronisation si
+          mockito.version change dans un seul des deux blocs.
+        -->
+        <mockito.agent.path>
+            ${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar
+        </mockito.agent.path>
         <!-- argLine initialisée ici — enrichie par JaCoCo prepare-agent (Surefire) -->
         <argLine>-Xmx512m -XX:+EnableDynamicAgentLoading</argLine>
         <!--
@@ -114,6 +136,20 @@
             <groupId>io.minio</groupId>
             <artifactId>minio</artifactId>
             <version>${minio.version}</version>
+        </dependency>
+
+        <!--
+            OkHttp déclaré explicitement en dépendance directe — contournement
+            d'un défaut de résolution transitive dans le POM publié de minio:8.6.0.
+            Version 4.12.0 : dernière version stable de la branche 4.x, compatible
+            avec l'API interne utilisée par le SDK MinIO (la branche 5.x, tirée
+            en transitif par erreur selon le rapport GitHub, introduit des
+            changements incompatibles).
+        -->
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>${okhttp.version}</version>
         </dependency>
 
         <!-- ===== TESTS ===== -->
@@ -273,6 +309,13 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <version>3.4.0</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.puppycrawl.tools</groupId>
+                        <artifactId>checkstyle</artifactId>
+                        <version>${checkstyle.version}</version>
+                    </dependency>
+                </dependencies>
                 <configuration>
                     <configLocation>google_checks.xml</configLocation>
                     <failsOnError>true</failsOnError>
@@ -302,7 +345,7 @@
                     </excludes>
                     <argLine>
                         @{argLine}
-                        -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar
+                        -javaagent:${mockito.agent.path}
                     </argLine>
                 </configuration>
             </plugin>
@@ -324,7 +367,7 @@
                     </includes>
                     <argLine>
                         @{itArgLine}
-                        -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar
+                        -javaagent:${mockito.agent.path}
                     </argLine>
                 </configuration>
                 <executions>
