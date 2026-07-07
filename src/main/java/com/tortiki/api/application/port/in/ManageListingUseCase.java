@@ -7,7 +7,6 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Port primaire — cas d'usage : gestion des annonces de plats.
@@ -234,7 +233,6 @@ public interface ManageListingUseCase {
      * @return une représentation textuelle de la commande photo
      */
     @Override
-    @NotNull
     public String toString() {
       return "PhotoCommand[photoBytes.length=" + photoBytes.length
           + ", contentType=" + contentType
