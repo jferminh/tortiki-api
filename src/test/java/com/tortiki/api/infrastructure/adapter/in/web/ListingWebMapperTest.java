@@ -8,6 +8,12 @@ import com.tortiki.api.domain.model.Listing;
 import com.tortiki.api.domain.model.ListingStatus;
 import com.tortiki.api.domain.model.User;
 import com.tortiki.api.infrastructure.adapter.in.web.dto.ListingResponse;
+import io.qameta.allure.Description;
+import io.qameta.allure.Epic;
+import io.qameta.allure.Feature;
+import io.qameta.allure.Severity;
+import io.qameta.allure.SeverityLevel;
+import io.qameta.allure.Story;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.Month;
@@ -22,12 +28,19 @@ import org.junit.jupiter.api.Test;
  * {@code allergenIds}, ajoutés pour corriger le mismatch de contrat
  * avec {@code ListingDetailResponse} (tortiki-frontend).</p>
  */
+@Epic("Annonces")
+@Feature("Mapping DTO listings")
+@DisplayName("ListingWebMapper — Tests unitaires")
 class ListingWebMapperTest {
 
   private final ListingWebMapper mapper = new ListingWebMapper();
 
   @Test
-  @DisplayName("toResponse expose cuisineTypeId et allergenIds en plus des libellés")
+  @Story("Conversion Listing vers ListingResponse")
+  @Severity(SeverityLevel.CRITICAL)
+  @Description("Le mapper expose cuisineTypeId et allergenIds en plus des libellés, "
+      + "évitant le mismatch de contrat avec ListingDetailResponse (frontend).")
+  @DisplayName("toResponse — expose cuisineTypeId et allergenIds en plus des libellés")
   void toResponseShouldExposeIdsAlongsideNames() {
     CuisineType cuisineType = new CuisineType(1L, "Ukrainienne", "Cuisine d'Europe de l'Est", true);
     Allergen gluten = new Allergen(3L, "Gluten", true);
@@ -60,7 +73,11 @@ class ListingWebMapperTest {
   }
 
   @Test
-  @DisplayName("toResponse gère un cuisineType null sans lever d'exception")
+  @Story("Conversion Listing vers ListingResponse")
+  @Severity(SeverityLevel.NORMAL)
+  @Description("Le mapper ne lève pas d'exception lorsque cuisineType est null "
+      + "(annonce en cours de création, origine culinaire pas encore renseignée).")
+  @DisplayName("toResponse — gère un cuisineType null sans lever d'exception")
   void toResponseShouldHandleNullCuisineType() {
     Listing listing = new Listing();
     listing.setId(1L);
