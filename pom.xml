@@ -35,6 +35,13 @@
         -->
         <checkstyle.version>10.21.2</checkstyle.version>
         <!--
+            okhttp.version : déclaré explicitement car minio:8.6.0 publie un POM
+            Maven avec une dépendance transitive okhttp cassée (bug connu upstream,
+            voir minio/minio-java#1670 et #1680 sur GitHub). Sans cette déclaration
+            explicite, okhttp3.HttpUrl est introuvable au moment de la compilation.
+        -->
+        <okhttp.version>4.12.0</okhttp.version>
+        <!--
           mockito.version : doit correspondre exactement à la version
           transitoire de spring-boot-starter-test.
           Vérifier avec : mvnw dependency:tree | grep mockito-core
@@ -129,6 +136,20 @@
             <groupId>io.minio</groupId>
             <artifactId>minio</artifactId>
             <version>${minio.version}</version>
+        </dependency>
+
+        <!--
+            OkHttp déclaré explicitement en dépendance directe — contournement
+            d'un défaut de résolution transitive dans le POM publié de minio:8.6.0.
+            Version 4.12.0 : dernière version stable de la branche 4.x, compatible
+            avec l'API interne utilisée par le SDK MinIO (la branche 5.x, tirée
+            en transitif par erreur selon le rapport GitHub, introduit des
+            changements incompatibles).
+        -->
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>${okhttp.version}</version>
         </dependency>
 
         <!-- ===== TESTS ===== -->
