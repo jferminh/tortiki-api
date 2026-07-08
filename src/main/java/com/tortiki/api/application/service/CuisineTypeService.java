@@ -2,6 +2,7 @@ package com.tortiki.api.application.service;
 
 import com.tortiki.api.application.port.in.ManageCuisineTypeUseCase;
 import com.tortiki.api.application.port.out.CuisineTypeRepository;
+import com.tortiki.api.domain.exception.CuisineTypeInUseException;
 import com.tortiki.api.domain.exception.CuisineTypeNotFoundException;
 import com.tortiki.api.domain.model.CuisineType;
 import java.util.List;
@@ -92,9 +93,8 @@ public class CuisineTypeService implements ManageCuisineTypeUseCase {
             CUISINE_TYPE_NOT_FOUND + id
         ));
     if (cuisineTypeRepository.isUsedByActiveListing(id)) {
-      throw new IllegalStateException(
-          CUISINE_TYPE_IN_USE + id
-              + " : des annonces actives la référencent"
+      throw new CuisineTypeInUseException(
+          CUISINE_TYPE_IN_USE + id + " : des annonces actives la référencent"
       );
     }
     cuisineTypeRepository.deleteById(id);
