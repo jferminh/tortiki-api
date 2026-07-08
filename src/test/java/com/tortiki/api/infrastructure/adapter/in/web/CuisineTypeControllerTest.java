@@ -2,11 +2,13 @@ package com.tortiki.api.infrastructure.adapter.in.web;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -16,6 +18,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tortiki.api.application.port.in.ManageCuisineTypeUseCase;
 import com.tortiki.api.config.SecurityConfig;
 import com.tortiki.api.config.SecurityConstants;
+import com.tortiki.api.domain.exception.CuisineTypeInUseException;
 import com.tortiki.api.domain.exception.CuisineTypeNotFoundException;
 import com.tortiki.api.domain.model.CuisineType;
 import com.tortiki.api.infrastructure.adapter.in.web.dto.CuisineTypeResponse;
@@ -227,6 +230,73 @@ class CuisineTypeControllerTest {
         .andExpect(status().isForbidden());
 
     verify(manageCuisineTypeUseCase, never()).create(anyString(), any());
+  }
+
+  // ── DELETE /api/v1/cuisine-types/{id} ─────────────────────────────────────
+
+  @Test
+  @Story("Suppression référentiel")
+  @Severity(SeverityLevel.CRITICAL)
+  @Description("Admin supprime une origine non utilisée — HTTP 204.")
+  @DisplayName("DELETE /cuisine-types/{id} — retourne 204 si la suppression réussit (ADMIN)")
+  void delete_shouldReturn204_whenAdminDeletesUnusedCuisineType() throws Exception {
+    mockMvc.perform(delete(SecurityConstants.ROUTE_CUISINE_TYPES + "/{id}", CUISINE_ID)
+            .with(csrf())
+            .with(user(ADMIN_EMAIL)
+                .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
+        .andExpect(status().isNoContent());
+
+    verify(manageCuisineTypeUseCase).delete(CUISINE_ID);
+  }
+
+  @Test
+  @Story("Suppression référentiel")
+  @Severity(SeverityLevel.NORMAL)
+  @Description("Origine introuvable — HTTP 404 via GlobalExceptionHandler.")
+  @DisplayName("DELETE /cuisine-types/{id} — retourne 404 si l'origine est introuvable")
+  void delete_shouldReturn404_whenCuisineTypeNotFound() throws Exception {
+    doThrow(new CuisineTypeNotFoundException(
+        "Origine culinaire introuvable pour l'identifiant : " + UNKNOWN_ID))
+        .when(manageCuisineTypeUseCase).delete(UNKNOWN_ID);
+
+    mockMvc.perform(delete(SecurityConstants.ROUTE_CUISINE_TYPES + "/{id}", UNKNOWN_ID)
+            .with(csrf())
+            .with(user(ADMIN_EMAIL)
+                .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  @Story("Suppression référentiel")
+  @Severity(SeverityLevel.CRITICAL)
+  @Description("Origine encore référencée par des annonces actives — HTTP 409 Conflict.")
+  @DisplayName("DELETE /cuisine-types/{id} — retourne 409 si des annonces actives la référencent")
+  void delete_shouldReturn409_whenCuisineTypeStillInUse() throws Exception {
+    doThrow(new CuisineTypeInUseException(
+        "Impossible de supprimer l'origine culinaire id=" + CUISINE_ID
+            + " : des annonces actives la référencent"))
+        .when(manageCuisineTypeUseCase).delete(CUISINE_ID);
+
+    mockMvc.perform(delete(SecurityConstants.ROUTE_CUISINE_TYPES + "/{id}", CUISINE_ID)
+            .with(csrf())
+            .with(user(ADMIN_EMAIL)
+                .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
+        .andExpect(status().isConflict());
+  }
+
+  @Test
+  @Story("Suppression référentiel")
+  @Severity(SeverityLevel.CRITICAL)
+  @Description("Utilisateur sans ROLE_ADMIN — HTTP 403 Forbidden.")
+  @DisplayName("DELETE /cuisine-types/{id} — retourne 403 si le rôle ADMIN est absent")
+  void delete_shouldReturn403_whenNotAdmin() throws Exception {
+    mockMvc.perform(delete(SecurityConstants.ROUTE_CUISINE_TYPES + "/{id}", CUISINE_ID)
+            .with(csrf())
+            .with(user("seller@tortiki.com")
+                .authorities(new SimpleGrantedAuthority("ROLE_SELLER"))))
+        .andExpect(status().isForbidden());
+
+    verify(manageCuisineTypeUseCase, never()).delete(any());
   }
 
   // ── Helper ────────────────────────────────────────────────────────────────
