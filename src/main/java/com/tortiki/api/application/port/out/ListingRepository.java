@@ -55,4 +55,18 @@ public interface ListingRepository {
    * @return liste des annonces du vendeur
    */
   List<Listing> findBySellerId(Long sellerId);
+
+  /**
+   * Retourne l'intégralité des annonces de la plateforme, tous vendeurs
+   * et tous statuts confondus.
+   *
+   * <p>Réservé à l'usage administrateur via
+   * {@code ManageAdminListingsUseCase}. Aucun autre cas d'usage ne doit
+   * appeler cette méthode : la modération admin est le seul contexte
+   * légitime pour consulter des annonces sans filtre de statut ni de
+   * vendeur.</p>
+   *
+   * @return liste complète des annonces, vide si aucune n'existe
+   */
+  List<Listing> findAll();
 }
