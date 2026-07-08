@@ -111,3 +111,23 @@ POST {{baseUrl}}/api/v1/auth/logout
         client.assert(response.status === 204, "Expected 204, got " + response.status);
     });
 %}
+
+### [1] Inscription Admin — ADMIN
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{password}}",
+  "firstName": "admin",
+  "lastName": "admin",
+  "role": "ADMIN"
+}
+
+> {%
+    client.test("Register Admin → 201 Created", function() {
+        client.assert(response.status === 201, "Expected 201, got " + response.status);
+        client.assert(response.body.roles.includes("ADMIN"), "Role ADMIN attendu");
+        client.global.set("adminId", response.body.id);
+    });
+%}
