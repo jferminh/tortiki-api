@@ -150,4 +150,32 @@ public interface ListingJpaRepository extends JpaRepository<ListingJpaEntity, Lo
       @Param("maxPrice") BigDecimal maxPrice,
       @Param("query") String query,
       Pageable pageable);
+
+  /**
+   * Recherche toutes les annonces de la plateforme, tous vendeurs et tous
+   * statuts confondus, avec les associations {@code seller}, {@code cuisineType}
+   * et {@code allergens} chargées en eager via JOIN FETCH.
+   *
+   * <p>Réservée à l'usage administrateur ({@code ManageAdminListingsUseCase}).
+   * Évite le problème N+1 : sans cette jointure explicite, chaque annonce
+   * déclencherait deux requêtes supplémentaires (vendeur et type de cuisine)
+   * lors du mapping vers le domaine (voir
+   * {@link ListingPersistenceMapper#toDomain(ListingJpaEntity)}).</p>
+   *
+   * <p>{@code DISTINCT} évite les doublons produits par le LEFT JOIN sur
+   * la collection {@code allergens} (relation ManyToMany), comme pour
+   * {@link #findByIdWithSeller(Long)} et
+   * {@link #findBySellerIdOrderByCreatedAtDesc(Long)}.</p>
+   *
+   * @return liste de toutes les entités annonce, triées par date de création décroissante
+   */
+  @Query(
+      """
+      SELECT DISTINCT l FROM ListingJpaEntity l
+      JOIN FETCH l.seller
+      JOIN FETCH l.cuisineType
+      LEFT JOIN FETCH l.allergens
+      ORDER BY l.createdAt DESC
+      """)
+  List<ListingJpaEntity> findAllWithDetails();
 }
