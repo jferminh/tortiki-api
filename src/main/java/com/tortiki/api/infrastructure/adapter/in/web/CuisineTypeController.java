@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -102,5 +103,30 @@ public class CuisineTypeController {
     return ResponseEntity
         .status(HttpStatus.CREATED)
         .body(cuisineTypeWebMapper.toResponse(created));
+  }
+
+  /**
+   * Supprime une origine culinaire du référentiel.
+   *
+   * <p>Réservé au rôle {@code ROLE_ADMIN} — vérifié par {@code @PreAuthorize}.
+   * La suppression est refusée si au moins une annonce active référence
+   * encore cette origine culinaire.</p>
+   *
+   * @param id identifiant de l'origine culinaire à supprimer
+   * @return HTTP 204 sans contenu si la suppression réussit
+   */
+  @DeleteMapping("/{id}")
+  @PreAuthorize("hasRole('ADMIN')")
+  @Operation(summary = "Supprimer une origine culinaire (admin uniquement)")
+  @ApiResponse(responseCode = "204", description = "Origine culinaire supprimée")
+  @ApiResponse(responseCode = "403", description = "Rôle ADMIN requis")
+  @ApiResponse(responseCode = "404", description = "Origine culinaire introuvable")
+  @ApiResponse(responseCode = "409",
+      description = "Origine culinaire encore référencée par des annonces actives")
+  public ResponseEntity<Void> delete(@PathVariable Long id) {
+    log.debug("Requête DELETE /api/cuisine-types/{}", id);
+    manageCuisineTypeUseCase.delete(id);
+    log.info("Origine culinaire supprimée via API : id={}", id);
+    return ResponseEntity.noContent().build();
   }
 }

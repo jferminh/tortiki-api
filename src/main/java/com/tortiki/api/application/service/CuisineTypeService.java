@@ -25,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
 public class CuisineTypeService implements ManageCuisineTypeUseCase {
 
   /**
