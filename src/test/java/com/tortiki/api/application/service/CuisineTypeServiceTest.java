@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.tortiki.api.application.port.out.CuisineTypeRepository;
+import com.tortiki.api.domain.exception.CuisineTypeInUseException;
 import com.tortiki.api.domain.exception.CuisineTypeNotFoundException;
 import com.tortiki.api.domain.model.CuisineType;
 import io.qameta.allure.Description;
@@ -133,13 +134,13 @@ class CuisineTypeServiceTest {
   @Story("Suppression d'une origine culinaire")
   @Severity(SeverityLevel.CRITICAL)
   @Description("Suppression bloquée si des annonces actives référencent l'origine — règle métier.")
-  @DisplayName("delete — lève IllegalStateException si des annonces actives la référencent")
+  @DisplayName("delete — lève CuisineTypeInUseException si des annonces actives la référencent")
   void delete_shouldThrowException_whenUsedByActiveListing() {
     when(cuisineTypeRepository.findById(1L)).thenReturn(Optional.of(italiana));
     when(cuisineTypeRepository.isUsedByActiveListing(1L)).thenReturn(true);
 
     assertThatThrownBy(() -> cuisineTypeService.delete(1L))
-        .isInstanceOf(IllegalStateException.class)
+        .isInstanceOf(CuisineTypeInUseException.class)
         .hasMessageContaining("annonces actives");
 
     verify(cuisineTypeRepository, never()).deleteById(any());

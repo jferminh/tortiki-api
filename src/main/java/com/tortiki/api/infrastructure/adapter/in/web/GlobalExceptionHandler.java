@@ -3,6 +3,7 @@ package com.tortiki.api.infrastructure.adapter.in.web;
 import com.tortiki.api.domain.exception.AllergenNotFoundException;
 import com.tortiki.api.domain.exception.ContactRequestAlreadyExistsException;
 import com.tortiki.api.domain.exception.ContactRequestNotFoundException;
+import com.tortiki.api.domain.exception.CuisineTypeInUseException;
 import com.tortiki.api.domain.exception.CuisineTypeNotFoundException;
 import com.tortiki.api.domain.exception.InvalidStatusTransitionException;
 import com.tortiki.api.domain.exception.ListingNotFoundException;
@@ -142,6 +143,22 @@ public class GlobalExceptionHandler {
     return ResponseEntity
         .status(HttpStatus.NOT_FOUND)
         .body(ErrorResponse.of(404, NOT_FOUND, ex.getMessage()));
+  }
+
+  /**
+   * Gère les tentatives de suppression d'une origine culinaire encore
+   * référencée par des annonces actives.
+   *
+   * @param ex exception levée par {@code CuisineTypeService.delete}
+   * @return réponse HTTP 409 Conflict
+   */
+  @ExceptionHandler(CuisineTypeInUseException.class)
+  public ResponseEntity<ErrorResponse> handleCuisineTypeInUse(
+      final CuisineTypeInUseException ex) {
+    log.warn("Suppression refusée, origine culinaire en usage : {}", ex.getMessage());
+    return ResponseEntity
+        .status(HttpStatus.CONFLICT)
+        .body(ErrorResponse.of(409, CONFLICT, ex.getMessage()));
   }
 
   /**
