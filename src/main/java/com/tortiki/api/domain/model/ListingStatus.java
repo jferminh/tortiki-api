@@ -6,23 +6,17 @@ package com.tortiki.api.domain.model;
  * <ul>
  *   <li>{@code ACTIVE} — annonce visible et disponible à la recherche</li>
  *   <li>{@code INACTIVE} — annonce désactivée par le vendeur</li>
- *   <li>{@code MODERATED} — annonce suspendue par un administrateur</li>
+ *   <li>{@code DELETED} — annonce supprimée logiquement par un administrateur</li>
  * </ul>
  */
 public enum ListingStatus {
 
-  /**
-   * Annonce visible et disponible à la recherche.
-   */
+  /** Annonce visible et disponible à la recherche. */
   ACTIVE,
 
-  /**
-   * Annonce désactivée par le vendeur.
-   */
+  /** Annonce désactivée par le vendeur. */
   INACTIVE,
 
-  /**
-   * Annonce suspendue suite à un signalement par un administrateur.
-   */
+  /** Annonce supprimée logiquement suite à une action administrateur. */
   DELETED
 }

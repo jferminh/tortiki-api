@@ -66,4 +66,13 @@ public class ListingJpaAdapter implements ListingRepository {
         .map(mapper::toDomain)
         .toList();
   }
+
+  /** {@inheritDoc} */
+  @Override
+  public List<Listing> findAll() {
+    return jpaRepository.findAllWithDetails()
+        .stream()
+        .map(mapper::toDomain)
+        .toList();
+  }
 }
