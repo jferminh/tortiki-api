@@ -1,6 +1,7 @@
 package com.tortiki.api.infrastructure.adapter.in.web;
 
 import com.tortiki.api.application.port.in.SubmitReviewUseCase;
+import com.tortiki.api.config.SecurityConstants;
 import com.tortiki.api.domain.model.Review;
 import com.tortiki.api.infrastructure.adapter.in.web.dto.ReviewResponse;
 import com.tortiki.api.infrastructure.adapter.in.web.dto.SubmitReviewRequest;
@@ -26,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/reviews")
+@RequestMapping(SecurityConstants.ROUTE_REVIEWS)
 @RequiredArgsConstructor
 @Tag(name = "Évaluations", description = "Soumission d'une évaluation par un acheteur")
 public class ReviewController {
