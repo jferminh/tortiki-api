@@ -4,11 +4,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tortiki.api.application.port.in.FindReviewsUseCase;
 import com.tortiki.api.application.port.in.SubmitReviewUseCase;
 import com.tortiki.api.config.SecurityConfig;
 import com.tortiki.api.config.SecurityConstants;
@@ -29,6 +31,7 @@ import io.qameta.allure.Step;
 import io.qameta.allure.Story;
 import java.time.LocalDateTime;
 import java.time.Month;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -69,6 +72,9 @@ class ReviewControllerTest {
 
   @MockitoBean
   private SubmitReviewUseCase submitReviewUseCase;
+
+  @MockitoBean
+  private FindReviewsUseCase findReviewsUseCase;
 
   private SubmitReviewRequest validRequest;
   private Review savedReview;
@@ -145,6 +151,8 @@ class ReviewControllerTest {
   @Severity(SeverityLevel.NORMAL)
   @Description("Note inférieure à 1 — 400 Bad Request retourné par @Min(1).")
   @DisplayName("POST /reviews — 400 si rating < 1")
+  // rating hors bornes intentionnel — test de validation Bean Validation
+  @SuppressWarnings("DataFlowIssue")
   void shouldReturn400WhenRatingIsBelowMinimum() throws Exception {
     final SubmitReviewRequest invalid = new SubmitReviewRequest(LISTING_ID, 0, "Mauvais");
 
@@ -161,6 +169,8 @@ class ReviewControllerTest {
   @Severity(SeverityLevel.NORMAL)
   @Description("Note supérieure à 5 — 400 Bad Request retourné par @Max(5).")
   @DisplayName("POST /reviews — 400 si rating > 5")
+  // rating hors bornes intentionnel — test de validation Bean Validation
+  @SuppressWarnings("DataFlowIssue")
   void shouldReturn400WhenRatingExceedsMaximum() throws Exception {
     final SubmitReviewRequest invalid = new SubmitReviewRequest(LISTING_ID, 6, "Trop bien");
 
@@ -171,7 +181,6 @@ class ReviewControllerTest {
             .content(objectMapper.writeValueAsString(invalid)))
         .andExpect(status().isBadRequest());
   }
-
   @Test
   @Story("Validation des données")
   @Severity(SeverityLevel.NORMAL)
@@ -303,5 +312,51 @@ class ReviewControllerTest {
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.rating").value(4))
         .andExpect(jsonPath("$.comment").doesNotExist());
+  }
+
+  // ═══════════════════════ GET /api/v1/reviews ═══════════════════════
+
+  @Test
+  @Story("Consultation publique des évaluations")
+  @Severity(SeverityLevel.CRITICAL)
+  @Description("Une annonce évaluée retourne 200 avec la liste des avis, sans authentification.")
+  @DisplayName("GET /reviews — 200 avec la liste des avis pour une annonce évaluée")
+  void shouldReturn200WithReviewsWhenListingHasReviews() throws Exception {
+    when(findReviewsUseCase.findByListingId(LISTING_ID))
+        .thenReturn(List.of(savedReview));
+
+    mockMvc.perform(get(REVIEWS_URL).param("listingId", String.valueOf(LISTING_ID)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(1))
+        .andExpect(jsonPath("$[0].rating").value(5))
+        .andExpect(jsonPath("$[0].reviewerFirstName").value("Théo"))
+        .andExpect(jsonPath("$[0].comment").value("Excellent bortsch !"));
+  }
+
+  @Test
+  @Story("Consultation sans évaluation")
+  @Severity(SeverityLevel.NORMAL)
+  @Description("Une annonce sans avis retourne 200 avec une liste vide, sans erreur 404.")
+  @DisplayName("GET /reviews — 200 avec liste vide si l'annonce n'a aucun avis")
+  void shouldReturn200WithEmptyListWhenNoReviews() throws Exception {
+    when(findReviewsUseCase.findByListingId(LISTING_ID))
+        .thenReturn(List.of());
+
+    mockMvc.perform(get(REVIEWS_URL).param("listingId", String.valueOf(LISTING_ID)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(0));
+  }
+
+  @Test
+  @Story("Accès public sans authentification")
+  @Severity(SeverityLevel.CRITICAL)
+  @Description("Un visiteur non authentifié peut consulter les avis — endpoint public.")
+  @DisplayName("GET /reviews — 200 pour un utilisateur non authentifié")
+  void shouldReturn200ForUnauthenticatedUser() throws Exception {
+    when(findReviewsUseCase.findByListingId(LISTING_ID))
+        .thenReturn(List.of(savedReview));
+
+    mockMvc.perform(get(REVIEWS_URL).param("listingId", String.valueOf(LISTING_ID)))
+        .andExpect(status().isOk());
   }
 }
