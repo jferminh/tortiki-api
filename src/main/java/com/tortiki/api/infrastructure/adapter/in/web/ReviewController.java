@@ -1,5 +1,6 @@
 package com.tortiki.api.infrastructure.adapter.in.web;
 
+import com.tortiki.api.application.port.in.FindReviewsUseCase;
 import com.tortiki.api.application.port.in.SubmitReviewUseCase;
 import com.tortiki.api.config.SecurityConstants;
 import com.tortiki.api.domain.model.Review;
@@ -10,14 +11,17 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.security.Principal;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -33,6 +37,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ReviewController {
 
   private final SubmitReviewUseCase submitReviewUseCase;
+  private final FindReviewsUseCase findReviewsUseCase;
 
   /**
    * Soumet une évaluation pour une annonce.
@@ -71,5 +76,33 @@ public class ReviewController {
     final Review review = submitReviewUseCase.submit(command);
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(ReviewResponse.from(review));
+  }
+
+  /**
+   * Retourne toutes les évaluations d'une annonce.
+   *
+   * <p>Endpoint public — aucune authentification requise. Alimente
+   * la section avis de la fiche plat consultée par tout visiteur.</p>
+   *
+   * @param listingId identifiant de l'annonce évaluée
+   * @return liste des évaluations, vide si aucune n'existe encore
+   */
+  @GetMapping
+  @Operation(
+      summary = "Lister les évaluations d'une annonce",
+      description = "Endpoint public — retourne les avis triés par date décroissante."
+  )
+  @ApiResponse(responseCode = "200", description = "Liste retournée avec succès")
+  public ResponseEntity<List<ReviewResponse>> findByListingId(
+      @RequestParam final Long listingId) {
+
+    log.debug("GET /api/v1/reviews?listingId={}", listingId);
+
+    final List<ReviewResponse> response = findReviewsUseCase.findByListingId(listingId)
+        .stream()
+        .map(ReviewResponse::from)
+        .toList();
+
+    return ResponseEntity.ok(response);
   }
 }

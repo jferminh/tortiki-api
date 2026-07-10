@@ -130,6 +130,11 @@ public class SecurityConfig {
                 SecurityConstants.ROUTE_LISTING_BY_ID
             ).permitAll()
 
+            // ── Évaluations — lecture publique ────────────────────────────
+            .requestMatchers(HttpMethod.GET,
+                SecurityConstants.ROUTE_REVIEWS
+            ).permitAll()
+
             // ── Origines culinaires — lecture publique ────────────────────
             .requestMatchers(HttpMethod.GET,
                 SecurityConstants.ROUTE_CUISINE_TYPES,
