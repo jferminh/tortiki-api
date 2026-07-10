@@ -2,6 +2,7 @@ package com.tortiki.api.infrastructure.adapter.out.persistence;
 
 import com.tortiki.api.application.port.out.ReviewRepository;
 import com.tortiki.api.domain.model.Review;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -58,5 +59,16 @@ public class ReviewRepositoryAdapter implements ReviewRepository {
       final Long listingId,
       final Long reviewerId) {
     return reviewJpaRepository.existsByListingIdAndReviewerId(listingId, reviewerId);
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public List<Review> findByListingId(final Long listingId) {
+    return reviewJpaRepository.findByListingIdWithReviewer(listingId)
+        .stream()
+        .map(ReviewPersistenceMapper::toDomain)
+        .toList();
   }
 }

@@ -1,5 +1,6 @@
 package com.tortiki.api.infrastructure.adapter.out.persistence;
 
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -27,4 +28,24 @@ public interface ReviewJpaRepository extends JpaRepository<ReviewJpaEntity, Long
   boolean existsByListingIdAndReviewerId(
       @Param("listingId") Long listingId,
       @Param("reviewerId") Long reviewerId);
+
+  /**
+   * Recherche les entités évaluation d'une annonce donnée, avec
+   * l'association {@code reviewer} chargée en eager via JOIN FETCH.
+   *
+   * <p>Évite le problème N+1 : sans cette jointure explicite, chaque
+   * évaluation de la liste déclencherait une requête supplémentaire
+   * pour charger son auteur, lors du mapping vers
+   * {@code ReviewResponse.reviewerFirstName}. Même pattern que
+   * {@code ListingJpaRepository.findBySellerIdOrderByCreatedAtDesc}.</p>
+   *
+   * @param listingId identifiant de l'annonce évaluée
+   * @return liste des entités évaluation, triées par date de création
+   *     décroissante
+   */
+  @Query("SELECT r FROM ReviewJpaEntity r "
+      + "JOIN FETCH r.reviewer "
+      + "WHERE r.listing.id = :listingId "
+      + "ORDER BY r.createdAt DESC")
+  List<ReviewJpaEntity> findByListingIdWithReviewer(@Param("listingId") Long listingId);
 }
