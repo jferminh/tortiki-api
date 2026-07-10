@@ -58,6 +58,7 @@ public final class ReviewPersistenceMapper {
 
     final User reviewer = new User();
     reviewer.setId(entity.getReviewer().getId());
+    reviewer.setFirstName(entity.getReviewer().getFirstName());
 
     return new Review(
         entity.getId(),
