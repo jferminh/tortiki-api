@@ -22,12 +22,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Contrôleur REST pour la gestion des demandes de contact.
+ * Contrôleur REST pour la soumission des demandes de contact.
  *
- * <p>Expose l'endpoint {@code POST /api/contact-requests} permettant
- * à un acheteur authentifié d'exprimer son intérêt pour une annonce.</p>
- *
- * <p>Accès restreint au rôle {@code ROLE_BUYER} via Spring Security.</p>
+ * <p>Expose exclusivement le cas d'usage acheteur ({@code ROLE_BUYER}).
+ * La consultation du tableau de bord et la confirmation/refus par le
+ * vendeur sont désormais portées par {@link SellerDashboardController},
+ * afin de séparer clairement les deux acteurs métier sur des routes
+ * distinctes {@code /api/v1/seller-dashboard/**}.</p>
  */
 @Slf4j
 @RestController
@@ -35,7 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @Tag(
     name = "Contact Requests",
-    description = "Soumission de demandes d'intérêt pour une annonce"
+    description = "Soumission d'une demande d'intérêt pour une annonce"
 )
 public class ContactRequestController {
 
@@ -44,10 +45,6 @@ public class ContactRequestController {
 
   /**
    * Soumet une demande de contact pour une annonce.
-   *
-   * <p>Réservé aux acheteurs authentifiés ({@code ROLE_BUYER}).
-   * L'email de l'acheteur est résolu depuis la session Spring Security
-   * et transmis au service — jamais fourni par le client.</p>
    *
    * @param request   corps de la requête JSON validé par Bean Validation
    * @param principal utilisateur authentifié injecté par Spring Security
@@ -67,8 +64,8 @@ public class ContactRequestController {
   @PostMapping
   @PreAuthorize("hasRole('BUYER')")
   public ResponseEntity<ContactRequestResponse> submit(
-      @Valid @RequestBody CreateContactRequestRequest request,
-      Principal principal
+      @Valid @RequestBody final CreateContactRequestRequest request,
+      final Principal principal
   ) {
     log.info("Soumission demande de contact — annonce {} par {}",
         request.listingId(), principal.getName());

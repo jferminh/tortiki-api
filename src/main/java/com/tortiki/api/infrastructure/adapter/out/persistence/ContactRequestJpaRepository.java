@@ -49,29 +49,39 @@ public interface ContactRequestJpaRepository
   List<ContactRequestJpaEntity> findByBuyerId(Long buyerId);
 
   /**
-   * Recherche les demandes reçues pour les annonces d'un vendeur.
+   * Recherche les demandes reçues pour les annonces d'un vendeur, avec
+   * l'annonce et l'acheteur chargés en une seule requête.
    *
-   * <p>Requête JPQL explicite — évite les underscores de navigation
-   * interdits par Checkstyle Google Style.</p>
+   * <p>Le {@code JOIN FETCH} est indispensable ici : {@code
+   * ContactRequestSummaryResponse} a besoin de {@code listing.title}
+   * et {@code buyer.firstName}, deux champs lazy par défaut. Sans cette
+   * anticipation, le mapping produirait des champs {@code null} ou lèverait
+   * une {@code LazyInitializationException} hors session Hibernate.</p>
    *
    * @param sellerId identifiant du vendeur propriétaire des annonces
-   * @return liste des demandes reçues
+   * @return liste des demandes reçues, triées par date de création décroissante
    */
   @Query("SELECT cr FROM ContactRequestJpaEntity cr"
-      + " WHERE cr.listing.seller.id = :sellerId")
+      + " JOIN FETCH cr.listing"
+      + " JOIN FETCH cr.buyer"
+      + " WHERE cr.listing.seller.id = :sellerId"
+      + " ORDER BY cr.createdAt DESC")
   List<ContactRequestJpaEntity> findBySellerId(@Param("sellerId") Long sellerId);
 
   /**
    * Recherche une demande par son identifiant et le vendeur propriétaire.
    *
    * <p>Contrôle d'accès métier — un vendeur ne peut accéder
-   * qu'aux demandes de ses propres annonces.</p>
+   * qu'aux demandes de ses propres annonces. {@code JOIN FETCH} nécessaire
+   * pour le même motif que {@link #findBySellerId(Long)}.</p>
    *
    * @param contactRequestId identifiant de la demande
    * @param sellerId         identifiant du vendeur propriétaire
    * @return la demande si elle appartient bien au vendeur
    */
   @Query("SELECT cr FROM ContactRequestJpaEntity cr"
+      + " JOIN FETCH cr.listing"
+      + " JOIN FETCH cr.buyer"
       + " WHERE cr.id = :contactRequestId"
       + " AND cr.listing.seller.id = :sellerId")
   Optional<ContactRequestJpaEntity> findByIdForSeller(

@@ -42,7 +42,8 @@ import org.springframework.test.web.servlet.MockMvc;
  *
  * <p>Vérifie : soumission nominale 201, accès non authentifié 401,
  * accès sans rôle BUYER 403, body invalide 400 (listingId absent,
- * portions absentes).</p>
+ * portions absentes). Le dashboard vendeur et la mise à jour de statut
+ * sont désormais couverts par {@code SellerDashboardControllerTest}.</p>
  */
 @Epic("Demande de contact")
 @Feature("Endpoint POST /api/v1/contact-requests")
@@ -108,7 +109,7 @@ class ContactRequestControllerTest {
         any(SubmitContactRequestUseCase.Command.class)))
         .thenReturn(savedContactRequest);
 
-    mockMvc.perform(post(SecurityConstants.ROUTE_CONTACT_REQUESTS) // ← corrigé
+    mockMvc.perform(post(SecurityConstants.ROUTE_CONTACT_REQUESTS)
             .with(user(BUYER_EMAIL).roles("BUYER"))
             .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
@@ -130,7 +131,7 @@ class ContactRequestControllerTest {
   @Description("Un utilisateur non authentifié tente de soumettre — 401 Non autorisé.")
   @DisplayName("POST /api/v1/contact-requests → 401 sans authentification")
   void shouldReturn401WhenNotAuthenticated() throws Exception {
-    mockMvc.perform(post(SecurityConstants.ROUTE_CONTACT_REQUESTS) // ← corrigé
+    mockMvc.perform(post(SecurityConstants.ROUTE_CONTACT_REQUESTS)
             .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(validRequest)))
@@ -138,7 +139,7 @@ class ContactRequestControllerTest {
   }
 
   // ─────────────────────────────────────────────────────────
-  // Sécurité — 403 mauvais rôle
+  // Sécurité — 403 mauvais rôle sur POST
   // ─────────────────────────────────────────────────────────
 
   @Test
@@ -146,7 +147,7 @@ class ContactRequestControllerTest {
   @Description("Un vendeur tente de soumettre une demande — 403 Interdit.")
   @DisplayName("POST /api/v1/contact-requests → 403 pour ROLE_SELLER")
   void shouldReturn403WhenSellerTriesToSubmit() throws Exception {
-    mockMvc.perform(post(SecurityConstants.ROUTE_CONTACT_REQUESTS) // ← corrigé
+    mockMvc.perform(post(SecurityConstants.ROUTE_CONTACT_REQUESTS)
             .with(user(SELLER_EMAIL).roles("SELLER"))
             .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
@@ -166,7 +167,7 @@ class ContactRequestControllerTest {
     CreateContactRequestRequest invalidRequest =
         new CreateContactRequestRequest(null, "message", 2);
 
-    mockMvc.perform(post(SecurityConstants.ROUTE_CONTACT_REQUESTS) // ← corrigé
+    mockMvc.perform(post(SecurityConstants.ROUTE_CONTACT_REQUESTS)
             .with(user(BUYER_EMAIL).roles("BUYER"))
             .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
@@ -186,7 +187,7 @@ class ContactRequestControllerTest {
     CreateContactRequestRequest invalidRequest =
         new CreateContactRequestRequest(LISTING_ID, "message", null);
 
-    mockMvc.perform(post(SecurityConstants.ROUTE_CONTACT_REQUESTS) // ← corrigé
+    mockMvc.perform(post(SecurityConstants.ROUTE_CONTACT_REQUESTS)
             .with(user(BUYER_EMAIL).roles("BUYER"))
             .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
