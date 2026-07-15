@@ -59,12 +59,14 @@ final class ContactRequestPersistenceMapper {
     if (entity.getListing() != null) {
       listing = new Listing();
       listing.setId(entity.getListing().getId());
+      listing.setTitle(entity.getListing().getTitle());
     }
 
     User buyer = null;
     if (entity.getBuyer() != null) {
       buyer = new User();
       buyer.setId(entity.getBuyer().getId());
+      buyer.setFirstName(entity.getBuyer().getFirstName());
     }
 
     ContactRequest domain = new ContactRequest();
