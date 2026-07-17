@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Port primaire — cas d'usage : gestion des annonces de plats.
@@ -124,6 +125,17 @@ public interface ManageListingUseCase {
   List<Listing> findAllForSeller(Long sellerId);
 
   /**
+   * Retourne la liste des villes distinctes ayant au moins une annonce active.
+   *
+   * <p>Alimente l'autocomplétion du champ de recherche par ville côté
+   * frontend, sans exposer aucune donnée personnelle du vendeur —
+   * seule la ville de retrait est retournée.</p>
+   *
+   * @return liste triée des villes distinctes, vide si aucune annonce active
+   */
+  List<String> findDistinctActiveCities();
+
+  /**
    * Change le statut d'une annonce.
    *
    * <p>La modération vers {@code MODERATED} est réservée au rôle
@@ -233,6 +245,7 @@ public interface ManageListingUseCase {
      * @return une représentation textuelle de la commande photo
      */
     @Override
+    @NotNull
     public String toString() {
       return "PhotoCommand[photoBytes.length=" + photoBytes.length
           + ", contentType=" + contentType

@@ -211,6 +211,14 @@ public class ListingService implements ManageListingUseCase {
 
   /** {@inheritDoc} */
   @Override
+  @Transactional(readOnly = true)
+  public List<String> findDistinctActiveCities() {
+    log.debug("Recherche des villes distinctes avec annonces actives");
+    return listingRepository.findDistinctActiveCities();
+  }
+
+  /** {@inheritDoc} */
+  @Override
   @Transactional
   public Listing changeStatus(Long listingId, ListingStatus status) {
     log.debug("Changement statut annonce id={} vers {}", listingId, status);
