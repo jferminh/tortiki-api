@@ -178,4 +178,19 @@ public interface ListingJpaRepository extends JpaRepository<ListingJpaEntity, Lo
       ORDER BY l.createdAt DESC
       """)
   List<ListingJpaEntity> findAllWithDetails();
+
+  /**
+   * Récupère les villes distinctes des annonces ayant le statut donné.
+   *
+   * <p>Requête JPQL explicite plutôt qu'une dérivation par nommage de
+   * méthode, pour garder le contrôle sur le tri alphabétique et la
+   * clause {@code DISTINCT}, deux comportements qu'une méthode dérivée
+   * pure ({@code findCityByStatus}) ne garantirait pas de façon fiable.</p>
+   *
+   * @param status statut de l'annonce, {@link ListingStatus#ACTIVE} attendu
+   * @return liste triée des villes distinctes
+   */
+  @Query("SELECT DISTINCT l.city FROM ListingJpaEntity l "
+      + "WHERE l.status = :status ORDER BY l.city ASC")
+  List<String> findDistinctCityByStatus(@Param("status") ListingStatus status);
 }

@@ -75,4 +75,10 @@ public class ListingJpaAdapter implements ListingRepository {
         .map(mapper::toDomain)
         .toList();
   }
+
+  /** {@inheritDoc} */
+  @Override
+  public List<String> findDistinctActiveCities() {
+    return jpaRepository.findDistinctCityByStatus(ListingStatus.ACTIVE);
+  }
 }
