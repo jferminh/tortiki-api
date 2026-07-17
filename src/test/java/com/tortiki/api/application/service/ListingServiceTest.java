@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -223,7 +224,7 @@ class ListingServiceTest {
     Listing result = listingService.update(100L, 1L, command);
 
     assertThat(result).isNotNull();
-    verify(geolocationPort, org.mockito.Mockito.never()).geocode(anyString());
+    verify(geolocationPort, never()).geocode(anyString());
     verify(listingRepository).save(any(Listing.class));
   }
 
@@ -397,5 +398,35 @@ class ListingServiceTest {
     assertThatThrownBy(() -> listingService.changeStatus(99L, ListingStatus.INACTIVE))
         .isInstanceOf(ListingNotFoundException.class)
         .hasMessageContaining("99");
+  }
+
+  // ── FIND DISTINCT ACTIVE CITIES ──────────────────────────────────────────
+
+  @Test
+  @Story("Autocomplétion recherche ville")
+  @Severity(SeverityLevel.NORMAL)
+  @Description("Villes actives présentes en base — liste triée retournée sans transformation.")
+  @DisplayName("findDistinctActiveCities — retourne la liste triée des villes actives")
+  void findDistinctActiveCities_shouldReturnCityList_whenActiveListingsExist() {
+    when(listingRepository.findDistinctActiveCities())
+        .thenReturn(List.of("Nancy", "Paris", "Strasbourg"));
+
+    List<String> result = listingService.findDistinctActiveCities();
+
+    assertThat(result).containsExactly("Nancy", "Paris", "Strasbourg");
+    verify(listingRepository).findDistinctActiveCities();
+  }
+
+  @Test
+  @Story("Autocomplétion recherche ville")
+  @Severity(SeverityLevel.MINOR)
+  @Description("Aucune annonce active — liste vide retournée, aucune exception levée.")
+  @DisplayName("findDistinctActiveCities — retourne une liste vide si aucune annonce active")
+  void findDistinctActiveCities_shouldReturnEmptyList_whenNoActiveListings() {
+    when(listingRepository.findDistinctActiveCities()).thenReturn(List.of());
+
+    List<String> result = listingService.findDistinctActiveCities();
+
+    assertThat(result).isEmpty();
   }
 }
