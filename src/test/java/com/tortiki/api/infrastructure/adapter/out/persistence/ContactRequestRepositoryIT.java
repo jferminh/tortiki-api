@@ -106,6 +106,7 @@ class ContactRequestRepositoryIT extends AbstractIntegrationTest {
     listing.setPrice(new BigDecimal("8.50"));
     listing.setPortions(4);
     listing.setPickupAddress("1 rue de la Paix, Strasbourg");
+    listing.setCity("Strasbourg");
     listing.setPickupDatetime(PICKUP_DATETIME);
     listing.setStatus(ListingStatus.ACTIVE);
     listing = listingJpaRepository.save(listing);

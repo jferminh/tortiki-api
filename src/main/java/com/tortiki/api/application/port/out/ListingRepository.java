@@ -69,4 +69,14 @@ public interface ListingRepository {
    * @return liste complète des annonces, vide si aucune n'existe
    */
   List<Listing> findAll();
+
+  /**
+   * Récupère la liste des villes distinctes ayant au moins une annonce active.
+   *
+   * <p>Utilisé pour alimenter l'autocomplétion de recherche côté frontend,
+   * sans exposer d'identifiant ni de donnée personnelle du vendeur.</p>
+   *
+   * @return liste triée des villes distinctes, annonces {@code ACTIVE} uniquement
+   */
+  List<String> findDistinctActiveCities();
 }

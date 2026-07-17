@@ -259,6 +259,37 @@ class ListingControllerTest {
     verify(manageListingUseCase, never()).create(anyLong(), any());
   }
 
+  // ── GET /api/v1/listings/cities ───────────────────────────────────────────
+
+  @Test
+  @Story("Autocomplétion recherche ville")
+  @Severity(SeverityLevel.NORMAL)
+  @Description("Villes actives présentes — HTTP 200 avec la liste triée.")
+  @DisplayName("GET /listings/cities — retourne 200 avec la liste des villes distinctes")
+  void findDistinctActiveCities_shouldReturn200_withCityList() throws Exception {
+    when(manageListingUseCase.findDistinctActiveCities())
+        .thenReturn(List.of("Nancy", "Paris"));
+
+    mockMvc.perform(get(SecurityConstants.ROUTE_LISTINGS_CITIES))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0]").value("Nancy"))
+        .andExpect(jsonPath("$[1]").value("Paris"));
+  }
+
+  @Test
+  @Story("Autocomplétion recherche ville")
+  @Severity(SeverityLevel.NORMAL)
+  @Description("Aucune ville active — HTTP 200 avec un tableau JSON vide.")
+  @DisplayName("GET /listings/cities — retourne 200 avec tableau vide si aucune ville")
+  void findDistinctActiveCities_shouldReturn200_withEmptyList() throws Exception {
+    when(manageListingUseCase.findDistinctActiveCities()).thenReturn(List.of());
+
+    mockMvc.perform(get(SecurityConstants.ROUTE_LISTINGS_CITIES))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$").isArray())
+        .andExpect(jsonPath("$").isEmpty());
+  }
+
   // ── Helper ────────────────────────────────────────────────────────────────
 
   /**

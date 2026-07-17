@@ -74,6 +74,16 @@ public class ListingJpaEntity {
   @Column(name = "pickup_address", nullable = false)
   private String pickupAddress;
 
+  /**
+   * Ville de retrait, extraite et stockée séparément de l'adresse complète.
+   *
+   * <p>Champ structuré ajouté en {@code V7} pour fiabiliser l'autocomplétion
+   * de recherche (Issue 147), plutôt que de parser {@link #pickupAddress}
+   * à la volée à chaque requête.</p>
+   */
+  @Column(name = "city", nullable = false, length = 100)
+  private String city;
+
   /** Latitude géocodée via Nominatim. */
   @Column(name = "pickup_lat")
   private Double pickupLat;
