@@ -127,6 +127,7 @@ public class SecurityConfig {
             .requestMatchers(HttpMethod.GET,
                 SecurityConstants.ROUTE_LISTINGS,
                 SecurityConstants.ROUTE_LISTINGS_SEARCH,
+                SecurityConstants.ROUTE_LISTINGS_CITIES,
                 SecurityConstants.ROUTE_LISTING_BY_ID
             ).permitAll()
 

@@ -78,6 +78,21 @@ public class ListingController {
   }
 
   /**
+   * Retourne les villes distinctes ayant au moins une annonce active.
+   *
+   * <p>Endpoint public — alimente l'autocomplétion du champ de recherche
+   * par ville côté frontend.</p>
+   *
+   * @return liste triée des villes distinctes, vide si aucune
+   */
+  @GetMapping("/cities")
+  @Operation(summary = "Lister les villes distinctes avec annonces actives")
+  @ApiResponse(responseCode = "200", description = "Liste retournée avec succès")
+  public ResponseEntity<List<String>> findDistinctActiveCities() {
+    return ResponseEntity.ok(manageListingUseCase.findDistinctActiveCities());
+  }
+
+  /**
    * Crée une annonce pour le vendeur authentifié.
    *
    * @param request     DTO de création validé

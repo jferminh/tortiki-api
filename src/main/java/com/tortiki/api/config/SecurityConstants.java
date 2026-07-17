@@ -46,6 +46,9 @@ public final class SecurityConstants {
   /** Route d'une annonce par identifiant. */
   public static final String ROUTE_LISTING_BY_ID   = API_V1 + "/listings/{id}";
 
+  /** Route de consultation des villes distinctes ayant une annonce active. */
+  public static final String ROUTE_LISTINGS_CITIES = ROUTE_LISTINGS + "/cities";
+
   /** Route de recherche géolocalisée des annonces. */
   public static final String ROUTE_LISTINGS_SEARCH = API_V1 + "/listings/search";
 
