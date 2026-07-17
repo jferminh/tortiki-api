@@ -145,6 +145,7 @@ class SearchListingRepositoryIT extends AbstractIntegrationTest {
     listing.setPrice(new BigDecimal("8.50"));
     listing.setPortions(4);
     listing.setPickupAddress("1 rue de la Paix, Strasbourg");
+    listing.setCity("Strasbourg");
     listing.setPickupLat(48.5734053);
     listing.setPickupLng(7.7521113);
     listing.setPickupDatetime(PICKUP_DATETIME);
