@@ -1,0 +1,37 @@
+@startsalt wireframe_accueil_mobile
+scale 375 width
+{
+  {T
+   + [ ≡ ]  | "TORTIKI"        | [ 👤 ]
+  }
+  {
+    "🔍 Rechercher un plat..." | [Go]
+  }
+  {
+    [Toutes] | [Ukr.] | [Fr.] | [It.] >
+  }
+  ==
+  "12 annonces"
+  {
+    [Photo]
+    "Bortsch ukrainien"
+    "Sofia D.  ⭐4.8"
+    "Nancy · Sam 12h"
+    "8,00€ / portion"
+    [Voir l'annonce]
+  }
+  {
+    [Photo]
+    "Lasagnes maison"
+    "Marco T.  ⭐4.5"
+    "Nancy · Dim 11h"
+    "7,50€ / portion"
+    [Voir l'annonce]
+  }
+  ==
+  { [< Préc.] | "1/2" | [Suiv. >] }
+  {T
+  "© 2026 Tortiki | Mentions légales"
+  }
+}
+@endsalt

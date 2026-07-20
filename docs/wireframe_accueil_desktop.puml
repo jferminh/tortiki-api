@@ -1,0 +1,29 @@
+@startsalt wireframe_accueil_desktop
+scale 1280 width
+{
+  {T
+   "TORTIKI"  |  |  |  | [Annonces] | [Comment ça marche] | [Connexion] | [S'inscrire]
+  }
+  {
+    "🔍 Rechercher un plat ou une cuisine..." | [Rechercher]
+  }
+  {
+    "Cuisine :" | [Toutes] | [Ukrainienne] | [Française] | [Italienne] | [Marocaine] | [Japonaise] | [Indienne]
+  }
+  ==
+  {
+    "12 annonces disponibles" | . | . | . | . | "Trier par : [Plus récentes v]"
+  }
+  {
+    { [Photo] | "Bortsch ukrainien" | "Sofia D. ⭐4.8" | "Nancy · Sam 12h" | "8,00€/portion" | [Voir] } | { [Photo] | "Lasagnes maison" | "Marco T. ⭐4.5" | "Nancy · Dim 11h" | "7,50€/portion" | [Voir] } | { [Photo] | "Couscous royal" | "Fatima B. ⭐5.0" | "Metz · Ven 18h" | "9,00€/portion" | [Voir] }
+  }
+  {
+    { [Photo] | "Sushi maison" | "Yuki M. ⭐4.9" | "Nancy · Sam 13h" | "12,00€/portion" | [Voir] } | { [Photo] | "Moussaka" | "Elena P. ⭐4.6" | "Vandoeuvre · Sam 19h" | "8,50€/portion" | [Voir] } | { [Photo] | "Curry indien" | "Priya S. ⭐4.7" | "Nancy · Dim 12h30" | "7,00€/portion" | [Voir] }
+  }
+  ==
+  { [< Précédent] | "Page 1 2" | [Suivant >] }
+  {T
+  "© 2026 Tortiki | Mentions légales | Contact"
+  }
+}
+@endsalt
