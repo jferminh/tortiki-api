@@ -1,0 +1,34 @@
+@startsalt wireframe_mes_demandes_mobile
+scale 375 width
+{
+"TORTIKI"
+==
+"Mes demandes"
+==
+"Bortsch ukrainien"
+"Vendeur : Sofia D."
+"1 portion - 8.00 EUR"
+"Statut : En attente"
+"Envoyee le 18/07/2026"
+==
+"Lasagnes maison"
+"Vendeur : Marco T."
+"2 portions - 15.00 EUR"
+"Statut : Confirmee"
+"Retrait : 21/07/2026 11h00"
+[Voir l'annonce]
+==
+"Curry indien"
+"Vendeur : Priya S."
+"1 portion - 7.00 EUR"
+"Statut : Refusee"
+"Motif : Portions epuisees"
+==
+"Sushi maison"
+"Vendeur : Yuki M."
+"3 portions - 36.00 EUR"
+"Statut : Confirmee"
+"Retrait : 22/07/2026 13h00"
+[Voir l'annonce]
+}
+@endsalt

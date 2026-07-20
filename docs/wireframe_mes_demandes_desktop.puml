@@ -1,0 +1,14 @@
+@startsalt wireframe_mes_demandes_desktop
+scale 1280 width
+{
+"TORTIKI" | "Mes demandes" | "Rechercher des annonces" | "Deconnexion"
+==
+"Mes demandes de contact"
+==
+"Annonce" | "Vendeur" | "Portions" | "Prix total" | "Statut" | "Date/Retrait" | "Actions"
+"Bortsch ukrainien" | "Sofia D." | "1" | "8.00 EUR" | "En attente" | "18/07/2026" | [Voir]
+"Lasagnes maison" | "Marco T." | "2" | "15.00 EUR" | "Confirmee" | "21/07/2026 11h00" | [Voir] [Contacter]
+"Curry indien" | "Priya S." | "1" | "7.00 EUR" | "Refusee" | "Motif : epuise" | [Voir]
+"Sushi maison" | "Yuki M." | "3" | "36.00 EUR" | "Confirmee" | "22/07/2026 13h00" | [Voir] [Contacter]
+}
+@endsalt
