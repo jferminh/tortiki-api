@@ -1,0 +1,125 @@
+@startuml environnement_technique_applications
+title Environnement technique - tortiki-api et tortiki-frontend (hors déploiement)
+
+skinparam component {
+  BackgroundColor White
+  BorderColor Black
+}
+skinparam packageStyle rectangle
+
+package "tortiki-frontend" as Frontend {
+
+  package "infrastructure.adapter.in.web" as FrontWeb {
+    [ListingWebController]
+    [AuthWebController]
+    [SellerDashboardWebController]
+  }
+
+  package "infrastructure.adapter.out.client" as FeignClients {
+    [ListingApiClient\n(OpenFeign)]
+    [AuthApiClient\n(OpenFeign)]
+    [ContactRequestApiClient\n(OpenFeign)]
+  }
+
+  package "templates (Thymeleaf)" as Views {
+    [accueil.html]
+    [recherche.html]
+    [fiche-annonce.html]
+    [dashboard-vendeur.html]
+  }
+
+  package "config" as FrontConfig {
+    [FeignConfig]
+    [SecurityConfig\n(session côté frontend)]
+  }
+
+  FrontWeb --> FeignClients : appelle
+  FrontWeb --> Views : rend
+  FrontConfig ..> FeignClients : configure
+}
+
+package "tortiki-api" as Api {
+
+  package "domain" as ApiDomain {
+    [model\n(User, Listing, CuisineType,\nContactRequest, Review, Allergen)]
+    [exception]
+  }
+
+  package "application.port.in" as PortIn {
+    [ManageListingUseCase]
+    [SubmitContactRequestUseCase]
+    [RegisterUserUseCase]
+  }
+
+  package "application.port.out" as PortOut {
+    [ListingRepository]
+    [UserRepository]
+    [StoragePort]
+    [GeolocationPort]
+    [EmailPort]
+  }
+
+  package "application.service" as AppService {
+    [ListingService]
+    [ContactRequestService]
+    [UserService]
+  }
+
+  package "infrastructure.adapter.in.web" as ApiWeb {
+    [ListingController]
+    [AuthController]
+    [ContactRequestController]
+  }
+
+  package "infrastructure.adapter.out.persistence" as Persistence {
+    [ListingJpaRepository]
+    [UserJpaRepository]
+    [PersistenceMappers]
+  }
+
+  package "infrastructure.adapter.out.storage" as Storage {
+    [MinioStorageAdapter]
+  }
+
+  package "infrastructure.adapter.out.geolocation" as Geoloc {
+    [NominatimAdapter\n(WebClient)]
+  }
+
+  package "infrastructure.adapter.out.email" as Email {
+    [JavaMailSenderAdapter]
+  }
+
+  package "config" as ApiConfig {
+    [SecurityConfig]
+    [OpenApiConfig]
+    [MinIOConfig]
+  }
+
+  ApiWeb --> PortIn : appelle
+  PortIn <|.. AppService : implémente
+  AppService --> PortOut : dépend de
+  AppService --> ApiDomain : manipule
+  PortOut <|.. Persistence : implémente
+  PortOut <|.. Storage : implémente
+  PortOut <|.. Geoloc : implémente
+  PortOut <|.. Email : implémente
+}
+
+FeignClients --> ApiWeb : REST\n(JSON via session cookie)
+
+note bottom of Api
+  Le domaine (domain.model) ne dépend
+  d'aucune annotation Spring/JPA.
+  Seuls les adaptateurs out
+  implémentent les ports définis
+  par application.port.out.
+end note
+
+note bottom of Frontend
+  Aucun accès direct à la base
+  de données : tortiki-frontend
+  consomme exclusivement l'API
+  REST via OpenFeign.
+end note
+
+@enduml
