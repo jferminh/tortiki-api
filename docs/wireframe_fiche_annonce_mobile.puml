@@ -1,0 +1,55 @@
+@startsalt wireframe_fiche_annonce_mobile
+scale 375 width
+{
+  {T
+   [< Retour] | "TORTIKI" | [👤]
+  }
+  {
+    [        PHOTO DU PLAT        ]
+  }
+  {
+    [Ukrainienne] | [✓ Disponible]
+  }
+  {
+    "Bortsch ukrainien traditionnel"
+    "⭐4.8 (12 avis)"
+  }
+  {
+    "👤 Sofia D. — Vendeur certifié"
+    "📍 Nancy, Meurthe-et-Moselle"
+  }
+  ==
+  {
+    "🕐 Retrait : Sam 31 mai, 12h00"
+    "📍 12 rue des Fleurs, 54000 Nancy"
+  }
+  ==
+  {
+    "DESCRIPTION"
+    "Soupe traditionnelle ukrainienne à base
+    de betteraves, chou, pommes de terre et
+    viande de bœuf mijotée."
+  }
+  {
+    "ALLERGÈNES"
+    [Lait] | [Gluten]
+  }
+  ==
+  {
+    "AVIS CLIENTS (12)"
+    "\"Délicieux, comme chez ma grand-mère !\""
+    "Théo M. — 15 mai 2026"
+    [Voir tous les avis]
+  }
+  ==
+  {T
+   "8,00€ /portion" | "Portions : [ - ] 1 [ + ]"
+  }
+  {
+    [ Je suis intéressé(e) ]
+  }
+  {
+    "Connectez-vous pour envoyer une demande"
+  }
+}
+@endsalt
