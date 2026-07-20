@@ -1,0 +1,24 @@
+@startsalt wireframe_creer_annonce_desktop
+scale 1280 width
+{
+"TORTIKI" | "Mon tableau de bord" | "Deconnexion"
+==
+"Creer une nouvelle annonce"
+==
+"Photo du plat" | [Choisir une photo]
+==
+"Titre" | "Bortsch ukrainien"
+==
+"Description" | "Soupe traditionnelle a base de betteraves, chou, pommes de terre et viande de boeuf"
+==
+"Origine culinaire" | [Ukrainienne v] | "Prix par portion (EUR)" | "8.00"
+==
+"Nombre de portions" | "6" | "Date de retrait" | "31/05/2026" | "Heure de retrait" | "12:00"
+==
+"Adresse de retrait" | "12 rue des Fleurs, 54000 Nancy"
+==
+"Allergenes" | [ ] Lait | [ ] Gluten | [ ] Fruits a coque | [ ] Oeuf
+==
+[Publier l'annonce] | [Enregistrer comme brouillon] | [Annuler]
+}
+@endsalt
