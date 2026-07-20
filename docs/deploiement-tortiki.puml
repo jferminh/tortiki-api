@@ -1,0 +1,68 @@
+@startuml deploiement_tortiki
+title Diagramme de déploiement - Environnement technique Tortiki
+
+skinparam node {
+  BackgroundColor White
+  BorderColor Black
+}
+
+node "Poste de développement\n(IntelliJ IDEA Ultimate)" as Dev {
+  component "tortiki-api\n(Java 21, Spring Boot 3.5.x)" as ApiDev
+  component "tortiki-frontend\n(Thymeleaf, OpenFeign)" as FrontDev
+}
+
+node "Docker Compose (local dev)" as DockerLocal {
+  database "PostgreSQL 16\n:5432" as PgDev
+  component "MinIO\n:9000 / :9001" as MinioDev
+  component "MailHog\n:1025 / :8025" as MailDev
+}
+
+Dev --> DockerLocal : docker compose up -d
+
+cloud "GitHub" as GH {
+  component "Repository\ntortiki-api / tortiki-frontend" as Repo
+  node "GitHub Actions CI/CD" as CI {
+    component "Job 1: Checkstyle" as J1
+    component "Job 2: Build & Test\n(JaCoCo, Allure, SonarCloud)" as J2
+    component "Job 3: Docker Build & Push" as J3
+    component "Job 4: Notification Teams" as J4
+  }
+}
+
+Dev --> Repo : git push
+
+Repo --> CI : trigger (push / PR)
+J1 --> J2
+J2 --> J3
+J3 --> J4
+
+node "Docker Hub" as Registry {
+  component "Image tortiki-api" as ImgApi
+  component "Image tortiki-frontend" as ImgFront
+}
+
+J3 --> Registry : push image
+
+cloud "Railway / Render\n(Production HTTPS)" as Prod {
+  node "Conteneur tortiki-api\n:8080" as ApiProd
+  node "Conteneur tortiki-frontend\n:8081" as FrontProd
+  database "PostgreSQL 16\n(managé)" as PgProd
+  component "MinIO\n(managé ou S3-compatible)" as MinioProd
+}
+
+Registry --> Prod : déploiement automatique
+
+ApiProd --> PgProd
+ApiProd --> MinioProd
+FrontProd --> ApiProd : appels REST (OpenFeign)
+
+actor "Utilisateur final\n(navigateur)" as User
+User --> FrontProd : HTTPS
+
+note right of Prod
+  Swagger UI désactivé en profil prod
+  Variables sensibles injectées
+  via variables d'environnement
+end note
+
+@enduml
