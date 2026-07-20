@@ -1,0 +1,41 @@
+@startsalt wireframe_filtres_mobile
+scale 375 width
+{
+"TORTIKI"
+==
+"sushi"
+[Rechercher]
+==
+[Filtres (3)]
+==
+"Japonaise x" | "Sans gluten x" | "Prix < 15 EUR x"
+[Tout effacer]
+==
+"Ville"
+"Nancy"
+==
+"Fourchette de prix"
+"0 EUR -------O---- 30 EUR"
+==
+"Regime alimentaire"
+[X] Sans gluten
+[ ] Vegetarien
+[ ] Vegan
+==
+[Appliquer les filtres]
+==
+"3 resultats trouves"
+==
+"Sushi maison"
+"Yuki M. - Nancy"
+"12.00 EUR/portion"
+[Voir l'annonce]
+==
+"Maki vegetarien"
+"Yuki M. - Nancy"
+"10.00 EUR/portion"
+[Voir l'annonce]
+==
+"Aucun autre resultat ne correspond a ces criteres"
+}
+@endsalt

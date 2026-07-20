@@ -1,0 +1,75 @@
+@startuml MCD_Tortiki
+skinparam linetype ortho
+hide circle
+hide empty members
+
+entity "USER" as User {
+  identifiant utilisateur
+  --
+  email
+  motDePasseHash
+  prenom
+  nom
+  actif
+}
+
+entity "ROLE" as Role {
+  identifiant role
+  --
+  nom
+}
+
+entity "LISTING" as Listing {
+  identifiant annonce
+  --
+  titre
+  description
+  prix
+  portions
+  adresseRetrait
+  creneauRetrait
+  statut
+}
+
+entity "CUISINE_TYPE" as CuisineType {
+  identifiant origine
+  --
+  nom
+  description
+}
+
+entity "ALLERGEN" as Allergen {
+  identifiant allergene
+  --
+  nom
+}
+
+entity "CONTACT_REQUEST" as ContactRequest {
+  identifiant demande
+  --
+  message
+  portionsSouhaitees
+  statut
+  dateCreation
+}
+
+entity "REVIEW" as Review {
+  identifiant avis
+  --
+  note
+  commentaire
+  dateCreation
+}
+
+' -- Associations conceptuelles --
+
+User "1,N" -- "N,N" Role : POSSEDE
+User "1,1" -- "0,N" Listing : PUBLIE
+CuisineType "1,1" -- "0,N" Listing : CATEGORISE
+Listing "0,N" -- "0,N" Allergen : CONTIENT
+User "1,1" -- "0,N" ContactRequest : SOUMET\n(acheteur)
+Listing "1,1" -- "0,N" ContactRequest : CONCERNE
+ContactRequest "1,1" -- "0,1" Review : GENERE
+User "1,1" -- "0,N" Review : RECOIT\n(vendeur)
+
+@enduml
