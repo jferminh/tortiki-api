@@ -1,0 +1,22 @@
+@startsalt wireframe_dashboard_vendeur_desktop
+scale 1280 width
+{
+"TORTIKI" | "Mon tableau de bord" | "Creer une annonce" | "Deconnexion"
+==
+"Bonjour Sofia - Vendeur certifie depuis mars 2026"
+==
+"Annonces actives : 4" | "Demandes en attente : 2" | "Note moyenne : 4.8 (12 avis)" | "Portions vendues : 87"
+==
+"Mes annonces" | [+ Creer une nouvelle annonce]
+==
+"Titre" | "Statut" | "Portions" | "Prix" | "Actions"
+"Bortsch ukrainien" | "Active" | "6" | "8.00 EUR" | [Modifier] | [Desactiver]
+"Lasagnes maison" | "Active" | "3" | "7.50 EUR" | [Modifier] | [Desactiver]
+"Couscous royal" | "Epuisee" | "0" | "9.00 EUR" | [Modifier] | [Reactiver]
+==
+"Demandes de contact en attente"
+"Client" | "Annonce" | "Portions" | "Date demande" | "Actions"
+"Theo M." | "Bortsch ukrainien" | "1" | "20/07/2026" | [Confirmer] | [Refuser]
+"Marie L." | "Lasagnes maison" | "2" | "19/07/2026" | [Confirmer] | [Refuser]
+}
+@endsalt

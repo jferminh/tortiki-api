@@ -1,0 +1,48 @@
+@startsalt wireframe_dashboard_vendeur_mobile
+scale 375 width
+{
+"TORTIKI"
+==
+"Mon tableau de bord"
+==
+"Bonjour Sofia"
+==
+"Annonces actives : 4"
+"Demandes en attente : 2"
+"Note moyenne : 4.8"
+==
+[+ Creer une nouvelle annonce]
+==
+"Mes annonces"
+==
+"Bortsch ukrainien"
+"Statut : Active"
+"6 portions"
+[Modifier]
+[Desactiver]
+==
+"Lasagnes maison"
+"Statut : Active"
+"3 portions"
+[Modifier]
+[Desactiver]
+==
+"Couscous royal"
+"Statut : Epuisee"
+"0 portion"
+[Modifier]
+[Reactiver]
+==
+"Demandes en attente"
+==
+"Theo M."
+"Bortsch ukrainien - 1 portion"
+[Confirmer]
+[Refuser]
+==
+"Marie L."
+"Lasagnes maison - 2 portions"
+[Confirmer]
+[Refuser]
+}
+@endsalt
