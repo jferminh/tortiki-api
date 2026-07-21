@@ -1,0 +1,100 @@
+@startuml Diagramme_Classes_Hexagonal_Tortiki
+'== A4 portrait ==
+skinparam pageWidth 210mm
+skinparam pageMargin 10
+skinparam dpi 150
+scale max 800 width
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 9
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+skinparam class {
+  FontSize 9
+  ArrowColor #1B3A4B
+}
+skinparam package {
+  FontStyle bold
+  FontSize 11
+}
+
+title Diagramme de classes hexagonal — Tortiki (vue résumée)
+
+package "domain.model" #E8F5E9 {
+  class ContactRequest {
+    -id : Long
+    -listing : Listing
+    -buyer : User
+    -status : ContactRequestStatus
+    +getStatus()
+  }
+  class Listing {
+    -id : Long
+    -seller : User
+    -price : BigDecimal
+  }
+  class User {
+    -id : Long
+    -email : String
+  }
+}
+
+package "application.port.in" #EEF6FB {
+  interface SubmitContactRequestUseCase {
+    +submit(Command) : ContactRequest
+  }
+  interface FindBuyerContactRequestsUseCase {
+    +findByBuyer(email) : List<ContactRequest>
+  }
+}
+
+package "application.port.out" #EEF6FB {
+  interface ContactRequestRepository {
+    +save(ContactRequest)
+    +existsByListingIdAndBuyerId()
+  }
+  interface ListingRepository {
+    +findById(id)
+  }
+}
+
+package "application.service" #DCEEFB {
+  class ContactRequestService {
+    +submit(Command) : ContactRequest
+  }
+  class BuyerContactRequestService {
+    +findByBuyer(email)
+  }
+}
+
+package "infrastructure.adapter.in.web" #FFF3E0 {
+  class ContactRequestController {
+    +create(dto) : ResponseEntity
+  }
+  class BuyerContactRequestController {
+    +listMine() : ResponseEntity
+  }
+}
+
+package "infrastructure.adapter.out.persistence" #FFF3E0 {
+  class ContactRequestRepositoryAdapter {
+    +save(ContactRequest)
+  }
+}
+
+ContactRequestService ..|> SubmitContactRequestUseCase
+BuyerContactRequestService ..|> FindBuyerContactRequestsUseCase
+ContactRequestService --> ContactRequestRepository
+ContactRequestService --> ListingRepository
+ContactRequestService --> ContactRequest
+ContactRequestController --> SubmitContactRequestUseCase
+BuyerContactRequestController --> FindBuyerContactRequestsUseCase
+ContactRequestRepositoryAdapter ..|> ContactRequestRepository
+ContactRequestRepositoryAdapter --> ContactRequest
+
+note bottom
+  Flèches vers l'intérieur uniquement :
+  infrastructure → application → domain
+end note
+
+@enduml

@@ -1,75 +1,101 @@
 @startuml MCD_Tortiki
-skinparam linetype ortho
-hide circle
-hide empty members
+skinparam backgroundColor #FFFFFF
+skinparam class {
+  BackgroundColor #EEF6FB
+  BorderColor #1B6FA8
+  FontColor #1B3A4B
+  ArrowColor #1B6FA8
+  FontSize 12
+}
+title Modèle Conceptuel de Données — Tortiki
 
-entity "USER" as User {
-  identifiant utilisateur
+entity "User" as User {
+  * id : BIGINT <<PK>>
   --
-  email
-  motDePasseHash
-  prenom
-  nom
-  actif
+  email : VARCHAR
+  password_hash : VARCHAR
+  phone : VARCHAR
+  city : VARCHAR
+  latitude : NUMERIC(10,7)
+  longitude : NUMERIC(10,7)
+  enabled : BOOLEAN
 }
 
-entity "ROLE" as Role {
-  identifiant role
+entity "Role" as Role {
+  * id : BIGINT <<PK>>
   --
-  nom
+  name : VARCHAR
 }
 
-entity "LISTING" as Listing {
-  identifiant annonce
-  --
-  titre
-  description
-  prix
-  portions
-  adresseRetrait
-  creneauRetrait
-  statut
+entity "user_roles" as UserRoles {
+  * user_id : BIGINT <<FK>>
+  * role_id : BIGINT <<FK>>
 }
 
-entity "CUISINE_TYPE" as CuisineType {
-  identifiant origine
+entity "Listing" as Listing {
+  * id : BIGINT <<PK>>
   --
-  nom
-  description
+  title : VARCHAR
+  price : NUMERIC
+  portions : INTEGER
+  pickup_datetime : TIMESTAMP
+  status : listing_status
+  seller_id : BIGINT <<FK>>
+  cuisine_type_id : BIGINT <<FK>>
 }
 
-entity "ALLERGEN" as Allergen {
-  identifiant allergene
+entity "CuisineType" as CuisineType {
+  * id : BIGINT <<PK>>
   --
-  nom
+  name : VARCHAR
 }
 
-entity "CONTACT_REQUEST" as ContactRequest {
-  identifiant demande
+entity "Allergen" as Allergen {
+  * id : BIGINT <<PK>>
   --
-  message
-  portionsSouhaitees
-  statut
-  dateCreation
+  name : VARCHAR
 }
 
-entity "REVIEW" as Review {
-  identifiant avis
-  --
-  note
-  commentaire
-  dateCreation
+entity "listing_allergens" as ListingAllergens {
+  * listing_id : BIGINT <<FK>>
+  * allergen_id : BIGINT <<FK>>
 }
 
-' -- Associations conceptuelles --
+entity "ContactRequest" as ContactRequest {
+  * id : BIGINT <<PK>>
+  --
+  listing_id : BIGINT <<FK>>
+  buyer_id : BIGINT <<FK>>
+  status : contact_request_status
+  message : TEXT
+  portions : INTEGER
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+  ..
+  <<UNIQUE(listing_id, buyer_id)>>
+}
 
-User "1,N" -- "N,N" Role : POSSEDE
-User "1,1" -- "0,N" Listing : PUBLIE
-CuisineType "1,1" -- "0,N" Listing : CATEGORISE
-Listing "0,N" -- "0,N" Allergen : CONTIENT
-User "1,1" -- "0,N" ContactRequest : SOUMET\n(acheteur)
-Listing "1,1" -- "0,N" ContactRequest : CONCERNE
-ContactRequest "1,1" -- "0,1" Review : GENERE
-User "1,1" -- "0,N" Review : RECOIT\n(vendeur)
+entity "Review" as Review {
+  * id : BIGINT <<PK>>
+  --
+  contact_request_id : BIGINT <<FK>>
+  reviewer_id : BIGINT <<FK>>
+  listing_id : BIGINT <<FK>>
+  rating : INTEGER
+  comment : TEXT
+  created_at : TIMESTAMP
+}
+
+User "1" -- "0..*" Listing : publie (seller)
+User "1" -- "0..*" UserRoles
+Role "1" -- "0..*" UserRoles
+Listing "1" -- "0..*" ListingAllergens
+Allergen "1" -- "0..*" ListingAllergens
+CuisineType "1" -- "0..*" Listing
+Listing "1" -- "0..*" ContactRequest
+User "1" -- "0..*" ContactRequest : soumet (buyer)
+ContactRequest "1" -- "0..1" Review : génère
+User "1" -- "0..*" Review : rédige
+Listing "1" -- "0..*" Review : concerne
 
 @enduml

@@ -1,0 +1,100 @@
+@startuml MLD_Tortiki
+'== A4 portrait ==
+skinparam pageWidth 210mm
+skinparam pageMargin 10
+skinparam dpi 150
+scale max 800 width
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 10
+skinparam shadowing false
+
+skinparam class {
+  BackgroundColor #EEF6FB
+  BorderColor #1B6FA8
+  FontColor #1B3A4B
+  ArrowColor #1B6FA8
+  FontSize 10
+}
+
+title Modèle Logique de Données (MLD) — Tortiki
+
+entity "USER" as User {
+  * id : BIGINT <<PK>>
+  --
+  email : VARCHAR
+  password_hash : VARCHAR
+  city : VARCHAR
+  latitude : NUMERIC
+  longitude : NUMERIC
+  enabled : BOOLEAN
+}
+
+entity "ROLE" as Role {
+  * id : BIGINT <<PK>>
+  --
+  name : VARCHAR
+}
+
+entity "USER_ROLES" as UserRoles {
+  * user_id : BIGINT <<FK>>
+  * role_id : BIGINT <<FK>>
+}
+
+entity "LISTING" as Listing {
+  * id : BIGINT <<PK>>
+  --
+  title : VARCHAR
+  price : NUMERIC
+  status : VARCHAR
+  # seller_id : BIGINT <<FK>>
+  # cuisine_type_id : BIGINT <<FK>>
+}
+
+entity "CUISINE_TYPE" as Cuisine {
+  * id : BIGINT <<PK>>
+  --
+  name : VARCHAR
+}
+
+entity "ALLERGEN" as Allergen {
+  * id : BIGINT <<PK>>
+  --
+  name : VARCHAR
+}
+
+entity "LISTING_ALLERGENS" as ListAllerg {
+  * listing_id : BIGINT <<FK>>
+  * allergen_id : BIGINT <<FK>>
+}
+
+entity "CONTACT_REQUEST" as CReq {
+  * id : BIGINT <<PK>>
+  --
+  # listing_id : BIGINT <<FK>>
+  # buyer_id : BIGINT <<FK>>
+  status : VARCHAR
+  <<UNIQUE(listing_id,buyer_id)>>
+}
+
+entity "REVIEW" as Review {
+  * id : BIGINT <<PK>>
+  --
+  # contact_request_id : BIGINT <<FK>>
+  # reviewer_id : BIGINT <<FK>>
+  # listing_id : BIGINT <<FK>>
+  rating : INTEGER
+}
+
+User "1" -- "0..*" Listing
+User "1" -- "0..*" UserRoles
+Role "1" -- "0..*" UserRoles
+Cuisine "1" -- "0..*" Listing
+Listing "1" -- "0..*" ListAllerg
+Allergen "1" -- "0..*" ListAllerg
+Listing "1" -- "0..*" CReq
+User "1" -- "0..*" CReq
+CReq "1" -- "0..1" Review
+User "1" -- "0..*" Review
+Listing "1" -- "0..*" Review
+
+@enduml

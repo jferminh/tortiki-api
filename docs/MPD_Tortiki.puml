@@ -1,0 +1,124 @@
+@startuml MPD_Tortiki
+'== A4 portrait ==
+skinparam pageWidth 210mm
+skinparam pageMargin 10
+skinparam dpi 150
+scale max 800 width
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 9
+skinparam shadowing false
+
+skinparam class {
+  BackgroundColor #F3F8FC
+  BorderColor #1B6FA8
+  FontColor #1B3A4B
+  ArrowColor #1B6FA8
+  FontSize 9
+}
+
+title Modèle Physique de Données (MPD) — Tortiki (PostgreSQL 16)
+
+entity "users" as t_user {
+  id : BIGSERIAL <<PK>>
+  --
+  email : VARCHAR(255) UNIQUE NOT NULL
+  password_hash : VARCHAR(255) NOT NULL
+  phone : VARCHAR(20)
+  city : VARCHAR(100)
+  latitude : NUMERIC(10,7)
+  longitude : NUMERIC(10,7)
+  enabled : BOOLEAN DEFAULT true
+  created_at : TIMESTAMP
+}
+
+entity "roles" as t_role {
+  id : BIGSERIAL <<PK>>
+  --
+  name : VARCHAR(50) UNIQUE
+}
+
+entity "user_roles" as t_ur {
+  user_id : BIGINT <<FK>>
+  role_id : BIGINT <<FK>>
+  --
+  PRIMARY KEY(user_id, role_id)
+}
+
+entity "listings" as t_list {
+  id : BIGSERIAL <<PK>>
+  --
+  title : VARCHAR(200) NOT NULL
+  price : NUMERIC(8,2) CHECK(price>0)
+  portions : INTEGER
+  pickup_datetime : TIMESTAMP
+  status : listing_status
+  seller_id : BIGINT <<FK>>
+  cuisine_type_id : BIGINT <<FK>>
+  --
+  IDX idx_listings_cuisine_status
+  IDX idx_listings_location
+}
+
+entity "cuisine_types" as t_cuis {
+  id : BIGSERIAL <<PK>>
+  --
+  name : VARCHAR(100) UNIQUE
+}
+
+entity "allergens" as t_alrg {
+  id : BIGSERIAL <<PK>>
+  --
+  name : VARCHAR(100) UNIQUE
+}
+
+entity "listing_allergens" as t_la {
+  listing_id : BIGINT <<FK>>
+  allergen_id : BIGINT <<FK>>
+  --
+  PRIMARY KEY(listing_id, allergen_id)
+}
+
+entity "contact_requests" as t_cr {
+  id : BIGSERIAL <<PK>>
+  --
+  listing_id : BIGINT <<FK>> NOT NULL
+  buyer_id : BIGINT <<FK>> NOT NULL
+  status : contact_request_status
+  message : TEXT
+  portions : INTEGER
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+  --
+  UNIQUE(listing_id, buyer_id)
+}
+
+entity "reviews" as t_rev {
+  id : BIGSERIAL <<PK>>
+  --
+  contact_request_id : BIGINT <<FK>> UNIQUE
+  reviewer_id : BIGINT <<FK>>
+  listing_id : BIGINT <<FK>>
+  rating : INTEGER CHECK(1-5)
+  comment : TEXT
+  created_at : TIMESTAMP
+}
+
+t_user "1" -- "0..*" t_list : seller_id
+t_user "1" -- "0..*" t_ur
+t_role "1" -- "0..*" t_ur
+t_cuis "1" -- "0..*" t_list
+t_list "1" -- "0..*" t_la
+t_alrg "1" -- "0..*" t_la
+t_list "1" -- "0..*" t_cr
+t_user "1" -- "0..*" t_cr : buyer_id
+t_cr "1" -- "0..1" t_rev
+t_user "1" -- "0..*" t_rev
+t_list "1" -- "0..*" t_rev
+
+note bottom of t_cr
+  Types ENUM PostgreSQL natifs :
+  listing_status, contact_request_status
+  Migrations : V1 à V4 (Flyway)
+end note
+
+@enduml

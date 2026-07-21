@@ -1,0 +1,80 @@
+@startuml Architecture_Hexagonale_Tortiki
+'== Mise en page A4 portrait ==
+skinparam pageWidth 210mm
+skinparam pageMargin 10
+skinparam dpi 150
+scale max 800 width
+
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 11
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+skinparam component {
+  BackgroundColor #EEF6FB
+  BorderColor #1B6FA8
+  FontColor #1B3A4B
+  FontSize 11
+}
+skinparam package {
+  BackgroundColor #FBFBFB
+  BorderColor #888888
+  FontStyle bold
+  FontSize 12
+}
+skinparam database {
+  BackgroundColor #F3E8FD
+  BorderColor #7B3FA0
+}
+skinparam cloud {
+  BackgroundColor #FDF3E3
+  BorderColor #C77700
+}
+skinparam note {
+  BackgroundColor #FFF9E5
+  BorderColor #C7A600
+  FontSize 10
+}
+
+title Architecture Hexagonale — com.tortiki.api (vue résumée)
+
+package "adapter.in.web" as IN #FFF3E0 {
+  [Controllers REST\n(Contact, Listing, Buyer...)] as CtrlWeb
+}
+
+package "application" as APP #EEF6FB {
+  [port.in\n(UseCases)] as PortIn
+  [service\n(ContactRequestService,\nListingService...)] as Svc
+  [port.out\n(Repository, Storage,\nGeolocation)] as PortOut
+}
+
+package "domain" as DOM #E8F5E9 {
+  [model\n(User, Listing,\nContactRequest...)] as Model
+  [exception\n(métier)] as Exc
+}
+
+package "adapter.out" as OUT #FFF3E0 {
+  [persistence\n(JPA Adapters)] as Persist
+  [storage / geolocation\n(MinIO, Nominatim)] as ExtAdapt
+}
+
+database "PostgreSQL 16" as PG
+cloud "MinIO / Nominatim" as EXT
+
+CtrlWeb --> PortIn
+PortIn <|.. Svc
+Svc --> PortOut
+Svc --> Model
+Svc --> Exc
+PortOut <|.. Persist
+PortOut <|.. ExtAdapt
+Persist --> PG
+ExtAdapt --> EXT
+
+note bottom of DOM
+  Règle : le domaine ne dépend
+  jamais de Spring/JPA/Lombok.
+  Dépendances → toujours vers l'intérieur.
+end note
+
+@enduml

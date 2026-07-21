@@ -1,0 +1,61 @@
+@startuml Diagramme_Cas_Utilisation_Tortiki
+skinparam backgroundColor #FFFFFF
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #EEF6FB
+  BorderColor #1B6FA8
+  ArrowColor #1B6FA8
+  FontColor #1B3A4B
+  FontSize 13
+}
+skinparam actor {
+  BackgroundColor #FFF3E0
+  BorderColor #C77700
+}
+title Diagramme de cas d'utilisation — Tortiki (Marketplace P2P Click & Collect)
+
+left to right direction
+
+actor "Théo\n(Acheteur)" as Theo
+actor "Sofia\n(Vendeuse)" as Sofia
+actor "Administrateur" as Admin
+
+rectangle "Système Tortiki" {
+  usecase "Rechercher une annonce\n(géolocalisée)" as UC1
+  usecase "Consulter fiche annonce\n(prix, allergènes, avis)" as UC2
+  usecase "Soumettre une demande\nde contact" as UC3
+  usecase "Consulter historique\ndes demandes" as UC4
+  usecase "Soumettre un avis\n(après retrait)" as UC5
+  usecase "Publier une annonce\n(CRUD + photo)" as UC6
+  usecase "Gérer les demandes reçues\n(confirmer / refuser)" as UC7
+  usecase "Consulter le tableau\nde bord vendeur" as UC8
+  usecase "Administrer le référentiel\ndes cuisines" as UC9
+  usecase "Modérer les annonces" as UC10
+}
+
+Theo --> UC1
+Theo --> UC2
+Theo --> UC3
+Theo --> UC4
+Theo --> UC5
+
+Sofia --> UC6
+Sofia --> UC7
+Sofia --> UC8
+
+Admin --> UC9
+Admin --> UC10
+
+UC3 ..> UC2 : <<include>>
+UC5 ..> UC4 : <<include>>
+UC7 ..> UC8 : <<extend>>
+
+note right of UC3
+  Règles métier :
+  - Un acheteur ne peut pas
+    contacter sa propre annonce
+  - Un seul contact par annonce
+    (contrainte UNIQUE)
+end note
+
+@enduml

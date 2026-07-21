@@ -1,0 +1,58 @@
+@startuml Sequence_Soumission_Demande_Contact
+skinparam backgroundColor #FFFFFF
+skinparam sequence {
+  ArrowColor #1B6FA8
+  ActorBorderColor #1B3A4B
+  LifeLineBorderColor #1B6FA8
+  ParticipantBackgroundColor #EEF6FB
+  ParticipantBorderColor #1B6FA8
+  ParticipantFontColor #1B3A4B
+  BoxBackgroundColor #FFF9F0
+}
+title Diagramme de séquence — Soumission d'une demande de contact (Tortiki)
+
+actor "Théo\n(Acheteur)" as Buyer
+participant "Frontend\nThymeleaf" as FE
+participant "ContactRequestController\n(adapter in/web)" as Ctrl
+participant "ContactRequestService\n(application/service)" as Svc
+participant "ListingRepository\n(port out)" as ListingRepo
+participant "ContactRequestRepository\n(port out)" as ContactRepo
+database "PostgreSQL 16" as DB
+
+Buyer -> FE : Remplit formulaire\n(portions, message)
+FE -> Ctrl : POST /api/v1/contact-requests
+Ctrl -> Svc : submit(Command)
+
+Svc -> ListingRepo : findById(listingId)
+ListingRepo -> DB : SELECT listing
+DB --> ListingRepo : Listing
+ListingRepo --> Svc : Optional<Listing>
+
+alt Annonce introuvable
+  Svc --> Ctrl : ListingNotFoundException
+  Ctrl --> FE : 404 Not Found
+else Vendeur = Acheteur
+  Svc --> Ctrl : ContactRequestAlreadyExistsException
+  Ctrl --> FE : 409 Conflict
+else Demande déjà existante
+  Svc -> ContactRepo : existsByListingIdAndBuyerId(...)
+  ContactRepo -> DB : SELECT COUNT(*)
+  DB --> ContactRepo : true
+  ContactRepo --> Svc : true
+  Svc --> Ctrl : ContactRequestAlreadyExistsException
+  Ctrl --> FE : 409 Conflict
+else Cas nominal
+  Svc -> ContactRepo : existsByListingIdAndBuyerId(...)
+  ContactRepo --> Svc : false
+  Svc -> Svc : new ContactRequest(status=PENDING)
+  Svc -> ContactRepo : save(contactRequest)
+  ContactRepo -> DB : INSERT INTO contact_requests
+  DB --> ContactRepo : ContactRequest (id généré)
+  ContactRepo --> Svc : ContactRequest
+  Svc --> Ctrl : ContactRequest
+  Ctrl --> FE : 201 Created
+end
+
+FE --> Buyer : Confirmation à l'écran
+
+@enduml

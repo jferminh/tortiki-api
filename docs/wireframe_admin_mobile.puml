@@ -1,0 +1,33 @@
+@startsalt wireframe_admin_mobile
+scale 375 width
+{
+"TORTIKI"
+==
+"Administration"
+==
+[Origines culinaires] | [Utilisateurs] | [Moderation]
+==
+"-- Origines culinaires --"
+"Ukrainienne"
+[Modifier] [Supprimer]
+"Italienne"
+[Modifier] [Supprimer]
+"Marocaine"
+[Modifier] [Supprimer]
+[+ Ajouter une origine]
+==
+"-- Utilisateurs --"
+"Sofia D. - Vendeur - Actif"
+[Desactiver]
+"Theo M. - Acheteur - Actif"
+[Desactiver]
+"Marco T. - Vendeur - Suspendu"
+[Reactiver]
+==
+"-- Moderation --"
+"Couscous royal - Signalee 2 fois"
+"Motif : Photo non conforme"
+[Voir l'annonce]
+[Desactiver l'annonce]
+}
+@endsalt
