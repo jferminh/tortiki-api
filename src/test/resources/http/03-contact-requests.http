@@ -24,7 +24,7 @@ POST {{baseUrl}}/api/v1/contact-requests
 Content-Type: application/json
 
 {
-  "listingId": {{listingId}},
+  "listingId": 15,
   "message": "Je suis intéressé, je voudrais 2 portions svp !",
   "portions": 2
 }
@@ -44,7 +44,7 @@ POST {{baseUrl}}/api/v1/contact-requests
 Content-Type: application/json
 
 {
-  "listingId": {{listingId}},
+  "listingId": 15,
   "message": "2e tentative — doit être bloquée",
   "portions": 1
 }
@@ -62,7 +62,7 @@ POST {{baseUrl}}/api/v1/contact-requests
 Content-Type: application/json
 
 {
-  "listingId": {{listingId}},
+  "listingId": 15,
   "message": "Sans cookie",
   "portions": 1
 }
@@ -91,7 +91,7 @@ POST {{baseUrl}}/api/v1/contact-requests
 Content-Type: application/json
 
 {
-  "listingId": {{listingId}},
+  "listingId": 15,
   "message": "Test vendeur — doit être bloqué",
   "portions": 1
 }
