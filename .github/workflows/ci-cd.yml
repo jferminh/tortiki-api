@@ -20,35 +20,25 @@ on:
       - main
       - develop
 
-# Annule les runs obsolètes sur la même branche
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Permissions minimales — principe du moindre privilège
-permissions:
-  contents: read
-  pull-requests: write
-  checks: write
-
 env:
   JAVA_VERSION: '21'
-  DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/tortiki-api
   POSTGRES_DB: tortiki_test
   POSTGRES_USER: tortiki
   POSTGRES_PASSWORD: tortiki_secret
 
-# ══════════════════════════════════════════════════════════════
-# JOB 1 — CHECKSTYLE (fail-fast léger, sans PostgreSQL)
-# ══════════════════════════════════════════════════════════════
 jobs:
   checkstyle:
     name: Checkstyle Google Style
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
 
     steps:
-
       - name: Checkout du code source
         uses: actions/checkout@v4
 
@@ -69,16 +59,16 @@ jobs:
       - name: Vérification Checkstyle — 0 violation obligatoire
         run: ./mvnw checkstyle:check --no-transfer-progress
 
-  # ══════════════════════════════════════════════════════════════
-  # JOB 2 — BUILD, TESTS, JACOCO, ALLURE, SONARCLOUD
-  # ══════════════════════════════════════════════════════════════
   build-and-test:
     name: Build & Test
     runs-on: ubuntu-latest
     needs: checkstyle
     timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+      checks: write
 
-    # Service PostgreSQL 16 — identique à la production
     services:
       postgres:
         image: postgres:16-alpine
@@ -95,8 +85,6 @@ jobs:
           --health-retries 5
 
     steps:
-
-      # Historique complet requis par SonarCloud
       - name: Checkout du code source
         uses: actions/checkout@v4
         with:
@@ -118,13 +106,14 @@ jobs:
 
       - name: Attente PostgreSQL — service prêt
         run: |
-          until pg_isready -h localhost -p 5432 -U ${{ env.POSTGRES_USER }}; do
+          until pg_isready -h localhost -p 5432 -U "$POSTGRES_USER"; do
             echo "PostgreSQL non disponible, attente..."
             sleep 2
           done
-          echo "PostgreSQL prêt ✅"
+          echo "PostgreSQL prêt"
+        env:
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
 
-      # Build complet : compile + tests + JaCoCo + Allure
       - name: Build, Tests JUnit 5, JaCoCo et Allure
         run: ./mvnw -B --no-transfer-progress clean verify -P integration
         env:
@@ -133,12 +122,10 @@ jobs:
           SPRING_DATASOURCE_USERNAME: ${{ env.POSTGRES_USER }}
           SPRING_DATASOURCE_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
 
-          # Génération rapport Allure HTML (même si tests échouent)
       - name: Génération rapport Allure HTML
         if: always()
         run: ./mvnw -B --no-transfer-progress allure:report
 
-      # Upload rapport Allure comme artifact téléchargeable
       - name: Upload rapport Allure
         if: always()
         uses: actions/upload-artifact@v4
@@ -147,7 +134,6 @@ jobs:
           path: target/site/allure-maven-plugin/
           retention-days: 30
 
-      # Publication Allure sur GitHub Pages (main uniquement)
       - name: Publication Allure sur GitHub Pages
         if: always() && github.ref == 'refs/heads/main'
         uses: peaceiris/actions-gh-pages@v3
@@ -156,7 +142,6 @@ jobs:
           publish_branch: gh-pages
           publish_dir: target/site/allure-maven-plugin/
 
-      # Upload rapport JaCoCo HTML
       - name: Upload rapport JaCoCo
         if: always()
         uses: actions/upload-artifact@v4
@@ -165,21 +150,21 @@ jobs:
           path: target/site/jacoco/
           retention-days: 30
 
-          # Analyse SonarCloud — continue-on-error si secret absent
       - name: Analyse SonarCloud
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
+          SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
         run: |
           ./mvnw -B --no-transfer-progress sonar:sonar \
-            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }} \
-            -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }} \
+            -Dsonar.projectKey="$SONAR_PROJECT_KEY" \
+            -Dsonar.organization="$SONAR_ORGANIZATION" \
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.java.source=21 \
             -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
 
-      # Upload JAR pour réutilisation par Job Docker (main uniquement)
       - name: Upload artefact JAR
         if: github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
@@ -188,37 +173,33 @@ jobs:
           path: target/tortiki-api-*.jar
           retention-days: 1
 
-      # Résumé visible directement dans l'onglet Actions GitHub
       - name: Résumé du pipeline
         if: always()
         run: |
-          echo "## Résultat CI — Tortiki API" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Élément | Valeur |" >> $GITHUB_STEP_SUMMARY
-          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
-          echo "| Branche | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Commit | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Déclenché par | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Profil Maven | \`integration\` (tous les tests) |" >> $GITHUB_STEP_SUMMARY
-          echo "| Rapport Allure | Voir onglet Artifacts |" >> $GITHUB_STEP_SUMMARY
-          echo "| Rapport JaCoCo | Voir onglet Artifacts |" >> $GITHUB_STEP_SUMMARY
+          echo "## Résultat CI — Tortiki API" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Élément | Valeur |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Branche | \`${{ github.ref_name }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Commit | \`${{ github.sha }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Déclenché par | ${{ github.actor }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Profil Maven | \`integration\` (tous les tests) |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Rapport Allure | Voir onglet Artifacts |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Rapport JaCoCo | Voir onglet Artifacts |" >> "$GITHUB_STEP_SUMMARY"
 
-  # ══════════════════════════════════════════════════════════════
-  # JOB 3 — DOCKER BUILD & PUSH (main + push uniquement)
-  # ══════════════════════════════════════════════════════════════
   docker:
     name: Docker Build & Push
     runs-on: ubuntu-latest
     needs: build-and-test
     timeout-minutes: 10
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: read
 
     steps:
-
       - name: Checkout du code source
         uses: actions/checkout@v4
 
-      # Réutilise le JAR du Job 2 — pas de rebuild
       - name: Téléchargement JAR depuis Job 2
         uses: actions/download-artifact@v4
         with:
@@ -231,38 +212,40 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Tag latest + sha court pour traçabilité immuable
+      - name: Calcul du nom d'image Docker
+        id: image
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        run: echo "name=${DOCKERHUB_USERNAME}/tortiki-api" >> "$GITHUB_OUTPUT"
+
       - name: Build et Push image Docker
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           tags: |
-            ${{ env.DOCKER_IMAGE }}:latest
-            ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
+            ${{ steps.image.outputs.name }}:latest
+            ${{ steps.image.outputs.name }}:${{ github.sha }}
 
-  # ══════════════════════════════════════════════════════════════
-  # JOB 4 — NOTIFICATION TEAMS (toujours exécuté)
-  # ══════════════════════════════════════════════════════════════
   notify:
     name: Notification Teams
     runs-on: ubuntu-latest
     needs: [ build-and-test, docker ]
     timeout-minutes: 3
     if: always()
+    permissions:
+      contents: read
 
     env:
       TEAMS_HOOK_URL: ${{ secrets.TEAMS_WEBHOOK }}
 
     steps:
-
       - name: Préparation du statut pipeline
         id: status
         run: |
           BUILD="${{ needs.build-and-test.result }}"
           DOCKER="${{ needs.docker.result }}"
 
-          # Docker skipped sur develop → considéré succès
           if [[ "$DOCKER" == "skipped" ]]; then
             DOCKER="success"
           fi
