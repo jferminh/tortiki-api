@@ -48,8 +48,12 @@ entity "LISTING" as Listing {
   price : NUMERIC
   portions : INTEGER
   city : VARCHAR
+  pickup_lat : NUMERIC
+  pickup_lng : NUMERIC
   pickup_datetime : TIMESTAMP
   status : VARCHAR
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
   # seller_id : BIGINT <<FK>>
   # cuisine_type_id : BIGINT <<FK>>
 }
@@ -80,6 +84,8 @@ entity "CONTACT_REQUEST" as CReq {
   status : VARCHAR
   message : VARCHAR
   portions : INTEGER
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
   <<UNIQUE(listing_id,buyer_id)>>
 }
 
@@ -88,9 +94,11 @@ entity "REVIEW" as Review {
   --
   # contact_request_id : BIGINT <<FK>>
   # reviewer_id : BIGINT <<FK>>
+  # seller_id : BIGINT <<FK>>
   # listing_id : BIGINT <<FK>>
   rating : INTEGER
   comment : VARCHAR
+  created_at : TIMESTAMP
 }
 
 User "1,1" -- "0,n" Listing : PUBLIER
@@ -113,7 +121,15 @@ end note
 note right of Listing
   status logique porté en base par le type
   ENUM natif listing_status (valeur MODERATED
-  ajoutée par la migration V2)
+  ajoutée par la migration V2). pickup_lat/pickup_lng
+  ajoutés pour la recherche géolocalisée (US-06)
+end note
+
+note left of Review
+  seller_id est une dénormalisation volontaire :
+  redondant avec listing_id.seller_id, il évite
+  une jointure supplémentaire sur le tableau de
+  bord vendeur (accès direct aux avis reçus)
 end note
 
 @enduml

@@ -16,6 +16,7 @@ participant "Frontend\nThymeleaf" as FE
 participant "ContactRequestController\n(adapter in/web)" as Ctrl
 participant "ContactRequestService\n(application/service)" as Svc
 participant "ListingRepository\n(port out)" as ListingRepo
+participant "UserRepository\n(port out)" as UserRepo
 participant "ContactRequestRepository\n(port out)" as ContactRepo
 database "PostgreSQL 16" as DB
 
@@ -31,26 +32,38 @@ ListingRepo --> Svc : Optional<Listing>
 alt Annonce introuvable
   Svc --> Ctrl : ListingNotFoundException
   Ctrl --> FE : 404 Not Found
-else Vendeur = Acheteur
-  Svc --> Ctrl : ContactRequestAlreadyExistsException
-  Ctrl --> FE : 409 Conflict
-else Demande déjà existante
-  Svc -> ContactRepo : existsByListingIdAndBuyerId(...)
-  ContactRepo -> DB : SELECT COUNT(*)
-  DB --> ContactRepo : true
-  ContactRepo --> Svc : true
-  Svc --> Ctrl : ContactRequestAlreadyExistsException
-  Ctrl --> FE : 409 Conflict
-else Cas nominal
-  Svc -> ContactRepo : existsByListingIdAndBuyerId(...)
-  ContactRepo --> Svc : false
-  Svc -> Svc : new ContactRequest(status=PENDING)
-  Svc -> ContactRepo : save(contactRequest)
-  ContactRepo -> DB : INSERT INTO contact_requests
-  DB --> ContactRepo : ContactRequest (id généré)
-  ContactRepo --> Svc : ContactRequest
-  Svc --> Ctrl : ContactRequest
-  Ctrl --> FE : 201 Created
+else Annonce trouvée
+  Svc -> UserRepo : findByEmailAndEnabledTrue(buyerEmail)
+  UserRepo -> DB : SELECT user
+  DB --> UserRepo : User
+  UserRepo --> Svc : Optional<User>
+
+  alt Acheteur introuvable ou inactif
+    Svc --> Ctrl : UserNotFoundException
+    Ctrl --> FE : 404 Not Found
+  else Acheteur résolu
+    alt Vendeur = Acheteur
+      Svc --> Ctrl : SelfContactException
+      Ctrl --> FE : 409 Conflict
+    else Demande déjà existante
+      Svc -> ContactRepo : existsByListingIdAndBuyerId(...)
+      ContactRepo -> DB : SELECT COUNT(*)
+      DB --> ContactRepo : true
+      ContactRepo --> Svc : true
+      Svc --> Ctrl : ContactRequestAlreadyExistsException
+      Ctrl --> FE : 409 Conflict
+    else Cas nominal
+      Svc -> ContactRepo : existsByListingIdAndBuyerId(...)
+      ContactRepo --> Svc : false
+      Svc -> Svc : new ContactRequest(status=PENDING)
+      Svc -> ContactRepo : save(contactRequest)
+      ContactRepo -> DB : INSERT INTO contact_requests
+      DB --> ContactRepo : ContactRequest (id généré)
+      ContactRepo --> Svc : ContactRequest
+      Svc --> Ctrl : ContactRequest
+      Ctrl --> FE : 201 Created
+    end
+  end
 end
 
 FE --> Buyer : Confirmation à l'écran
