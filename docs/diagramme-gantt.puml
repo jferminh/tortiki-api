@@ -1,0 +1,46 @@
+@startgantt
+title Planning du projet Tortiki (13 mai — 17 juillet 2026)\nGitHub Projects Tortiki | Phase 0 + 4 sprints (Stage)
+
+language fr
+printscale weekly
+
+' --- Style global verrouillé ---
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 10
+skinparam ganttDiagramFontSize 10
+
+skinparam gantt {
+  taskHeight 28
+  headerBackgroundColor #F1F5F9
+  headerFontColor #334155
+  gridColor #E2E8F0
+  gridType solid
+  arrowColor transparent
+}
+
+' --- Calendrier ---
+Project starts 2026-05-13
+
+' --- Sprints & Tâches ---
+
+[Phase 0 - Cadrage] as [P0] lasts 12 days
+[P0] is colored in #C87500/#C87500
+
+[Sprint 1 - Socle] as [S1] lasts 14 days
+[S1] starts at [P0]'s end
+[S1] is colored in #2B7A32/#2B7A32
+
+[Sprint 2 - Découverte] as [S2] lasts 14 days
+[S2] starts at [S1]'s end
+[S2] is colored in #1D70B8/#1D70B8
+
+[Sprint 3 - Confiance] as [S3] lasts 14 days
+[S3] starts at [S2]'s end
+[S3] is colored in #6B309A/#6B309A
+
+[Sprint 4 - Livraison] as [S4] lasts 12 days
+[S4] starts at [S3]'s end
+[S4] is colored in #BD2226/#BD2226
+
+@endgantt

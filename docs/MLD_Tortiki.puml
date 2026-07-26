@@ -23,6 +23,7 @@ entity "USER" as User {
   --
   email : VARCHAR
   password_hash : VARCHAR
+  phone : VARCHAR
   city : VARCHAR
   latitude : NUMERIC
   longitude : NUMERIC
@@ -45,7 +46,14 @@ entity "LISTING" as Listing {
   --
   title : VARCHAR
   price : NUMERIC
+  portions : INTEGER
+  city : VARCHAR
+  pickup_lat : NUMERIC
+  pickup_lng : NUMERIC
+  pickup_datetime : TIMESTAMP
   status : VARCHAR
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
   # seller_id : BIGINT <<FK>>
   # cuisine_type_id : BIGINT <<FK>>
 }
@@ -60,6 +68,7 @@ entity "ALLERGEN" as Allergen {
   * id : BIGINT <<PK>>
   --
   name : VARCHAR
+  enabled : BOOLEAN
 }
 
 entity "LISTING_ALLERGENS" as ListAllerg {
@@ -73,6 +82,10 @@ entity "CONTACT_REQUEST" as CReq {
   # listing_id : BIGINT <<FK>>
   # buyer_id : BIGINT <<FK>>
   status : VARCHAR
+  message : VARCHAR
+  portions : INTEGER
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
   <<UNIQUE(listing_id,buyer_id)>>
 }
 
@@ -81,20 +94,42 @@ entity "REVIEW" as Review {
   --
   # contact_request_id : BIGINT <<FK>>
   # reviewer_id : BIGINT <<FK>>
+  # seller_id : BIGINT <<FK>>
   # listing_id : BIGINT <<FK>>
   rating : INTEGER
+  comment : VARCHAR
+  created_at : TIMESTAMP
 }
 
-User "1" -- "0..*" Listing
-User "1" -- "0..*" UserRoles
-Role "1" -- "0..*" UserRoles
-Cuisine "1" -- "0..*" Listing
-Listing "1" -- "0..*" ListAllerg
-Allergen "1" -- "0..*" ListAllerg
-Listing "1" -- "0..*" CReq
-User "1" -- "0..*" CReq
-CReq "1" -- "0..1" Review
-User "1" -- "0..*" Review
-Listing "1" -- "0..*" Review
+User "1,1" -- "0,n" Listing : PUBLIER
+User "1,1" -- "0,n" UserRoles
+Role "1,1" -- "0,n" UserRoles
+Cuisine "1,1" -- "0,n" Listing : CATEGORISER
+Listing "1,1" -- "0,n" ListAllerg
+Allergen "1,1" -- "0,n" ListAllerg
+Listing "1,1" -- "0,n" CReq : CONCERNER
+User "1,1" -- "0,n" CReq : SOUMETTRE
+CReq "1,1" -- "0,1" Review : GENERER
+User "1,1" -- "0,n" Review : REDIGER
+Listing "1,1" -- "0,n" Review : EVALUER
+
+note bottom of CReq
+  status logique porté en base par le type
+  ENUM natif contact_request_status
+end note
+
+note right of Listing
+  status logique porté en base par le type
+  ENUM natif listing_status (valeur MODERATED
+  ajoutée par la migration V2). pickup_lat/pickup_lng
+  ajoutés pour la recherche géolocalisée (US-06)
+end note
+
+note left of Review
+  seller_id est une dénormalisation volontaire :
+  redondant avec listing_id.seller_id, il évite
+  une jointure supplémentaire sur le tableau de
+  bord vendeur (accès direct aux avis reçus)
+end note
 
 @enduml

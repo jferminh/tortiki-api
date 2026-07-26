@@ -23,18 +23,22 @@ entity "users" as t_user {
   --
   email : VARCHAR(255) UNIQUE NOT NULL
   password_hash : VARCHAR(255) NOT NULL
+  first_name : VARCHAR(100) NOT NULL
+  last_name : VARCHAR(100) NOT NULL
   phone : VARCHAR(20)
+  avatar_url : VARCHAR(500)
   city : VARCHAR(100)
-  latitude : NUMERIC(10,7)
-  longitude : NUMERIC(10,7)
+  latitude : DOUBLE PRECISION
+  longitude : DOUBLE PRECISION
   enabled : BOOLEAN DEFAULT true
-  created_at : TIMESTAMP
+  created_at : TIMESTAMP DEFAULT now()
+  updated_at : TIMESTAMP DEFAULT now()
 }
 
 entity "roles" as t_role {
   id : BIGSERIAL <<PK>>
   --
-  name : VARCHAR(50) UNIQUE
+  name : VARCHAR(50) UNIQUE NOT NULL
 }
 
 entity "user_roles" as t_ur {
@@ -47,14 +51,23 @@ entity "user_roles" as t_ur {
 entity "listings" as t_list {
   id : BIGSERIAL <<PK>>
   --
-  title : VARCHAR(200) NOT NULL
-  price : NUMERIC(8,2) CHECK(price>0)
-  portions : INTEGER
-  pickup_datetime : TIMESTAMP
-  status : listing_status
-  seller_id : BIGINT <<FK>>
-  cuisine_type_id : BIGINT <<FK>>
+  seller_id : BIGINT <<FK>> NOT NULL
+  cuisine_type_id : BIGINT <<FK>> NOT NULL
+  title : VARCHAR(255) NOT NULL
+  description : TEXT
+  price : NUMERIC(10,2) CHECK(price>0)
+  portions : INTEGER CHECK(portions>0)
+  photo_url : VARCHAR(500)
+  pickup_address : VARCHAR(255) NOT NULL
+  city : VARCHAR(100) NOT NULL
+  pickup_lat : DOUBLE PRECISION
+  pickup_lng : DOUBLE PRECISION
+  pickup_datetime : TIMESTAMP NOT NULL
+  status : listing_status DEFAULT 'ACTIVE'
+  created_at : TIMESTAMP DEFAULT now()
+  updated_at : TIMESTAMP DEFAULT now()
   --
+  IDX idx_listings_seller_id
   IDX idx_listings_cuisine_status
   IDX idx_listings_location
 }
@@ -62,13 +75,16 @@ entity "listings" as t_list {
 entity "cuisine_types" as t_cuis {
   id : BIGSERIAL <<PK>>
   --
-  name : VARCHAR(100) UNIQUE
+  name : VARCHAR(100) UNIQUE NOT NULL
+  description : TEXT
+  enabled : BOOLEAN DEFAULT true
 }
 
 entity "allergens" as t_alrg {
   id : BIGSERIAL <<PK>>
   --
-  name : VARCHAR(100) UNIQUE
+  name : VARCHAR(100) UNIQUE NOT NULL
+  enabled : BOOLEAN NOT NULL DEFAULT true
 }
 
 entity "listing_allergens" as t_la {
@@ -83,11 +99,11 @@ entity "contact_requests" as t_cr {
   --
   listing_id : BIGINT <<FK>> NOT NULL
   buyer_id : BIGINT <<FK>> NOT NULL
-  status : contact_request_status
+  portions : INTEGER NOT NULL DEFAULT 1 CHECK(portions>0)
+  status : contact_request_status DEFAULT 'PENDING'
   message : TEXT
-  portions : INTEGER
-  created_at : TIMESTAMP
-  updated_at : TIMESTAMP
+  created_at : TIMESTAMP DEFAULT now()
+  updated_at : TIMESTAMP DEFAULT now()
   --
   UNIQUE(listing_id, buyer_id)
 }
@@ -95,12 +111,13 @@ entity "contact_requests" as t_cr {
 entity "reviews" as t_rev {
   id : BIGSERIAL <<PK>>
   --
-  contact_request_id : BIGINT <<FK>> UNIQUE
-  reviewer_id : BIGINT <<FK>>
-  listing_id : BIGINT <<FK>>
-  rating : INTEGER CHECK(1-5)
+  contact_request_id : BIGINT <<FK>> UNIQUE NOT NULL
+  reviewer_id : BIGINT <<FK>> NOT NULL
+  seller_id : BIGINT <<FK>> NOT NULL
+  listing_id : BIGINT <<FK>> NOT NULL
+  rating : INTEGER CHECK(rating BETWEEN 1 AND 5)
   comment : TEXT
-  created_at : TIMESTAMP
+  created_at : TIMESTAMP DEFAULT now()
 }
 
 t_user "1" -- "0..*" t_list : seller_id
@@ -118,7 +135,25 @@ t_list "1" -- "0..*" t_rev
 note bottom of t_cr
   Types ENUM PostgreSQL natifs :
   listing_status, contact_request_status
-  Migrations : V1 à V4 (Flyway)
+  (valeur MODERATED ajoutée en V2)
+  Migrations : V1 à V7 (Flyway)
+end note
+
+note left of t_user
+  latitude/longitude en DOUBLE PRECISION
+  depuis V4 (alignement avec le type Double
+  mappé par UserJpaEntity)
+end note
+
+note right of t_list
+  pickup_lat/pickup_lng en DOUBLE PRECISION
+  depuis V3. Colonne city ajoutée en V7
+  (NOT NULL après rétro-remplissage)
+end note
+
+note top of t_alrg
+  Colonne enabled ajoutée en V6
+  (désactivation d'un allergène par ROLE_ADMIN)
 end note
 
 @enduml

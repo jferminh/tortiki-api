@@ -1,101 +1,113 @@
 @startuml MCD_Tortiki
+'== A4 portrait ==
+skinparam pageWidth 210mm
+skinparam pageMargin 10
+skinparam dpi 150
+scale max 800 width
 skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 10
+
 skinparam class {
   BackgroundColor #EEF6FB
   BorderColor #1B6FA8
   FontColor #1B3A4B
   ArrowColor #1B6FA8
-  FontSize 12
+  FontSize 10
 }
-title Modèle Conceptuel de Données — Tortiki
 
-entity "User" as User {
-  * id : BIGINT <<PK>>
+title Modèle Conceptuel de Données (MCD) — Tortiki
+
+' ===== ENTITÉS (aucun type de donnée à ce niveau) =====
+
+entity "USER" as User {
+  * id
   --
-  email : VARCHAR
-  password_hash : VARCHAR
-  phone : VARCHAR
-  city : VARCHAR
-  latitude : NUMERIC(10,7)
-  longitude : NUMERIC(10,7)
-  enabled : BOOLEAN
+  email
+  mot_de_passe
+  telephone
+  ville
+  latitude
+  longitude
+  actif
 }
 
-entity "Role" as Role {
-  * id : BIGINT <<PK>>
+entity "ROLE" as Role {
+  * id
   --
-  name : VARCHAR
+  nom
 }
 
-entity "user_roles" as UserRoles {
-  * user_id : BIGINT <<FK>>
-  * role_id : BIGINT <<FK>>
-}
-
-entity "Listing" as Listing {
-  * id : BIGINT <<PK>>
+entity "LISTING" as Listing {
+  * id
   --
-  title : VARCHAR
-  price : NUMERIC
-  portions : INTEGER
-  pickup_datetime : TIMESTAMP
-  status : listing_status
-  seller_id : BIGINT <<FK>>
-  cuisine_type_id : BIGINT <<FK>>
+  titre
+  description
+  prix
+  portions
+  ville
+  creneau_retrait
+  statut
 }
 
-entity "CuisineType" as CuisineType {
-  * id : BIGINT <<PK>>
+entity "CUISINE_TYPE" as CuisineType {
+  * id
   --
-  name : VARCHAR
+  nom
 }
 
-entity "Allergen" as Allergen {
-  * id : BIGINT <<PK>>
+entity "ALLERGEN" as Allergen {
+  * id
   --
-  name : VARCHAR
+  nom
+  actif
 }
 
-entity "listing_allergens" as ListingAllergens {
-  * listing_id : BIGINT <<FK>>
-  * allergen_id : BIGINT <<FK>>
-}
-
-entity "ContactRequest" as ContactRequest {
-  * id : BIGINT <<PK>>
+entity "CONTACT_REQUEST" as ContactRequest {
+  * id
   --
-  listing_id : BIGINT <<FK>>
-  buyer_id : BIGINT <<FK>>
-  status : contact_request_status
-  message : TEXT
-  portions : INTEGER
-  created_at : TIMESTAMP
-  updated_at : TIMESTAMP
-  ..
-  <<UNIQUE(listing_id, buyer_id)>>
+  statut
+  message
+  portions
+  date_creation
+  date_modification
 }
 
-entity "Review" as Review {
-  * id : BIGINT <<PK>>
+entity "REVIEW" as Review {
+  * id
   --
-  contact_request_id : BIGINT <<FK>>
-  reviewer_id : BIGINT <<FK>>
-  listing_id : BIGINT <<FK>>
-  rating : INTEGER
-  comment : TEXT
-  created_at : TIMESTAMP
+  note
+  commentaire
+  date_creation
 }
 
-User "1" -- "0..*" Listing : publie (seller)
-User "1" -- "0..*" UserRoles
-Role "1" -- "0..*" UserRoles
-Listing "1" -- "0..*" ListingAllergens
-Allergen "1" -- "0..*" ListingAllergens
-CuisineType "1" -- "0..*" Listing
-Listing "1" -- "0..*" ContactRequest
-User "1" -- "0..*" ContactRequest : soumet (buyer)
-ContactRequest "1" -- "0..1" Review : génère
-User "1" -- "0..*" Review : rédige
-Listing "1" -- "0..*" Review : concerne
+' ===== ASSOCIATIONS NOMMÉES (cardinalités notation MCD française) =====
+
+User "1,1" -- "0,n" Listing : PUBLIER
+User "0,n" -- "0,n" Role : ATTRIBUER
+CuisineType "1,1" -- "0,n" Listing : CATEGORISER
+Listing "0,n" -- "0,n" Allergen : CONTENIR
+Listing "1,1" -- "0,n" ContactRequest : CONCERNER
+User "1,1" -- "0,n" ContactRequest : SOUMETTRE
+ContactRequest "1,1" -- "0,1" Review : GENERER
+User "1,1" -- "0,n" Review : REDIGER
+Listing "1,1" -- "0,n" Review : EVALUER
+
+note bottom of ContactRequest
+  Contrainte d'unicité conceptuelle :
+  un même USER (acheteur) ne peut soumettre
+  qu'une seule demande par LISTING
+end note
+
+note right of Allergen
+  Attribut "actif" introduit
+  suite à la migration V6
+  (désactivation par un administrateur)
+end note
+
+note right of Listing
+  Attribut "ville" introduit
+  suite à la migration V7
+  (fiabilisation de la recherche)
+end note
 
 @enduml

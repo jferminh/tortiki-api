@@ -1,0 +1,29 @@
+@startuml wireflow-tortiki
+title Wireflow — Enchaînement des écrans Tortiki
+
+state "Inscription / Connexion" as Auth
+state "Accueil / Recherche géolocalisée" as Accueil
+state "Fiche annonce" as Fiche
+state "Formulaire de contact" as Contact
+state "Mes demandes" as MesDemandes
+state "Tableau de bord vendeur" as Dashboard
+state "Créer une annonce" as CreerAnnonce
+state "Gérer une demande" as GererDemande
+
+[*] --> Auth : visiteur non authentifié
+Auth --> Accueil : connexion réussie (rôle BUYER)
+Auth --> Dashboard : connexion réussie (rôle SELLER)
+
+Accueil --> Fiche : sélection d'une annonce
+Fiche --> Contact : clic "Faire une demande"
+Contact --> MesDemandes : demande envoyée
+MesDemandes --> Fiche : consulter l'annonce liée
+MesDemandes --> [*] : fin de session
+
+Dashboard --> CreerAnnonce : clic "Publier une annonce"
+CreerAnnonce --> Dashboard : annonce publiée
+Dashboard --> GererDemande : sélection d'une demande reçue
+GererDemande --> Dashboard : confirmer / refuser
+Dashboard --> [*] : fin de session
+
+@enduml

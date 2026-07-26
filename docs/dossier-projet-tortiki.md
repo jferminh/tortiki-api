@@ -62,12 +62,12 @@ Cette section liste les 13 compétences du référentiel CDA réparties en 3 blo
 
 ### Bloc 1 — Développer une application sécurisée
 
-| Compétence | Mise en œuvre dans Tortiki |
-|---|---|
-| Installer et configurer son environnement de travail | Setup Java 21/25, Spring Boot 3.5, Docker Compose (PostgreSQL 16, MinIO), profils YAML dev/prod/test |
-| Développer des interfaces utilisateur | Maquettes type wireframes puis templates Thymeleaf/Bootstrap 5 pour les 8 écrans (accueil, fiche annonce, dashboard vendeur…) |
-| Développer des composants métier | Services applicatifs `UserService`, `ListingService`, `SearchListingsService`, `ContactRequestService` en couche `application/service` |
-| Contribuer à la gestion d'un projet informatique | Découpage en Phase 0 + 4 sprints, suivi GitHub Projects/Issues, Gitflow avec Conventional Commits |
+| Compétence                                           | Mise en œuvre dans Tortiki                                                                                                             |
+|------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------|
+| Installer et configurer son environnement de travail | Setup Java 21/25, Spring Boot 3.5, Docker Compose (PostgreSQL 16, MinIO), profils YAML dev/prod/test                                   |
+| Développer des interfaces utilisateur                | Maquettes type wireframes puis templates Thymeleaf/Bootstrap 5 pour les 8 écrans (accueil, fiche annonce, dashboard vendeur…)          |
+| Développer des composants métier                     | Services applicatifs `UserService`, `ListingService`, `SearchListingsService`, `ContactRequestService` en couche `application/service` |
+| Contribuer à la gestion d'un projet informatique     | Découpage en Phase 0 + 4 sprints, suivi GitHub Projects/Issues, Gitflow avec Conventional Commits                                      |
 
 ### Bloc 2 — Concevoir et développer une application sécurisée organisée en couches
 
