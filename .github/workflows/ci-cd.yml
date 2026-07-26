@@ -136,29 +136,25 @@ jobs:
       # Génération rapport Allure HTML (même si tests échouent)
       - name: Génération rapport Allure HTML
         if: always()
-        uses: simple-elf/allure-report-action@v1.13
-        with:
-          allure_results: target/allure-results
-          allure_report: target/allure-report
-          allure_history: allure-history
+        run: ./mvnw -B --no-transfer-progress allure:report
+          
+          # Upload rapport Allure comme artifact téléchargeable
+          - name: Upload rapport Allure
+            if: always()
+            uses: actions/upload-artifact@v4
+            with:
+              name: allure-report
+              path: target/site/allure-maven-plugin/
+              retention-days: 30
 
-      # Upload rapport Allure comme artifact téléchargeable
-      - name: Upload rapport Allure
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: allure-report
-          path: target/allure-report/
-          retention-days: 30
-
-      # Publication Allure sur GitHub Pages (main uniquement)
-      - name: Publication Allure sur GitHub Pages
-        if: always() && github.ref == 'refs/heads/main'
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: gh-pages
-          publish_dir: target/allure-report
+          # Publication Allure sur GitHub Pages (main uniquement)
+          - name: Publication Allure sur GitHub Pages
+            if: always() && github.ref == 'refs/heads/main'
+            uses: peaceiris/actions-gh-pages@v3
+            with:
+              github_token: ${{ secrets.GITHUB_TOKEN }}
+              publish_branch: gh-pages
+              publish_dir: target/site/allure-maven-plugin/
 
       # Upload rapport JaCoCo HTML
       - name: Upload rapport JaCoCo
