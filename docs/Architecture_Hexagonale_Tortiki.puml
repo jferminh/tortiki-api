@@ -1,12 +1,12 @@
-@startuml Architecture_Hexagonale_Tortiki
-'== Mise en page A4 portrait ==
-skinparam pageWidth 210mm
+@startuml Architecture_Globale_Tortiki
+'== Mise en page A4 paysage pour les deux systèmes ==
+skinparam pageWidth 297mm
 skinparam pageMargin 10
 skinparam dpi 150
-scale max 800 width
+scale max 1100 width
 
 skinparam backgroundColor #FFFFFF
-skinparam defaultFontSize 11
+skinparam defaultFontSize 10
 skinparam packageStyle rectangle
 skinparam shadowing false
 
@@ -14,13 +14,13 @@ skinparam component {
   BackgroundColor #EEF6FB
   BorderColor #1B6FA8
   FontColor #1B3A4B
-  FontSize 11
+  FontSize 10
 }
 skinparam package {
   BackgroundColor #FBFBFB
   BorderColor #888888
   FontStyle bold
-  FontSize 12
+  FontSize 11
 }
 skinparam database {
   BackgroundColor #F3E8FD
@@ -30,51 +30,125 @@ skinparam cloud {
   BackgroundColor #FDF3E3
   BorderColor #C77700
 }
+skinparam actor {
+  BackgroundColor #FDEDEC
+  BorderColor #C0392B
+}
 skinparam note {
   BackgroundColor #FFF9E5
   BorderColor #C7A600
-  FontSize 10
+  FontSize 9
 }
 
-title Architecture Hexagonale — com.tortiki.api (vue résumée)
+title Architecture globale Tortiki — interaction tortiki-frontend ↔ tortiki-api
 
-package "adapter.in.web" as IN #FFF3E0 {
-  [Controllers REST\n(Contact, Listing, Buyer...)] as CtrlWeb
+actor "Sofia / Théo\n(navigateur)" as User
+
+'==================== FRONTEND ====================
+package "tortiki-frontend — MVC / SOLID" as FRONT #E8F0FE {
+
+  package "controller" as CTRL #FFF3E0 {
+    [HomeController\nSearchController\nDashboardController\nAdminController...] as Ctrl
+  }
+
+  package "config.security" as SEC #FDEBD0 {
+    [SecurityConfig\n(sessions stateful, CSRF)] as SecCfg
+    [ApiDelegatingAuthenticationProvider] as AuthProvider
+  }
+
+  package "client" as CLIENT #EEF6FB {
+    [AuthApiClient\nListingApiClient\nSearchApiClient\nContactApiClient\nAdminApiClient...] as FeignClients
+  }
+
+  package "config" as CFG #FDEBD0 {
+    [FeignConfig\n(intercepteur cookie API)] as FeignCfg
+  }
+
+  [templates Thymeleaf\n(vues SSR Bootstrap 5)] as Views
+
+  Ctrl --> FeignClients : appelle
+  Ctrl --> Views : résout
+  SecCfg --> AuthProvider : délègue authenticate()
+  AuthProvider --> FeignClients : AuthApiClient.login()
+  FeignCfg ..> FeignClients : intercepte\ntoute requête sortante
 }
 
-package "application" as APP #EEF6FB {
-  [port.in\n(UseCases)] as PortIn
-  [service\n(ContactRequestService,\nListingService...)] as Svc
-  [port.out\n(Repository, Storage,\nGeolocation)] as PortOut
+'==================== BACKEND ====================
+package "tortiki-api — Architecture Hexagonale" as API #E8F5E9 {
+
+  package "adapter.in.web" as IN #FFF3E0 {
+    [Controllers REST\n(Auth, Contact, Listing...)] as CtrlWeb
+  }
+
+  package "application" as APP #EEF6FB {
+    [port.in\n(UseCases)] as PortIn
+    [service\n(AuthService,\nContactRequestService...)] as Svc
+    [port.out\n(Repository, Storage,\nGeolocation)] as PortOut
+  }
+
+  package "domain" as DOM #E8F5E9 {
+    [model\n(User, Listing,\nContactRequest...)] as Model
+    [exception\n(métier)] as Exc
+  }
+
+  package "adapter.out" as OUT #FFF3E0 {
+    [persistence\n(JPA Adapters)] as Persist
+    [storage / geolocation\n(MinIO, Nominatim)] as ExtAdapt
+  }
+
+  database "PostgreSQL 16" as PG
+  cloud "MinIO / Nominatim" as EXT
+
+  CtrlWeb --> PortIn
+  PortIn <|.. Svc
+  Svc --> PortOut
+  Svc --> Model
+  Svc --> Exc
+  PortOut <|.. Persist
+  PortOut <|.. ExtAdapt
+  Persist --> PG
+  ExtAdapt --> EXT
 }
 
-package "domain" as DOM #E8F5E9 {
-  [model\n(User, Listing,\nContactRequest...)] as Model
-  [exception\n(métier)] as Exc
-}
+'==================== INTERACTIONS ====================
+User --> Ctrl : requête HTTP\n(GET/POST, cookie JSESSIONID frontend)
+FeignClients --> CtrlWeb : appel REST HTTP\n(Cookie: JSESSIONID api)
 
-package "adapter.out" as OUT #FFF3E0 {
-  [persistence\n(JPA Adapters)] as Persist
-  [storage / geolocation\n(MinIO, Nominatim)] as ExtAdapt
-}
+note right of AuthProvider
+  Bridge d'authentification (Issue 58) :
+  1. Sofia soumet le formulaire login
+  2. ApiDelegatingAuthenticationProvider
+     appelle AuthApiClient.login()
+  3. Récupère le Set-Cookie JSESSIONID
+     de tortiki-api dans la réponse
+  4. Stocke ce cookie en session
+     HTTP frontend (jamais exposé
+     au navigateur)
+end note
 
-database "PostgreSQL 16" as PG
-cloud "MinIO / Nominatim" as EXT
-
-CtrlWeb --> PortIn
-PortIn <|.. Svc
-Svc --> PortOut
-Svc --> Model
-Svc --> Exc
-PortOut <|.. Persist
-PortOut <|.. ExtAdapt
-Persist --> PG
-ExtAdapt --> EXT
+note right of FeignCfg
+  À chaque appel Feign sortant,
+  FeignConfig relit le cookie API
+  stocké en session et l'injecte
+  dans l'en-tête Cookie de la
+  requête HTTP vers tortiki-api.
+  Masquage RGPD de la valeur
+  dans les logs.
+end note
 
 note bottom of DOM
-  Règle : le domaine ne dépend
-  jamais de Spring/JPA/Lombok.
+  Règle hexagonale : le domaine ne
+  dépend jamais de Spring/JPA/Lombok.
   Dépendances → toujours vers l'intérieur.
+end note
+
+note bottom of Ctrl
+  Règle MVC/SOLID : le contrôleur ne
+  dépend que d'interfaces Feign (DIP),
+  jamais d'une implémentation HTTP
+  concrète. Retourne une vue Thymeleaf,
+  jamais du JSON (contrairement à
+  adapter.in.web côté API).
 end note
 
 @enduml
