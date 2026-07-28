@@ -12,13 +12,9 @@ name: CI/CD — Tortiki API
 
 on:
   push:
-    branches:
-      - main
-      - develop
+    branches: [ main, develop ]
   pull_request:
-    branches:
-      - main
-      - develop
+    branches: [ main, develop ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -166,7 +162,6 @@ jobs:
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.java.source=21 \
             -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
-            -Dsonar.branch.name=main
 
       - name: Upload artefact JAR
         if: github.ref == 'refs/heads/main'
