@@ -1,0 +1,81 @@
+@startuml Slide2_Backend_Tortiki
+skinparam pageWidth 340mm
+skinparam pageMargin 5
+skinparam dpi 150
+scale max 1280 width
+
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 16
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+skinparam component {
+  BackgroundColor #EEF6FB
+  BorderColor #1B6FA8
+  FontColor #1B3A4B
+  FontSize 16
+}
+skinparam package {
+  BackgroundColor #FBFBFB
+  BorderColor #888888
+  FontStyle bold
+  FontSize 18
+}
+skinparam database {
+  BackgroundColor #F3E8FD
+  BorderColor #7B3FA0
+  FontSize 16
+}
+skinparam cloud {
+  BackgroundColor #FDF3E3
+  BorderColor #C77700
+  FontSize 16
+}
+skinparam note {
+  BackgroundColor #FFF9E5
+  BorderColor #C7A600
+  FontSize 14
+}
+
+title tortiki-api — Architecture Hexagonale (2/3)
+
+package "adapter.in.web" as IN #FFF3E0 {
+  [Controllers REST] as CtrlWeb
+}
+
+package "application" as APP #EEF6FB {
+  [port.in] as PortIn
+  [service] as Svc
+  [port.out] as PortOut
+}
+
+package "domain" as DOM #E8F5E9 {
+  [model] as Model
+  [exception] as Exc
+}
+
+package "adapter.out" as OUT #FFF3E0 {
+  [persistence] as Persist
+  [storage / geolocation] as ExtAdapt
+}
+
+database "PostgreSQL 16" as PG
+cloud "MinIO / Nominatim" as EXT
+
+CtrlWeb --> PortIn
+PortIn <|.. Svc
+Svc --> PortOut
+Svc --> Model
+Svc --> Exc
+PortOut <|.. Persist
+PortOut <|.. ExtAdapt
+Persist --> PG
+ExtAdapt --> EXT
+
+note bottom of DOM
+  Le domaine ne dépend jamais
+  de Spring/JPA/Lombok.
+  Dépendances → vers l'intérieur.
+end note
+
+@enduml
