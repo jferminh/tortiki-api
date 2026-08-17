@@ -31,7 +31,7 @@ Content-Type: application/json
   "cuisineTypeId": 1,
   "allergenIds": [],
   "pickupAddress": "2 Allée Lys Rouge, 54000 Nancy",
-  "pickupDatetime": "2026-06-28T12:00:00"
+  "pickupDatetime": "2026-08-28T12:00:00"
 }
 
 > {%
