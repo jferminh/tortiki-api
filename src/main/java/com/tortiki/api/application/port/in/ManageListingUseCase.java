@@ -31,6 +31,8 @@ public interface ManageListingUseCase {
    *         si le vendeur est introuvable
    * @throws com.tortiki.api.domain.exception.CuisineTypeNotFoundException
    *         si l'origine culinaire est introuvable
+   * @throws com.tortiki.api.domain.exception.AddressNotGeocodableException
+   *         si l'adresse de retrait ne peut pas être géolocalisée
    */
   Listing create(Long sellerId, ManageListingUseCase.Command command);
 
@@ -47,6 +49,8 @@ public interface ManageListingUseCase {
    *         si l'annonce est introuvable
    * @throws com.tortiki.api.domain.exception.UnauthorizedActionException
    *         si le vendeur n'est pas propriétaire de l'annonce
+   * @throws com.tortiki.api.domain.exception.AddressNotGeocodableException
+   *         si la nouvelle adresse de retrait ne peut pas être géolocalisée
    */
   Listing update(Long listingId, Long sellerId, ManageListingUseCase.Command command);
 
