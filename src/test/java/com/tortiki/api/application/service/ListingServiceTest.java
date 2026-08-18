@@ -15,7 +15,11 @@ import com.tortiki.api.application.port.out.GeolocationPort;
 import com.tortiki.api.application.port.out.ListingRepository;
 import com.tortiki.api.application.port.out.StoragePort;
 import com.tortiki.api.application.port.out.UserRepository;
-import com.tortiki.api.domain.exception.*;
+import com.tortiki.api.domain.exception.AddressNotGeocodableException;
+import com.tortiki.api.domain.exception.CuisineTypeNotFoundException;
+import com.tortiki.api.domain.exception.ListingNotFoundException;
+import com.tortiki.api.domain.exception.UnauthorizedActionException;
+import com.tortiki.api.domain.exception.UserNotFoundException;
 import com.tortiki.api.domain.model.CuisineType;
 import com.tortiki.api.domain.model.Listing;
 import com.tortiki.api.domain.model.ListingStatus;
@@ -148,24 +152,6 @@ class ListingServiceTest {
             .hasMessageContaining(command.pickupAddress());
 
     verify(listingRepository, never()).save(any(Listing.class));
-  }
-
-  @Test
-  @Story("Création d'une annonce")
-  @Severity(SeverityLevel.NORMAL)
-  @Description("Nominatim indisponible — annonce créée sans coordonnées, pas d'exception.")
-  @DisplayName("create — crée l'annonce sans coordonnées si Nominatim échoue")
-  void create_shouldSaveListing_whenGeolocationReturnsEmpty() {
-    when(userRepository.findById(1L)).thenReturn(Optional.of(sofia));
-    when(cuisineTypeRepository.findById(10L)).thenReturn(Optional.of(ukrainienne));
-    when(allergenRepository.findAllByIdIn(List.of())).thenReturn(List.of());
-    when(geolocationPort.geocode(anyString())).thenReturn(Optional.empty());
-    when(listingRepository.save(any(Listing.class))).thenReturn(listing);
-
-    Listing result = listingService.create(1L, command);
-
-    assertThat(result).isNotNull();
-    verify(listingRepository).save(any(Listing.class));
   }
 
   @Test
