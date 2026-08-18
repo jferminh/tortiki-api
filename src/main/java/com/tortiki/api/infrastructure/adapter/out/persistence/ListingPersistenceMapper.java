@@ -42,6 +42,7 @@ public class ListingPersistenceMapper {
     entity.setPortions(listing.getPortions());
     entity.setPhotoUrl(listing.getPhotoUrl());
     entity.setPickupAddress(listing.getPickupAddress());
+    entity.setCity(listing.getCity());
     entity.setPickupLat(listing.getPickupLat());
     entity.setPickupLng(listing.getPickupLng());
     entity.setPickupDatetime(listing.getPickupDatetime());
@@ -63,14 +64,14 @@ public class ListingPersistenceMapper {
 
     if (listing.getAllergens() != null) {
       List<AllergenJpaEntity> allergenEntities = listing.getAllergens()
-          .stream()
-          .map(allergen -> {
-            AllergenJpaEntity ae = new AllergenJpaEntity();
-            ae.setId(allergen.getId());
-            ae.setName(allergen.getName());
-            return ae;
-          })
-          .toList();
+              .stream()
+              .map(allergen -> {
+                AllergenJpaEntity ae = new AllergenJpaEntity();
+                ae.setId(allergen.getId());
+                ae.setName(allergen.getName());
+                return ae;
+              })
+              .toList();
       entity.setAllergens(allergenEntities);
     }
 
@@ -97,6 +98,7 @@ public class ListingPersistenceMapper {
     listing.setPortions(entity.getPortions());
     listing.setPhotoUrl(entity.getPhotoUrl());
     listing.setPickupAddress(entity.getPickupAddress());
+    listing.setCity(entity.getCity());
     listing.setPickupLat(entity.getPickupLat());
     listing.setPickupLng(entity.getPickupLng());
     listing.setPickupDatetime(entity.getPickupDatetime());
@@ -122,14 +124,14 @@ public class ListingPersistenceMapper {
 
     if (entity.getAllergens() != null) {
       List<Allergen> allergens = entity.getAllergens()
-          .stream()
-          .map(ae -> {
-            Allergen allergen = new Allergen();
-            allergen.setId(ae.getId());
-            allergen.setName(ae.getName());
-            return allergen;
-          })
-          .toList();
+              .stream()
+              .map(ae -> {
+                Allergen allergen = new Allergen();
+                allergen.setId(ae.getId());
+                allergen.setName(ae.getName());
+                return allergen;
+              })
+              .toList();
       listing.setAllergens(allergens);
     } else {
       listing.setAllergens(new ArrayList<>());
