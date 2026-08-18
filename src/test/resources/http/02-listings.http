@@ -105,7 +105,7 @@ GET {{baseUrl}}/api/v1/listings/search?city=Nancy&page=0&size=10
 ###
 
 ### [6] Détail annonce par ID — public
-GET {{baseUrl}}/api/v1/listings/{{listingId}}
+GET {{baseUrl}}/api/v1/listings/7
 
 > {%
     client.test("Détail annonce → 200 OK", function() {
@@ -184,7 +184,7 @@ Content-Type: application/json
 
 ### [12] Sofia modifie son annonce avec une NOUVELLE VILLE (Nancy → Strasbourg)
 ### Vérifie le re-géocodage sur update() : city doit changer, pas seulement lat/lng.
-PUT {{baseUrl}}/api/v1/listings/{{listingId}}
+PUT {{baseUrl}}/api/v1/listings/7
 Content-Type: application/json
 
 {
@@ -243,7 +243,7 @@ GET {{baseUrl}}/api/v1/seller-listings
 ###
 
 ### [15] Sofia désactive son annonce → 204 No Content
-DELETE {{baseUrl}}/api/v1/listings/{{listingId}}
+DELETE {{baseUrl}}/api/v1/listings/7
 
 > {%
     client.test("Désactiver annonce → 204 No Content", function() {
