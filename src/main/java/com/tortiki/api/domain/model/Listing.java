@@ -56,6 +56,17 @@ public class Listing {
   /** Adresse de retrait saisie par le vendeur. */
   private String pickupAddress;
 
+  /**
+   * Ville de retrait, résolue depuis {@code pickupAddress} par géocodage.
+   *
+   * <p>Alimente la recherche par ville ({@code findDistinctActiveCities})
+   * et l'autocomplétion associée côté frontend (issue #147). Jamais saisie
+   * directement par le vendeur — toujours dérivée de l'adresse complète via
+   * {@code GeolocationPort#geocodeAddress}, jamais {@code null} en base
+   * (contrainte {@code NOT NULL} sur {@code listings.city}).</p>
+   */
+  private String city;
+
   /** Latitude géocodée via Nominatim. */
   private Double pickupLat;
 
@@ -103,9 +114,10 @@ public class Listing {
   @Override
   public String toString() {
     return "Listing{id=" + id
-        + ", title='" + title + "'"
-        + ", status=" + status
-        + ", seller=" + (seller != null ? seller.getEmail() : "null")
-        + "}";
+            + ", title='" + title + "'"
+            + ", city='" + city + "'"
+            + ", status=" + status
+            + ", seller=" + (seller != null ? seller.getEmail() : "null")
+            + "}";
   }
 }
