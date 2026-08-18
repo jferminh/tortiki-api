@@ -1,6 +1,21 @@
 package com.tortiki.api.infrastructure.adapter.in.web;
 
-import com.tortiki.api.domain.exception.*;
+import com.tortiki.api.domain.exception.AddressNotGeocodableException;
+import com.tortiki.api.domain.exception.AllergenNotFoundException;
+import com.tortiki.api.domain.exception.ContactRequestAlreadyExistsException;
+import com.tortiki.api.domain.exception.ContactRequestNotFoundException;
+import com.tortiki.api.domain.exception.CuisineTypeInUseException;
+import com.tortiki.api.domain.exception.CuisineTypeNotFoundException;
+import com.tortiki.api.domain.exception.InvalidStatusTransitionException;
+import com.tortiki.api.domain.exception.ListingNotFoundException;
+import com.tortiki.api.domain.exception.ReviewAlreadyExistsException;
+import com.tortiki.api.domain.exception.ReviewNotAllowedException;
+import com.tortiki.api.domain.exception.RoleNotFoundException;
+import com.tortiki.api.domain.exception.SelfContactException;
+import com.tortiki.api.domain.exception.StorageException;
+import com.tortiki.api.domain.exception.UnauthorizedActionException;
+import com.tortiki.api.domain.exception.UserAlreadyExistsException;
+import com.tortiki.api.domain.exception.UserNotFoundException;
 import com.tortiki.api.infrastructure.adapter.in.web.dto.ErrorResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
