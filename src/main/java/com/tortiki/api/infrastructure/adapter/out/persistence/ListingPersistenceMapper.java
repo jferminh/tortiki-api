@@ -6,6 +6,7 @@ import com.tortiki.api.domain.model.Listing;
 import com.tortiki.api.domain.model.User;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /**
@@ -17,11 +18,30 @@ import org.springframework.stereotype.Component;
  * Toutes les conversions sont manuelles — pas de MapStruct en v1
  * pour garder la lisibilité maximale au dossier CDA.</p>
  *
+ * <p>Délègue la conversion des associations {@code cuisineType} et
+ * {@code allergens} en lecture ({@link #toDomain}) à
+ * {@link CuisineTypePersistenceMapper} et {@link AllergenPersistenceMapper}
+ * respectivement, pour éviter de dupliquer une logique déjà correcte et
+ * complète ailleurs dans le projet. En écriture ({@link #toEntity}), ces
+ * associations restent des références minimales ne portant que
+ * l'identifiant technique : JPA n'a besoin que de la clé étrangère pour
+ * persister la relation, jamais des autres colonnes de l'entité liée.</p>
+ *
+ * <p>Le vendeur ({@code seller}) fait exception à cette délégation : sa
+ * conversion reste volontairement partielle et locale à cette classe
+ * (email, prénom, nom uniquement), afin de ne jamais charger le hash de
+ * mot de passe ni les rôles dans l'objet {@link User} imbriqué dans une
+ * annonce — principe de minimisation des données RGPD.</p>
+ *
  * <p>Appartient exclusivement à la couche
  * {@code infrastructure/adapter/out/persistence/}.</p>
  */
 @Component
+@RequiredArgsConstructor
 public class ListingPersistenceMapper {
+
+  private final CuisineTypePersistenceMapper cuisineTypeMapper;
+  private final AllergenPersistenceMapper allergenMapper;
 
   /**
    * Convertit un POJO domaine {@link Listing} en entité JPA.
@@ -49,32 +69,9 @@ public class ListingPersistenceMapper {
     entity.setStatus(listing.getStatus());
     entity.setCreatedAt(listing.getCreatedAt());
     entity.setUpdatedAt(listing.getUpdatedAt());
-
-    if (listing.getSeller() != null) {
-      UserJpaEntity sellerEntity = new UserJpaEntity();
-      sellerEntity.setId(listing.getSeller().getId());
-      entity.setSeller(sellerEntity);
-    }
-
-    if (listing.getCuisineType() != null) {
-      CuisineTypeJpaEntity ctEntity = new CuisineTypeJpaEntity();
-      ctEntity.setId(listing.getCuisineType().getId());
-      entity.setCuisineType(ctEntity);
-    }
-
-    if (listing.getAllergens() != null) {
-      List<AllergenJpaEntity> allergenEntities = listing.getAllergens()
-              .stream()
-              .map(allergen -> {
-                AllergenJpaEntity ae = new AllergenJpaEntity();
-                ae.setId(allergen.getId());
-                ae.setName(allergen.getName());
-                return ae;
-              })
-              .toList();
-      entity.setAllergens(allergenEntities);
-    }
-
+    entity.setSeller(mapSellerReference(listing.getSeller()));
+    entity.setCuisineType(mapCuisineTypeReference(listing.getCuisineType()));
+    entity.setAllergens(mapAllergenReferences(listing.getAllergens()));
     return entity;
   }
 
@@ -105,32 +102,15 @@ public class ListingPersistenceMapper {
     listing.setStatus(entity.getStatus());
     listing.setCreatedAt(entity.getCreatedAt());
     listing.setUpdatedAt(entity.getUpdatedAt());
-
-    if (entity.getSeller() != null) {
-      User seller = new User();
-      seller.setId(entity.getSeller().getId());
-      seller.setEmail(entity.getSeller().getEmail());
-      seller.setFirstName(entity.getSeller().getFirstName());
-      seller.setLastName(entity.getSeller().getLastName());
-      listing.setSeller(seller);
-    }
+    listing.setSeller(mapSellerSummary(entity.getSeller()));
 
     if (entity.getCuisineType() != null) {
-      CuisineType ct = new CuisineType();
-      ct.setId(entity.getCuisineType().getId());
-      ct.setName(entity.getCuisineType().getName());
-      listing.setCuisineType(ct);
+      listing.setCuisineType(cuisineTypeMapper.toDomain(entity.getCuisineType()));
     }
 
     if (entity.getAllergens() != null) {
-      List<Allergen> allergens = entity.getAllergens()
-              .stream()
-              .map(ae -> {
-                Allergen allergen = new Allergen();
-                allergen.setId(ae.getId());
-                allergen.setName(ae.getName());
-                return allergen;
-              })
+      List<Allergen> allergens = entity.getAllergens().stream()
+              .map(allergenMapper::toDomain)
               .toList();
       listing.setAllergens(allergens);
     } else {
@@ -138,5 +118,85 @@ public class ListingPersistenceMapper {
     }
 
     return listing;
+  }
+
+  /**
+   * Construit une référence JPA minimale vers le vendeur, portant
+   * uniquement son identifiant technique.
+   *
+   * <p>Seul l'identifiant est nécessaire pour qu'Hibernate persiste
+   * la clé étrangère {@code seller_id} — aucune autre colonne de
+   * {@link UserJpaEntity} n'est concernée par cette écriture.</p>
+   *
+   * @param seller vendeur du domaine, peut être {@code null}
+   * @return référence JPA minimale, ou {@code null} si {@code seller} l'est
+   */
+  private UserJpaEntity mapSellerReference(User seller) {
+    if (seller == null) {
+      return null;
+    }
+    UserJpaEntity entity = new UserJpaEntity();
+    entity.setId(seller.getId());
+    return entity;
+  }
+
+  /**
+   * Construit une référence JPA minimale vers l'origine culinaire, portant
+   * uniquement son identifiant technique.
+   *
+   * @param cuisineType origine culinaire du domaine, peut être {@code null}
+   * @return référence JPA minimale, ou {@code null} si {@code cuisineType} l'est
+   */
+  private CuisineTypeJpaEntity mapCuisineTypeReference(CuisineType cuisineType) {
+    if (cuisineType == null) {
+      return null;
+    }
+    CuisineTypeJpaEntity entity = new CuisineTypeJpaEntity();
+    entity.setId(cuisineType.getId());
+    return entity;
+  }
+
+  /**
+   * Construit la liste des références JPA minimales vers les allergènes,
+   * portant uniquement leur identifiant technique.
+   *
+   * <p>Seul l'identifiant est nécessaire pour qu'Hibernate persiste
+   * les lignes de la table de jointure {@code listing_allergens}.</p>
+   *
+   * @param allergens allergènes du domaine, jamais {@code null} par contrat
+   *     de {@link Listing#setAllergens}
+   * @return liste de références JPA minimales, jamais {@code null}
+   */
+  private List<AllergenJpaEntity> mapAllergenReferences(List<Allergen> allergens) {
+    return allergens.stream()
+            .map(allergen -> {
+              AllergenJpaEntity entity = new AllergenJpaEntity();
+              entity.setId(allergen.getId());
+              return entity;
+            })
+            .toList();
+  }
+
+  /**
+   * Convertit l'entité JPA du vendeur en résumé domaine minimal.
+   *
+   * <p>Ne copie volontairement ni {@code passwordHash}, ni {@code roles},
+   * ni {@code enabled}, ni les horodatages — principe de minimisation
+   * des données RGPD : une annonce n'a besoin que de l'identité publique
+   * de son vendeur, jamais de ses informations d'authentification.</p>
+   *
+   * @param entity entité JPA du vendeur, peut être {@code null}
+   * @return résumé domaine minimal, ou {@code null} si {@code entity} l'est
+   */
+  private User mapSellerSummary(UserJpaEntity entity) {
+    if (entity == null) {
+      return null;
+    }
+    User seller = new User();
+    seller.setId(entity.getId());
+    seller.setEmail(entity.getEmail());
+    seller.setFirstName(entity.getFirstName());
+    seller.setLastName(entity.getLastName());
+    return seller;
   }
 }
