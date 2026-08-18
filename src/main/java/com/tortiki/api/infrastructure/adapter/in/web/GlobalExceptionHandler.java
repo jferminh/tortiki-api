@@ -1,20 +1,6 @@
 package com.tortiki.api.infrastructure.adapter.in.web;
 
-import com.tortiki.api.domain.exception.AllergenNotFoundException;
-import com.tortiki.api.domain.exception.ContactRequestAlreadyExistsException;
-import com.tortiki.api.domain.exception.ContactRequestNotFoundException;
-import com.tortiki.api.domain.exception.CuisineTypeInUseException;
-import com.tortiki.api.domain.exception.CuisineTypeNotFoundException;
-import com.tortiki.api.domain.exception.InvalidStatusTransitionException;
-import com.tortiki.api.domain.exception.ListingNotFoundException;
-import com.tortiki.api.domain.exception.ReviewAlreadyExistsException;
-import com.tortiki.api.domain.exception.ReviewNotAllowedException;
-import com.tortiki.api.domain.exception.RoleNotFoundException;
-import com.tortiki.api.domain.exception.SelfContactException;
-import com.tortiki.api.domain.exception.StorageException;
-import com.tortiki.api.domain.exception.UnauthorizedActionException;
-import com.tortiki.api.domain.exception.UserAlreadyExistsException;
-import com.tortiki.api.domain.exception.UserNotFoundException;
+import com.tortiki.api.domain.exception.*;
 import com.tortiki.api.infrastructure.adapter.in.web.dto.ErrorResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -174,6 +160,26 @@ public class GlobalExceptionHandler {
     return ResponseEntity
         .status(HttpStatus.NOT_FOUND)
         .body(ErrorResponse.of(404, NOT_FOUND, ex.getMessage()));
+  }
+
+  /**
+   * Gère les adresses de retrait qui ne peuvent pas être géolocalisées.
+   *
+   * <p>Levée par {@code ListingService} lorsque {@code GeolocationPort}
+   * ne parvient pas à résoudre de ville pour l'adresse fournie — la
+   * colonne {@code listings.city} porte une contrainte {@code NOT NULL}
+   * et ne peut donc pas rester vide en base.</p>
+   *
+   * @param ex exception levée par {@code ListingService.create} ou {@code update}
+   * @return réponse HTTP 422 Unprocessable Entity
+   */
+  @ExceptionHandler(AddressNotGeocodableException.class)
+  public ResponseEntity<ErrorResponse> handleAddressNotGeocodable(
+          final AddressNotGeocodableException ex) {
+    log.warn("Adresse non géolocalisable : {}", ex.getMessage());
+    return ResponseEntity
+            .status(HttpStatus.UNPROCESSABLE_ENTITY)
+            .body(ErrorResponse.of(422, UNPROCESSABLE, ex.getMessage()));
   }
 
   // ═══════════════════════════════════════════════════════
