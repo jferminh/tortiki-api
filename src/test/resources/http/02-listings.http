@@ -1,6 +1,7 @@
 ### =============================================================
-### TORTIKI — Listings (Sprint 1)
+### TORTIKI — Listings (Sprint 1 + fix géolocalisation ville)
 ### POST   /api/v1/listings         → 201 (ROLE_SELLER)
+### GET    /api/v1/listings/cities  → 200 (public) — preuve indirecte du fix city
 ### GET    /api/v1/listings/search  → 200 (public)
 ### GET    /api/v1/listings/{id}    → 200 (public)
 ### PUT    /api/v1/listings/{id}    → 200 (ROLE_SELLER)
@@ -19,7 +20,7 @@ Content-Type: application/json
 
 ###
 
-### [2] Sofia crée une annonce — Bortsch (201 Created)
+### [2] Sofia crée une annonce à Nancy — reproduit l'adresse exacte du bug NOT NULL sur listings.city
 POST {{baseUrl}}/api/v1/listings
 Content-Type: application/json
 
@@ -31,7 +32,7 @@ Content-Type: application/json
   "cuisineTypeId": 1,
   "allergenIds": [],
   "pickupAddress": "2 Allée Lys Rouge, 54000 Nancy",
-  "pickupDatetime": "2026-06-28T12:00:00"
+  "pickupDatetime": "2027-03-15T12:00:00"
 }
 
 > {%
@@ -45,7 +46,54 @@ Content-Type: application/json
 
 ###
 
-### [3] Recherche publique — sans auth (200 OK)
+### [3] Preuve indirecte du fix : la ville "Nancy" a bien été résolue et persistée
+### ListingResponse n'expose pas city — on vérifie via l'autocomplétion,
+### qui interroge directement la colonne SQL listings.city.
+GET {{baseUrl}}/api/v1/listings/cities
+
+> {%
+    client.test("Autocomplétion → 200 OK", function() {
+        client.assert(response.status === 200, "Expected 200, got " + response.status);
+    });
+    client.test("Ville 'Nancy' présente après création — city correctement géocodée", function() {
+        const cities = response.body;
+        client.assert(cities.includes("Nancy"),
+            "Nancy doit apparaître dans les villes actives, reçu : " + JSON.stringify(cities));
+    });
+%}
+
+###
+
+### [4] Sofia tente de créer une annonce avec une adresse non géolocalisable → 422
+### Vérifie AddressNotGeocodableException + le handler GlobalExceptionHandler ajoutés pour ce fix.
+POST {{baseUrl}}/api/v1/listings
+Content-Type: application/json
+
+{
+  "title": "Test adresse invalide",
+  "description": "Vérification du handler AddressNotGeocodableException",
+  "price": 5.00,
+  "portions": 2,
+  "cuisineTypeId": 1,
+  "allergenIds": [],
+  "pickupAddress": "xzqwvt99 inexistant rue impossible, 00000",
+  "pickupDatetime": "2027-03-15T12:00:00"
+}
+
+> {%
+    client.test("Adresse non géolocalisable → 422 Unprocessable Entity", function() {
+        client.assert(response.status === 422, "Expected 422, got " + response.status);
+    });
+    client.test("Le message d'erreur mentionne la géolocalisation", function() {
+        const raw = JSON.stringify(response.body);
+        client.assert(raw.toLowerCase().includes("g\u00e9olocalisable") || raw.toLowerCase().includes("geolocalisable"),
+            "Le corps de réponse devrait mentionner l'échec de géolocalisation, reçu : " + raw);
+    });
+%}
+
+###
+
+### [5] Recherche publique — sans auth (200 OK)
 GET {{baseUrl}}/api/v1/listings/search?city=Nancy&page=0&size=10
 
 > {%
@@ -56,8 +104,8 @@ GET {{baseUrl}}/api/v1/listings/search?city=Nancy&page=0&size=10
 
 ###
 
-### [4] Détail annonce par ID — public
-GET {{baseUrl}}/api/v1/listings/{{listingId}}
+### [6] Détail annonce par ID — public
+GET {{baseUrl}}/api/v1/listings/7
 
 > {%
     client.test("Détail annonce → 200 OK", function() {
@@ -67,7 +115,7 @@ GET {{baseUrl}}/api/v1/listings/{{listingId}}
 
 ###
 
-### [5] Annonce inexistante → 404
+### [7] Annonce inexistante → 404
 GET {{baseUrl}}/api/v1/listings/999999
 
 > {%
@@ -78,7 +126,7 @@ GET {{baseUrl}}/api/v1/listings/999999
 
 ###
 
-### [6] Login Théo — BUYER
+### [8] Login Théo — BUYER
 POST {{baseUrl}}/api/v1/auth/login
 Content-Type: application/json
 
@@ -89,7 +137,7 @@ Content-Type: application/json
 
 ###
 
-### [7] BUYER tente de créer une annonce → 403
+### [9] BUYER tente de créer une annonce → 403
 POST {{baseUrl}}/api/v1/listings
 Content-Type: application/json
 
@@ -101,7 +149,7 @@ Content-Type: application/json
   "cuisineTypeId": 1,
   "allergenIds": [],
   "pickupAddress": "2 Allée Lys Rouge, 54000 Nancy",
-  "pickupDatetime": "2026-06-28T12:00:00"
+  "pickupDatetime": "2027-03-15T12:00:00"
 }
 
 > {%
@@ -112,7 +160,7 @@ Content-Type: application/json
 
 ###
 
-### [8] BUYER tente d'accéder au dashboard vendeur → 403
+### [10] BUYER tente d'accéder au dashboard vendeur → 403
 GET {{baseUrl}}/api/v1/seller-listings
 
 > {%
@@ -123,7 +171,7 @@ GET {{baseUrl}}/api/v1/seller-listings
 
 ###
 
-### [9] Login Sofia
+### [11] Login Sofia
 POST {{baseUrl}}/api/v1/auth/login
 Content-Type: application/json
 
@@ -134,8 +182,9 @@ Content-Type: application/json
 
 ###
 
-### [10] Sofia modifie son annonce → 200 OK
-PUT {{baseUrl}}/api/v1/listings/{{listingId}}
+### [12] Sofia modifie son annonce avec une NOUVELLE VILLE (Nancy → Strasbourg)
+### Vérifie le re-géocodage sur update() : city doit changer, pas seulement lat/lng.
+PUT {{baseUrl}}/api/v1/listings/7
 Content-Type: application/json
 
 {
@@ -145,12 +194,12 @@ Content-Type: application/json
   "portions": 4,
   "cuisineTypeId": 1,
   "allergenIds": [],
-  "pickupAddress": "2 Allée Lys Rouge, 54000 Nancy",
-  "pickupDatetime": "2026-07-15T12:00:00"
+  "pickupAddress": "1 place Kléber, 67000 Strasbourg",
+  "pickupDatetime": "2027-04-20T12:00:00"
 }
 
 > {%
-    client.test("Modifier annonce → 200 OK", function() {
+    client.test("Modifier annonce avec nouvelle adresse → 200 OK", function() {
         client.assert(response.status === 200, "Expected 200, got " + response.status);
         const body = response.body;
         client.assert(body["price"] === 9.50, "Prix attendu : 9.50");
@@ -159,7 +208,25 @@ Content-Type: application/json
 
 ###
 
-### [11] Sofia consulte son dashboard — l'annonce ACTIVE apparaît (200 OK)
+### [13] La ville a bien changé après modification (re-géocodage confirmé)
+GET {{baseUrl}}/api/v1/listings/cities
+
+> {%
+    client.test("Autocomplétion → 200 OK", function() {
+        client.assert(response.status === 200, "Expected 200, got " + response.status);
+    });
+    client.test("'Strasbourg' présente, 'Nancy' disparue — re-géocodage effectif sur update", function() {
+        const cities = response.body;
+        client.assert(cities.includes("Strasbourg"),
+            "Strasbourg doit apparaître après modification, reçu : " + JSON.stringify(cities));
+        client.assert(!cities.includes("Nancy"),
+            "Nancy ne doit plus apparaître, l'annonce a changé de ville, reçu : " + JSON.stringify(cities));
+    });
+%}
+
+###
+
+### [14] Sofia consulte son dashboard — l'annonce ACTIVE apparaît (200 OK)
 GET {{baseUrl}}/api/v1/seller-listings
 
 > {%
@@ -175,8 +242,8 @@ GET {{baseUrl}}/api/v1/seller-listings
 
 ###
 
-### [12] Sofia désactive son annonce → 204 No Content
-DELETE {{baseUrl}}/api/v1/listings/{{listingId}}
+### [15] Sofia désactive son annonce → 204 No Content
+DELETE {{baseUrl}}/api/v1/listings/7
 
 > {%
     client.test("Désactiver annonce → 204 No Content", function() {
@@ -186,8 +253,8 @@ DELETE {{baseUrl}}/api/v1/listings/{{listingId}}
 
 ###
 
-### [13] Annonce désactivée disparaît de la recherche publique
-GET {{baseUrl}}/api/v1/listings/search?city=Nancy&page=0&size=10
+### [16] Annonce désactivée disparaît de la recherche publique
+GET {{baseUrl}}/api/v1/listings/search?city=Strasbourg&page=0&size=10
 
 > {%
     client.test("Annonce INACTIVE absente de la recherche publique", function() {
@@ -200,7 +267,25 @@ GET {{baseUrl}}/api/v1/listings/search?city=Nancy&page=0&size=10
 
 ###
 
-### [14] Sofia consulte son dashboard — l'annonce INACTIVE reste visible (200 OK)
+### [17] 'Strasbourg' disparaît de l'autocomplétion après désactivation
+### findDistinctActiveCities() filtre sur ListingStatus.ACTIVE — vérifie que
+### le filtre de statut s'applique correctement même sur la colonne city.
+GET {{baseUrl}}/api/v1/listings/cities
+
+> {%
+    client.test("Autocomplétion → 200 OK", function() {
+        client.assert(response.status === 200, "Expected 200, got " + response.status);
+    });
+    client.test("'Strasbourg' absente — plus aucune annonce ACTIVE dans cette ville", function() {
+        const cities = response.body;
+        client.assert(!cities.includes("Strasbourg"),
+            "Strasbourg ne doit plus apparaître après désactivation, reçu : " + JSON.stringify(cities));
+    });
+%}
+
+###
+
+### [18] Sofia consulte son dashboard — l'annonce INACTIVE reste visible (200 OK)
 GET {{baseUrl}}/api/v1/seller-listings
 
 > {%
@@ -217,7 +302,7 @@ GET {{baseUrl}}/api/v1/seller-listings
 
 ###
 
-### [15] Login second vendeur — Nadia (test IDOR)
+### [19] Login second vendeur — Nadia (test IDOR)
 POST {{baseUrl}}/api/v1/auth/login
 Content-Type: application/json
 
@@ -228,7 +313,7 @@ Content-Type: application/json
 
 ###
 
-### [16] Nadia consulte son dashboard — ne doit voir aucune annonce de Sofia (200 OK)
+### [20] Nadia consulte son dashboard — ne doit voir aucune annonce de Sofia (200 OK)
 GET {{baseUrl}}/api/v1/seller-listings
 
 > {%

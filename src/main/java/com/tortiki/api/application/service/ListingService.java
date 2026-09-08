@@ -7,6 +7,7 @@ import com.tortiki.api.application.port.out.GeolocationPort;
 import com.tortiki.api.application.port.out.ListingRepository;
 import com.tortiki.api.application.port.out.StoragePort;
 import com.tortiki.api.application.port.out.UserRepository;
+import com.tortiki.api.domain.exception.AddressNotGeocodableException;
 import com.tortiki.api.domain.exception.CuisineTypeNotFoundException;
 import com.tortiki.api.domain.exception.ListingNotFoundException;
 import com.tortiki.api.domain.exception.StorageException;
@@ -20,7 +21,6 @@ import com.tortiki.api.domain.model.User;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,6 +50,7 @@ public class ListingService implements ManageListingUseCase {
   private static final String LISTING_NOT_FOUND = "Annonce introuvable : ";
   private static final String SELLER_NOT_FOUND = "Vendeur introuvable : ";
   private static final String CUISINE_TYPE_NOT_FOUND = "Origine culinaire introuvable : ";
+  private static final String ADDRESS_NOT_GEOCODABLE = "Adresse non géolocalisable : ";
 
   private final ListingRepository listingRepository;
   private final UserRepository userRepository;
@@ -65,14 +66,16 @@ public class ListingService implements ManageListingUseCase {
     log.debug("Création annonce pour vendeur id={}", sellerId);
 
     User seller = userRepository.findById(sellerId)
-        .orElseThrow(() -> new UserNotFoundException(SELLER_NOT_FOUND + sellerId));
+            .orElseThrow(() -> new UserNotFoundException(SELLER_NOT_FOUND + sellerId));
 
     CuisineType cuisineType = cuisineTypeRepository.findById(command.cuisineTypeId())
-        .orElseThrow(() -> new CuisineTypeNotFoundException(
-            CUISINE_TYPE_NOT_FOUND + command.cuisineTypeId()));
+            .orElseThrow(() -> new CuisineTypeNotFoundException(
+                    CUISINE_TYPE_NOT_FOUND + command.cuisineTypeId()));
 
-    Optional<GeolocationPort.Coordinates> coords =
-        geolocationPort.geocode(command.pickupAddress());
+    GeolocationPort.GeocodedAddress geocoded = geolocationPort
+            .geocodeAddress(command.pickupAddress())
+            .orElseThrow(() -> new AddressNotGeocodableException(
+                    ADDRESS_NOT_GEOCODABLE + command.pickupAddress()));
 
     final List<Allergen> allergens = allergenRepository.findAllByIdIn(command.allergenIds());
 
@@ -86,16 +89,17 @@ public class ListingService implements ManageListingUseCase {
     listing.setPickupDatetime(command.pickupDatetime());
     listing.setCuisineType(cuisineType);
     listing.setAllergens(allergens);
-    listing.setPickupLat(coords.map(GeolocationPort.Coordinates::latitude).orElse(null));
-    listing.setPickupLng(coords.map(GeolocationPort.Coordinates::longitude).orElse(null));
+    listing.setPickupLat(geocoded.latitude());
+    listing.setPickupLng(geocoded.longitude());
+    listing.setCity(geocoded.city());
     listing.setStatus(ListingStatus.ACTIVE);
     listing.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
     listing.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
 
     Listing saved = listingRepository.save(listing);
-    log.info("Annonce créée id={} vendeur={} lat={} lng={}",
-        saved.getId(), sellerId,
-        saved.getPickupLat(), saved.getPickupLng());
+    log.info("Annonce créée id={} vendeur={} ville={} lat={} lng={}",
+            saved.getId(), sellerId, saved.getCity(),
+            saved.getPickupLat(), saved.getPickupLng());
     return saved;
   }
 
@@ -108,12 +112,15 @@ public class ListingService implements ManageListingUseCase {
     Listing existing = getListingOwnedBySeller(listingId, sellerId);
 
     if (!command.pickupAddress().equals(existing.getPickupAddress())) {
-      Optional<GeolocationPort.Coordinates> coords =
-          geolocationPort.geocode(command.pickupAddress());
-      existing.setPickupLat(coords.map(GeolocationPort.Coordinates::latitude).orElse(null));
-      existing.setPickupLng(coords.map(GeolocationPort.Coordinates::longitude).orElse(null));
-      log.debug("Adresse modifiée annonce id={} → lat={} lng={}",
-          listingId, existing.getPickupLat(), existing.getPickupLng());
+      GeolocationPort.GeocodedAddress geocoded = geolocationPort
+              .geocodeAddress(command.pickupAddress())
+              .orElseThrow(() -> new AddressNotGeocodableException(
+                      ADDRESS_NOT_GEOCODABLE + command.pickupAddress()));
+      existing.setPickupLat(geocoded.latitude());
+      existing.setPickupLng(geocoded.longitude());
+      existing.setCity(geocoded.city());
+      log.debug("Adresse modifiée annonce id={} → ville={} lat={} lng={}",
+              listingId, existing.getCity(), existing.getPickupLat(), existing.getPickupLng());
     }
 
     final List<Allergen> allergens = allergenRepository.findAllByIdIn(command.allergenIds());

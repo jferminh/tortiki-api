@@ -15,6 +15,7 @@ import com.tortiki.api.application.port.out.GeolocationPort;
 import com.tortiki.api.application.port.out.ListingRepository;
 import com.tortiki.api.application.port.out.StoragePort;
 import com.tortiki.api.application.port.out.UserRepository;
+import com.tortiki.api.domain.exception.AddressNotGeocodableException;
 import com.tortiki.api.domain.exception.CuisineTypeNotFoundException;
 import com.tortiki.api.domain.exception.ListingNotFoundException;
 import com.tortiki.api.domain.exception.UnauthorizedActionException;
@@ -124,8 +125,8 @@ class ListingServiceTest {
     when(userRepository.findById(1L)).thenReturn(Optional.of(sofia));
     when(cuisineTypeRepository.findById(10L)).thenReturn(Optional.of(ukrainienne));
     when(allergenRepository.findAllByIdIn(List.of())).thenReturn(List.of());
-    when(geolocationPort.geocode(anyString()))
-        .thenReturn(Optional.of(new GeolocationPort.Coordinates(48.57, 7.75)));
+    when(geolocationPort.geocodeAddress(anyString()))
+            .thenReturn(Optional.of(new GeolocationPort.GeocodedAddress(48.57, 7.75, "Strasbourg")));
     when(listingRepository.save(any(Listing.class))).thenReturn(listing);
 
     Listing result = listingService.create(1L, command);
@@ -137,20 +138,20 @@ class ListingServiceTest {
 
   @Test
   @Story("Création d'une annonce")
-  @Severity(SeverityLevel.NORMAL)
-  @Description("Nominatim indisponible — annonce créée sans coordonnées, pas d'exception.")
-  @DisplayName("create — crée l'annonce sans coordonnées si Nominatim échoue")
-  void create_shouldSaveListing_whenGeolocationReturnsEmpty() {
+  @Severity(SeverityLevel.CRITICAL)
+  @Description("Nominatim ne résout aucune localité pour l'adresse fournie — "
+          + "AddressNotGeocodableException levée avant toute tentative de persistance.")
+  @DisplayName("create — lève AddressNotGeocodableException si l'adresse n'est pas géolocalisable")
+  void create_shouldThrowAddressNotGeocodableException_whenGeolocationReturnsEmpty() {
     when(userRepository.findById(1L)).thenReturn(Optional.of(sofia));
     when(cuisineTypeRepository.findById(10L)).thenReturn(Optional.of(ukrainienne));
-    when(allergenRepository.findAllByIdIn(List.of())).thenReturn(List.of());
-    when(geolocationPort.geocode(anyString())).thenReturn(Optional.empty());
-    when(listingRepository.save(any(Listing.class))).thenReturn(listing);
+    when(geolocationPort.geocodeAddress(anyString())).thenReturn(Optional.empty());
 
-    Listing result = listingService.create(1L, command);
+    assertThatThrownBy(() -> listingService.create(1L, command))
+            .isInstanceOf(AddressNotGeocodableException.class)
+            .hasMessageContaining(command.pickupAddress());
 
-    assertThat(result).isNotNull();
-    verify(listingRepository).save(any(Listing.class));
+    verify(listingRepository, never()).save(any(Listing.class));
   }
 
   @Test
@@ -189,25 +190,25 @@ class ListingServiceTest {
   @DisplayName("update — met à jour une annonce et re-géocode si l'adresse change")
   void update_shouldUpdateListing_whenSellerIsOwner() {
     final ManageListingUseCase.Command updatedCommand = new ManageListingUseCase.Command(
-        "Bortsch maison — édition été",
-        "Recette estivale",
-        new BigDecimal("9.50"),
-        4,
-        "2 Allée Lys Rouge, 54000 Nancy",
-        LocalDateTime.of(2026, Month.JULY, 15, 12, 0),
-        10L,
-        List.of()
+            "Bortsch maison — édition été",
+            "Recette estivale",
+            new BigDecimal("9.50"),
+            4,
+            "2 Allée Lys Rouge, 54000 Nancy",
+            LocalDateTime.of(2026, Month.JULY, 15, 12, 0),
+            10L,
+            List.of()
     );
     when(listingRepository.findById(100L)).thenReturn(Optional.of(listing));
     when(allergenRepository.findAllByIdIn(List.of())).thenReturn(List.of());
-    when(geolocationPort.geocode(anyString()))
-        .thenReturn(Optional.of(new GeolocationPort.Coordinates(48.69, 6.18)));
+    when(geolocationPort.geocodeAddress(anyString()))
+            .thenReturn(Optional.of(new GeolocationPort.GeocodedAddress(48.69, 6.18, "Nancy")));
     when(listingRepository.save(any(Listing.class))).thenReturn(listing);
 
     Listing result = listingService.update(100L, 1L, updatedCommand);
 
     assertThat(result).isNotNull();
-    verify(geolocationPort).geocode("2 Allée Lys Rouge, 54000 Nancy");
+    verify(geolocationPort).geocodeAddress("2 Allée Lys Rouge, 54000 Nancy");
     verify(listingRepository).save(any(Listing.class));
   }
 
@@ -224,7 +225,7 @@ class ListingServiceTest {
     Listing result = listingService.update(100L, 1L, command);
 
     assertThat(result).isNotNull();
-    verify(geolocationPort, never()).geocode(anyString());
+    verify(geolocationPort, never()).geocodeAddress(anyString());
     verify(listingRepository).save(any(Listing.class));
   }
 
