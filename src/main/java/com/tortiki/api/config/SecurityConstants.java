@@ -108,6 +108,9 @@ public final class SecurityConstants {
   /** Route de modération des annonces signalées (Sprint 3). */
   public static final String ROUTE_ADMIN_LISTINGS_ALL = API_V1 + "/admin/listings/**";
 
+  /** Route d'upload ou de remplacement de la photo d'une annonce. */
+  public static final String ROUTE_LISTING_PHOTO = API_V1 + "/listings/{id}/photo";
+
   private SecurityConstants() {
     // Classe utilitaire — instanciation interdite
   }

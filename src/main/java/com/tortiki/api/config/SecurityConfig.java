@@ -166,8 +166,14 @@ public class SecurityConfig {
             .requestMatchers(HttpMethod.PUT,
                 SecurityConstants.ROUTE_LISTING_BY_ID
             ).hasRole(SecurityConstants.ROLE_SELLER)
+            .requestMatchers(HttpMethod.PUT,
+                SecurityConstants.ROUTE_LISTING_PHOTO
+            ).hasRole(SecurityConstants.ROLE_SELLER)
             .requestMatchers(HttpMethod.DELETE,
                 SecurityConstants.ROUTE_LISTING_BY_ID
+            ).hasRole(SecurityConstants.ROLE_SELLER)
+            .requestMatchers(HttpMethod.GET,
+                SecurityConstants.ROUTE_SELLER_LISTINGS
             ).hasRole(SecurityConstants.ROLE_SELLER)
             .requestMatchers(HttpMethod.GET,
                 SecurityConstants.ROUTE_SELLER_DASHBOARD_CONTACT_REQUESTS

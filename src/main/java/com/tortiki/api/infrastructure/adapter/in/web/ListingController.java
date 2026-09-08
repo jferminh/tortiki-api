@@ -10,12 +10,15 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+
+import java.io.IOException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -149,14 +152,16 @@ public class ListingController {
    * @param userDetails principal Spring Security
    * @return l'annonce mise à jour avec la nouvelle URL photo
    */
+  @PreAuthorize("hasRole(T(com.tortiki.api.config.SecurityConstants).ROLE_SELLER)")
   @PutMapping(value = "/{id}/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @Operation(summary = "Uploader la photo d'une annonce (ROLE_SELLER propriétaire)")
   @ApiResponse(responseCode = "200", description = "Photo mise à jour")
   @ApiResponse(responseCode = "400", description = "Fichier invalide")
+  @ApiResponse(responseCode = "403", description = "Rôle SELLER requis")
   public ResponseEntity<ListingResponse> updatePhoto(
       @PathVariable Long id,
       @RequestPart("photo") MultipartFile photo,
-      @AuthenticationPrincipal UserDetails userDetails) throws java.io.IOException {
+      @AuthenticationPrincipal UserDetails userDetails) throws IOException {
 
     Long sellerId = findUserUseCase.findByEmail(userDetails.getUsername()).getId();
     ManageListingUseCase.PhotoCommand photoCommand = new ManageListingUseCase.PhotoCommand(
