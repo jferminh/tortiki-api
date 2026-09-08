@@ -11,12 +11,12 @@ package com.tortiki.api.domain.exception;
  */
 public class AddressNotGeocodableException extends RuntimeException {
 
-    /**
-     * Construit l'exception avec un message descriptif.
-     *
-     * @param message description de l'erreur
-     */
-    public AddressNotGeocodableException(String message) {
-        super(message);
-    }
+  /**
+   * Construit l'exception avec un message descriptif.
+   *
+   * @param message description de l'erreur
+   */
+  public AddressNotGeocodableException(String message) {
+    super(message);
+  }
 }
